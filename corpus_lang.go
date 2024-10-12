@@ -12,22 +12,18 @@ type LanguageDefinition struct {
 	vowels          string // string with all vowels
 }
 
-var languageMatcher = language.NewMatcher([]language.Tag{
-	language.Danish,
-	language.English,
-})
-
 var languageDefinition = map[language.Tag]LanguageDefinition{
 	language.Danish:  {fileName: "corpus_dk.txt", validCharacters: "a-zæøå", vowels: "aeiouyæøå"},
 	language.English: {fileName: "corpus_en.txt", validCharacters: "a-z", vowels: "aeiouy"},
 }
 
-func GetLangCorpus(language language.Tag, wordSize int) (*Corpus, error) {
+func GetLangCorpus() (*Corpus, error) {
+	language := language.Danish
 	definition, ok := languageDefinition[language]
 	if !ok {
 		return nil, fmt.Errorf("unsupported language %s", language.String())
 	}
-	return GetFileCorpus(fmt.Sprintf("data/%s", definition.fileName), language, wordSize)
+	return GetFileCorpus(fmt.Sprintf("data/%s", definition.fileName))
 }
 
 func GetValidLanguageCharacters(language language.Tag) string {

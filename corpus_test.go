@@ -4,13 +4,11 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"golang.org/x/text/language"
 )
 
 func NewTestCorpus(wordSize int, content ...string) (*Corpus, error) {
 	data := strings.Join(content, "\n")
-	return NewCorpus(language.Danish, wordSize, strings.NewReader(data))
+	return NewCorpus(strings.NewReader(data))
 }
 
 func Test_scanWordsDK(t *testing.T) {
@@ -23,7 +21,7 @@ func Test_scanWordsDK(t *testing.T) {
 		[]rune("æbler"),
 		[]rune("æbles"),
 		[]rune("æblet")}
-	corpus, err := GetFileCorpus("data_test/corpus_dk_test.txt", language.Danish, 5)
+	corpus, err := GetFileCorpus("data_test/corpus_dk_test.txt")
 	if err != nil {
 		t.Errorf("scanWordsDK() : %v", err)
 		return

@@ -44,7 +44,7 @@ func TestGetLangCorpus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetLangCorpus(tt.args.language, tt.args.wordSize)
+			got, err := GetLangCorpus()
 			if tt.save > 0 {
 				save[tt.save] = got
 			}
