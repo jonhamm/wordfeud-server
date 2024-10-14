@@ -35,3 +35,4 @@ trindt
 ßabcd
 minér
 faldt
+quaker

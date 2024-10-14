@@ -30,7 +30,7 @@ func corpusCmd(options *gameOptions, args []string) *CorpusResult {
 	result.WordCount = corpus.wordCount
 	result.MaxWordLength = corpus.maxWordLength
 	p := message.NewPrinter(language.Danish)
-	p.Fprintf(out, "Number of words: %d\n", result.WordCount)
+	p.Fprintf(result.logger(), "Number of words: %d\n", result.WordCount)
 	p.Fprintf(out, "Longest word:    %d\n", result.MaxWordLength)
 	return result.result()
 }

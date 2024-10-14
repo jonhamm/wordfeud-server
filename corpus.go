@@ -21,9 +21,10 @@ type CorpusKey struct {
 }
 type Corpus struct {
 	key           CorpusKey
-	words         [][]rune
+	words         Words
 	wordCount     int
 	maxWordLength int
+	pieces        LanguagePieces
 }
 
 type CorpusIndex struct {
@@ -31,9 +32,16 @@ type CorpusIndex struct {
 	index  []int
 }
 
-func scanWords(f io.Reader) ([][]rune, error) {
+func scanWords(f io.Reader, pieces LanguagePieces) ([][]rune, error) {
 	words := make([][]rune, 0)
-	ptn := "^[a-zæøå]+$"
+	var sb strings.Builder
+	sb.WriteString("^[")
+	for _, r := range pieces {
+
+		sb.WriteRune(r.character)
+	}
+	sb.WriteString("]+$")
+	ptn := sb.String()
 	r, err := regexp.Compile(ptn)
 	if err != nil {
 		return words, err
@@ -77,7 +85,7 @@ func SetCorpus(corpus *Corpus) {
 	corpusCache.Add(corpus.key, corpus)
 }
 
-func GetFileCorpus(fileName string) (*Corpus, error) {
+func GetFileCorpus(fileName string, pieces LanguagePieces) (*Corpus, error) {
 	fsys := os.DirFS(".")
 	corpus := GetCorpus(fileName)
 	if corpus != nil {
@@ -88,7 +96,7 @@ func GetFileCorpus(fileName string) (*Corpus, error) {
 		return nil, err
 	}
 	defer f.Close()
-	corpus, err = NewCorpus(f)
+	corpus, err = NewCorpus(f, pieces)
 	if err != nil {
 		return nil, err
 	}
@@ -97,11 +105,12 @@ func GetFileCorpus(fileName string) (*Corpus, error) {
 	return corpus, nil
 }
 
-func NewCorpus(content io.Reader) (*Corpus, error) {
+func NewCorpus(content io.Reader, pices LanguagePieces) (*Corpus, error) {
 
 	var err error
 	corpus := new(Corpus)
-	corpus.words, err = scanWords(content)
+	corpus.pieces = pices
+	corpus.words, err = scanWords(content, corpus.pieces)
 	corpus.wordCount = len(corpus.words)
 	corpus.initStatistics()
 	return corpus, err
