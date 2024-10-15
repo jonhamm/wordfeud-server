@@ -19,18 +19,20 @@ type Words [][]rune
 type CorpusKey struct {
 	fileName string
 }
+
+type CorpusIndex struct {
+	corpus *Corpus
+	index  []int
+}
+
 type Corpus struct {
 	key             CorpusKey
 	words           Words
 	wordCount       int
 	maxWordLength   int
-	wordLengthIndex []CorpusIndex
+	wordLengthIndex [] /*wordlength*/ *CorpusIndex
+	runePosIndex    map[rune][] /*runePos*/ *CorpusIndex
 	pieces          LanguagePieces
-}
-
-type CorpusIndex struct {
-	corpus *Corpus
-	index  []int
 }
 
 var corpusCache *lru.Cache
@@ -127,12 +129,35 @@ func (corpus *Corpus) scanWords(f io.Reader) ([][]rune, error) {
 }
 
 func (corpus *Corpus) initStatistics() {
-	corpus.wordLengthIndex = make([]CorpusIndex, corpus.maxWordLength+1)
+	corpus.wordLengthIndex = make([]*CorpusIndex, corpus.maxWordLength+1)
+	for i := range corpus.wordLengthIndex {
+		corpus.wordLengthIndex[i] = NewCorpusIndex(corpus, []int{})
+	}
 
 	for i, word := range corpus.words {
 		length := len(word)
 		corpus.wordLengthIndex[length].index = append(corpus.wordLengthIndex[length].index, i)
+		corpus.runePosIndex = make(map[rune][]*CorpusIndex)
+		for p, r := range word {
+			index, found := corpus.runePosIndex[r]
+			if !found {
+				index = make([]*CorpusIndex, 0)
+				corpus.runePosIndex[r] = index
+			}
+			if p >= len(index) {
+				index = slices.Grow(index, p+1-len(index))
+				for n := len(index); n <= p; n++ {
+					index = append(index, nil)
+				}
+			}
+			if index[p] == nil {
+				index[p] = NewCorpusIndex(corpus, []int{})
+			}
+			index[p].index = append(index[p].index, i)
+		}
+
 	}
+
 }
 
 func (corpus *Corpus) WordList() [][]rune {
@@ -159,6 +184,16 @@ func (corpus *Corpus) GetWordLengthIndex(length int) []int {
 		return make([]int, 0)
 	}
 	return corpus.wordLengthIndex[length].index
+}
+func (corpus *Corpus) GetPositionIndex(character rune, position int) []int {
+	index, found := corpus.runePosIndex[character]
+	if !found {
+		return make([]int, 0)
+	}
+	if position < 0 || position >= len(index) {
+		return make([]int, 0)
+	}
+	return index[position].index
 }
 
 func (corpus *Corpus) PickRandomWord() (wordIndex int, word Word) {

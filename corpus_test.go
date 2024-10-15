@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -56,6 +57,7 @@ func Test_scanWordsDK(t *testing.T) {
 		t.Errorf("scanWordsDK() : %v", err)
 		return
 	}
+	testCorpusStatistics(t, corpus)
 
 	words := corpus.words
 
@@ -76,6 +78,10 @@ func Test_CorpusStatistics(t *testing.T) {
 		t.Errorf("CorpusStatistics() : %v", err)
 		return
 	}
+	testCorpusStatistics(t, corpus)
+}
+
+func testCorpusStatistics(t *testing.T, corpus *Corpus) {
 	maxWordLength := corpus.MaxWordLength()
 	wordOccurence := make([]int, corpus.wordCount)
 	wordsByLengthCount := 0
@@ -95,8 +101,26 @@ func Test_CorpusStatistics(t *testing.T) {
 			wordOccurence[x] = length
 		}
 	}
+	for i, w := range corpus.words {
+		for j, r := range w {
+			index := corpus.GetPositionIndex(r, j)
+			if !slices.Contains(index, i) {
+				t.Errorf("CorpusStatistics() positionIndex[%s,%d] has no entry %d for word[%d]: %s", runeToString(r), j, i, i, wordToString(w))
+				return
+			}
+		}
+	}
+
 }
 
+func runeToString(r rune) string {
+	var sb strings.Builder
+	sb.WriteString("'")
+	sb.WriteString(string(r))
+	sb.WriteString("'")
+
+	return sb.String()
+}
 func wordToString(runes []rune) string {
 	var sb strings.Builder
 	sb.WriteString("'")
