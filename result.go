@@ -55,9 +55,10 @@ func (w ActionResultErrorLogger) WriteString(str string) (int, error) {
 
 type CorpusResult struct {
 	ActionResult
-	Words         [][]rune `json:"words"`
-	WordCount     int
-	MaxWordLength int
+	Words           [][]rune `json:"words"`
+	WordCount       int
+	MaxWordLength   int
+	WordLengthIndex [][]int
 }
 
 func (a *ActionResult) logger() ActionResultLogger {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 
@@ -61,7 +60,7 @@ func Test_scanWordsDK(t *testing.T) {
 	words := corpus.words
 
 	for i, w := range words {
-		if !reflect.DeepEqual(result_runes[i], w) {
+		if !equalWord(result_runes[i], w) {
 			wants := runesToString(result_runes)
 			got := runesToString(words)
 			t.Errorf("scanWordsDK(,5) :\nwants:\n%v\ngot:\n%v\nwants[%d]: %s  got[%d]: %s", wants, got, i, wordToString(result_runes[i]), i, wordToString(words[i]))
@@ -69,6 +68,33 @@ func Test_scanWordsDK(t *testing.T) {
 		}
 	}
 
+}
+
+func Test_CorpusStatistics(t *testing.T) {
+	corpus, err := GetLangCorpus()
+	if err != nil {
+		t.Errorf("CorpusStatistics() : %v", err)
+		return
+	}
+	maxWordLength := corpus.MaxWordLength()
+	wordOccurence := make([]int, corpus.wordCount)
+	wordsByLengthCount := 0
+	for length := 1; length <= maxWordLength; length++ {
+		index := corpus.GetWordLengthIndex(length)
+		wordsByLengthCount += len(index)
+		for _, x := range index {
+			if x < 0 || x >= corpus.wordCount {
+				t.Errorf("CorpusStatistics() wordLengthIndex[%d] has index entry %d which is out of rage %d..%d", length, x, 0, corpus.wordCount)
+				return
+			}
+			if wordOccurence[x] != 0 {
+				t.Errorf("CorpusStatistics() wordLengthIndex[%d] has index entry %d which is also present in  wordLengthIndex[%d]", length, x, wordOccurence[x])
+				return
+			}
+
+			wordOccurence[x] = length
+		}
+	}
 }
 
 func wordToString(runes []rune) string {

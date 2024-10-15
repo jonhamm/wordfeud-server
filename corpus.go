@@ -20,48 +20,17 @@ type CorpusKey struct {
 	fileName string
 }
 type Corpus struct {
-	key           CorpusKey
-	words         Words
-	wordCount     int
-	maxWordLength int
-	pieces        LanguagePieces
+	key             CorpusKey
+	words           Words
+	wordCount       int
+	maxWordLength   int
+	wordLengthIndex []CorpusIndex
+	pieces          LanguagePieces
 }
 
 type CorpusIndex struct {
 	corpus *Corpus
 	index  []int
-}
-
-func scanWords(f io.Reader, pieces LanguagePieces) ([][]rune, error) {
-	words := make([][]rune, 0)
-	var sb strings.Builder
-	sb.WriteString("^[")
-	for _, r := range pieces {
-
-		sb.WriteRune(r.character)
-	}
-	sb.WriteString("]+$")
-	ptn := sb.String()
-	r, err := regexp.Compile(ptn)
-	if err != nil {
-		return words, err
-	}
-
-	s := bufio.NewScanner(f)
-
-	for s.Scan() {
-		line := s.Text()
-		if !r.MatchString(line) {
-			continue
-		}
-		word := MakeWord(line)
-		words = append(words, word)
-	}
-	sort.Slice(words, func(i int, j int) bool {
-		return slices.Compare(words[i], words[j]) < 0
-	})
-
-	return words, nil
 }
 
 var corpusCache *lru.Cache
@@ -110,7 +79,7 @@ func NewCorpus(content io.Reader, pices LanguagePieces) (*Corpus, error) {
 	var err error
 	corpus := new(Corpus)
 	corpus.pieces = pices
-	corpus.words, err = scanWords(content, corpus.pieces)
+	corpus.words, err = corpus.scanWords(content)
 	corpus.wordCount = len(corpus.words)
 	corpus.initStatistics()
 	return corpus, err
@@ -118,6 +87,52 @@ func NewCorpus(content io.Reader, pices LanguagePieces) (*Corpus, error) {
 
 func NewCorpusIndex(corpus *Corpus, index []int) *CorpusIndex {
 	return &CorpusIndex{corpus, index}
+}
+
+func (corpus *Corpus) scanWords(f io.Reader) ([][]rune, error) {
+	words := make([][]rune, 0, 10000)
+	var sb strings.Builder
+	sb.WriteString("^[")
+	for _, r := range corpus.pieces {
+
+		sb.WriteRune(r.character)
+	}
+	sb.WriteString("]+$")
+	ptn := sb.String()
+	r, err := regexp.Compile(ptn)
+	if err != nil {
+		return words, err
+	}
+
+	s := bufio.NewScanner(f)
+	corpus.maxWordLength = 0
+
+	for s.Scan() {
+		line := s.Text()
+		if !r.MatchString(line) {
+			continue
+		}
+		word := MakeWord(line)
+		words = append(words, word)
+		if len(word) > corpus.maxWordLength {
+			corpus.maxWordLength = len(word)
+
+		}
+	}
+	sort.Slice(words, func(i int, j int) bool {
+		return slices.Compare(words[i], words[j]) < 0
+	})
+
+	return words, nil
+}
+
+func (corpus *Corpus) initStatistics() {
+	corpus.wordLengthIndex = make([]CorpusIndex, corpus.maxWordLength+1)
+
+	for i, word := range corpus.words {
+		length := len(word)
+		corpus.wordLengthIndex[length].index = append(corpus.wordLengthIndex[length].index, i)
+	}
 }
 
 func (corpus *Corpus) WordList() [][]rune {
@@ -139,6 +154,13 @@ func (corpus *Corpus) GetWord(i int) Word {
 	return corpus.words[i]
 }
 
+func (corpus *Corpus) GetWordLengthIndex(length int) []int {
+	if length < 1 || length >= len(corpus.wordLengthIndex) {
+		return make([]int, 0)
+	}
+	return corpus.wordLengthIndex[length].index
+}
+
 func (corpus *Corpus) PickRandomWord() (wordIndex int, word Word) {
 	i := rand.Intn(corpus.wordCount)
 	return i, corpus.GetWord(i)
@@ -147,16 +169,6 @@ func (corpus *Corpus) PickRandomWord() (wordIndex int, word Word) {
 func (corpus *Corpus) FindWord(word Word) (wordIndex int, found bool) {
 	i := sort.Search(len(corpus.words), func(i int) bool { return slices.Compare(corpus.words[i], word) >= 0 })
 	return i, i < len(corpus.words) && slices.Compare(corpus.words[i], word) == 0
-}
-
-func (corpus *Corpus) initStatistics() {
-	corpus.maxWordLength = 0
-	for _, word := range corpus.words {
-		if len(word) > corpus.maxWordLength {
-			corpus.maxWordLength = len(word)
-		}
-	}
-
 }
 
 func (corpusIndex *CorpusIndex) FindIndex(x int) (int, bool) {
@@ -178,9 +190,10 @@ func (corpusIndex *CorpusIndex) FindIndex(x int) (int, bool) {
 	return result
 }
 */
-/* func equalWord(lhs Word, rhs Word) bool {
+
+func equalWord(lhs Word, rhs Word) bool {
 	return slices.Compare(lhs, rhs) == 0
-} */
+}
 
 func MakeWord(str string) Word {
 	var word Word = make([]rune, 0, len(str))
