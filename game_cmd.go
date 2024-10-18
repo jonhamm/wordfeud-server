@@ -37,5 +37,8 @@ func gameCmd(options *gameOptions, args []string) *GameResult {
 	p := message.NewPrinter(language.Danish)
 
 	p.Fprintf(result.logger(), "Game size: width=%d height=%d squares=%d\n", game.Width(), game.Height(), game.SquareCount())
+	if result.StartBoard != nil {
+		printBoard(result.logger(), result.StartBoard)
+	}
 	return result.result()
 }

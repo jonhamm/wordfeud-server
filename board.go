@@ -1,8 +1,9 @@
 package main
 
 type Square struct {
-	row     int8
-	column  int8
+	row     byte
+	column  byte
+	kind    byte
 	content rune
 }
 
@@ -20,13 +21,14 @@ func NewBoard(game *Game) *Board {
 	for i := range board.squares {
 		board.squares[i] = make([]Square, game.width)
 	}
-	var r int8
-	var c int8
+	var r byte
+	var c byte
 	for r = 0; r < game.height; r++ {
 		for c = 0; c < game.width; c++ {
 			square := &board.squares[r][c]
 			square.row = r
 			square.column = c
+			square.kind = 0
 			square.content = EMPTY
 		}
 	}

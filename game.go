@@ -5,12 +5,12 @@ import (
 	"slices"
 )
 
-const DW rune = '='
-const TW rune = '#'
-const DL rune = '+'
-const TL rune = '*'
-const EMPTY = '.'
-const JOKER = '?'
+const DW byte = '='
+const TW byte = '#'
+const DL byte = '+'
+const TL byte = '*'
+const EMPTY rune = '.'
+const JOKER rune = '?'
 
 const TL_COUNT = 12
 const DL_COUNT = 24
@@ -22,7 +22,7 @@ const WIDTH = 15
 const HEIGHT = 15
 
 type SpecialField struct {
-	kind  rune
+	kind  byte
 	count int
 }
 
@@ -35,13 +35,13 @@ var specialFields = SpecialFields{
 	SpecialField{TL, TL_COUNT},
 }
 
-type PieceValues map[rune]int8
+type PieceValues map[rune]byte
 
 type Move struct {
 	player     *Player
 	board      *Board
-	row        int8
-	column     int8
+	row        byte
+	column     byte
 	horizontal bool
 	word       Word
 }
@@ -54,16 +54,16 @@ type MoveResult struct {
 
 type Game struct {
 	corpus *Corpus
-	width  int8
-	height int8
+	width  byte
+	height byte
 	values PieceValues
 	pieces []rune
-	moves  []MoveResult
+	moves  []*MoveResult
 }
 
-func NewGame(corpus *Corpus, dimensions ...int8) *Game {
-	var width int8
-	var height int8
+func NewGame(corpus *Corpus, dimensions ...byte) *Game {
+	var width byte
+	var height byte
 	switch len(dimensions) {
 	case 0:
 		width = WIDTH
@@ -81,12 +81,12 @@ func NewGame(corpus *Corpus, dimensions ...int8) *Game {
 		height: height,
 		values: PieceValues{},
 		pieces: []rune{},
-		moves:  make([]MoveResult, 0),
+		moves:  make([]*MoveResult, 0),
 	}
 	for _, piece := range corpus.pieces {
 		game.values[piece.character] = piece.value
 		game.pieces = slices.Grow(game.pieces, len(game.pieces)+int(piece.initalCount))
-		var i int8
+		var i byte
 		for i = 0; i < piece.initalCount; i++ {
 			game.pieces = append(game.pieces, piece.character)
 		}
@@ -99,6 +99,7 @@ func NewGame(corpus *Corpus, dimensions ...int8) *Game {
 	startBoard := NewBoard(&game)
 
 	fillSpecialFields(startBoard)
+	game.moves = append(game.moves, MakeMoveResult(nil, nil, 0, startBoard))
 
 	return &game
 }
@@ -108,13 +109,22 @@ func fillSpecialFields(board *Board) {
 }
 
 func fillRandomSpecialFields(board *Board) {
-	emptySquares := make([]Square, board.game.SquareCount())
+	normalSquares := make([]*Square, board.game.SquareCount())
+	w := board.game.Width()
+	h := board.game.Height()
+	n := 0
+	for r := 0; r < h; r++ {
+		for c := 0; c < w; c++ {
+			normalSquares[n] = &board.squares[r][c]
+			n++
+		}
+	}
 	for _, f := range specialFields {
 		for i := 0; i < f.count; i++ {
-			n := rand.Intn(len(emptySquares))
-			square := emptySquares[n]
-			board.squares[square.row][square.column].content = f.kind
-			emptySquares = slices.Delete(emptySquares, n, n+1)
+			n := rand.Intn(len(normalSquares))
+			square := normalSquares[n]
+			board.squares[square.row][square.column].kind = f.kind
+			normalSquares = slices.Delete(normalSquares, n, n+1)
 		}
 	}
 }
@@ -152,8 +162,8 @@ func MakeMoveResult(
 
 func MakeMove(player *Player,
 	board *Board,
-	row int8,
-	column int8,
+	row byte,
+	column byte,
 	horizontal bool,
 	word Word) *Move {
 	return &Move{player, board, row, column, horizontal, word}
