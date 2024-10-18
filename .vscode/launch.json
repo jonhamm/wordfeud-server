@@ -28,7 +28,18 @@
             "program": "."
         },
         {
-            "name": "Test Current File",
+            "name": "debug game",
+            "args": [
+                "-debug=1",
+                "game"
+            ],
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "."
+        },
+        {
+            "name": "Test Debug",
             "type": "go",
             "request": "launch",
             "mode": "test",

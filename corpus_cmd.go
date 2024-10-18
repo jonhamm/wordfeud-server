@@ -26,7 +26,10 @@ func corpusCmd(options *gameOptions, args []string) *CorpusResult {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()
 	}
-	result.Words = corpus.words
+	result.Words = make([]string, len(corpus.words))
+	for i, w := range corpus.words {
+		result.Words[i] = string(w)
+	}
 	result.WordCount = corpus.wordCount
 	result.MaxWordLength = corpus.maxWordLength
 	result.WordLengthIndex = make([][]int, len(corpus.wordLengthIndex))

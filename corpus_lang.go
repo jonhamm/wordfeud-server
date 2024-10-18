@@ -8,8 +8,8 @@ import (
 
 type LanguagePiece struct {
 	character   rune
-	value       int
-	initalCount int
+	value       int8
+	initalCount int8
 }
 
 type LanguagePieces []LanguagePiece

@@ -47,7 +47,7 @@ func Test_scanWordsDK(t *testing.T) {
 		"æblets",
 	}
 
-	result_runes := make([][]rune, 0)
+	result_runes := make([]Word, 0)
 	for _, s := range result {
 		w := MakeWord(s)
 		result_runes = append(result_runes, w)
@@ -121,7 +121,7 @@ func runeToString(r rune) string {
 
 	return sb.String()
 }
-func wordToString(runes []rune) string {
+func wordToString(runes Word) string {
 	var sb strings.Builder
 	sb.WriteString("'")
 	sb.WriteString(string(runes))
@@ -130,7 +130,7 @@ func wordToString(runes []rune) string {
 	return sb.String()
 }
 
-func runesToString(runes [][]rune) string {
+func runesToString(runes []Word) string {
 	var sb strings.Builder
 
 	for i, r := range runes {

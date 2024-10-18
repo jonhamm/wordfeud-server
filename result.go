@@ -55,10 +55,19 @@ func (w ActionResultErrorLogger) WriteString(str string) (int, error) {
 
 type CorpusResult struct {
 	ActionResult
-	Words           [][]rune `json:"words"`
-	WordCount       int
-	MaxWordLength   int
-	WordLengthIndex [][]int
+	Words           []string                               `json:"words"`
+	WordCount       int                                    `json:"wordCount"`     // total number of words - i.e. len(Words)
+	MaxWordLength   int                                    `json:"maxWordLength"` // the longest word in Words
+	WordLengthIndex [] /*word length*/ [] /*word ids*/ int `json:"wordLengthIndex"`
+}
+
+type GameResult struct {
+	ActionResult
+	Width       int         `json:"width"`
+	Height      int         `json:"height"`
+	PieceValues PieceValues `json:"pieceValues"`
+	Pieces      []rune      `json:"pieces"`
+	StartBoard  *Board      `json:"startBoard"`
 }
 
 func (a *ActionResult) logger() ActionResultLogger {
@@ -74,6 +83,10 @@ func (a *ActionResult) setResult() {
 }
 
 func (r *CorpusResult) result() *CorpusResult {
+	r.setResult()
+	return r
+}
+func (r *GameResult) result() *GameResult {
 	r.setResult()
 	return r
 }

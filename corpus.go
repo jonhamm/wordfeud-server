@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"io"
-	"math/rand"
 	"os"
 	"regexp"
 	"slices"
@@ -14,7 +13,7 @@ import (
 )
 
 type Word []rune
-type Words [][]rune
+type Words []Word
 
 type CorpusKey struct {
 	fileName string
@@ -91,8 +90,8 @@ func NewCorpusIndex(corpus *Corpus, index []int) *CorpusIndex {
 	return &CorpusIndex{corpus, index}
 }
 
-func (corpus *Corpus) scanWords(f io.Reader) ([][]rune, error) {
-	words := make([][]rune, 0, 10000)
+func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
+	words := make(Words, 0, 10000)
 	var sb strings.Builder
 	sb.WriteString("^[")
 	for _, r := range corpus.pieces {
@@ -160,7 +159,7 @@ func (corpus *Corpus) initStatistics() {
 
 }
 
-func (corpus *Corpus) WordList() [][]rune {
+func (corpus *Corpus) WordList() Words {
 	return corpus.words
 }
 
@@ -194,11 +193,6 @@ func (corpus *Corpus) GetPositionIndex(character rune, position int) []int {
 		return make([]int, 0)
 	}
 	return index[position].index
-}
-
-func (corpus *Corpus) PickRandomWord() (wordIndex int, word Word) {
-	i := rand.Intn(corpus.wordCount)
-	return i, corpus.GetWord(i)
 }
 
 func (corpus *Corpus) FindWord(word Word) (wordIndex int, found bool) {
