@@ -36,7 +36,7 @@ type Corpus struct {
 	wordCount       int
 	maxWordLength   int
 	wordLengthIndex [] /*wordlength*/ *CorpusIndex
-	letterPosIndex  map[Letter][] /*runePos*/ *CorpusIndex
+	letterPosIndex  [] /*Letter*/ [] /*letterPos*/ *CorpusIndex
 	pieces          LanguagePieces
 }
 
@@ -150,18 +150,17 @@ func (corpus *Corpus) initStatistics() {
 	for i := range corpus.wordLengthIndex {
 		corpus.wordLengthIndex[i] = NewCorpusIndex(corpus, []int{})
 	}
-	//fp := message.NewPrinter(language.Danish)
 
-	corpus.letterPosIndex = make(map[Letter][]*CorpusIndex)
+	corpus.letterPosIndex = make([][]*CorpusIndex, corpus.letterMax)
+	for l := Letter(0); l < corpus.letterMax; l++ {
+		corpus.letterPosIndex[l] = make([]*CorpusIndex, 0)
+	}
 	for i, word := range corpus.words {
 		length := len(word)
 		corpus.wordLengthIndex[length].index = append(corpus.wordLengthIndex[length].index, i)
 
-		for p, r := range word {
-			index, found := corpus.letterPosIndex[r]
-			if !found {
-				index = make([]*CorpusIndex, 0)
-			}
+		for p, l := range word {
+			index := corpus.letterPosIndex[l]
 			if p >= len(index) {
 				index = slices.Grow(index, p+1-len(index))
 				for n := len(index); n <= p; n++ {
@@ -172,7 +171,7 @@ func (corpus *Corpus) initStatistics() {
 				index[p] = NewCorpusIndex(corpus, []int{})
 			}
 			index[p].index = append(index[p].index, i)
-			corpus.letterPosIndex[r] = index
+			corpus.letterPosIndex[l] = index
 		}
 
 	}
@@ -205,11 +204,8 @@ func (corpus *Corpus) GetWordLengthIndex(length int) []int {
 	return corpus.wordLengthIndex[length].index
 }
 func (corpus *Corpus) GetPositionIndex(character Letter, position int) []int {
-	index, found := corpus.letterPosIndex[character]
-	if !found {
-		return make([]int, 0)
-	}
-	if position < 0 || position >= len(index) {
+	index := corpus.letterPosIndex[character]
+	if position < 0 || position >= len(index) || index[position] == nil {
 		return make([]int, 0)
 	}
 	return index[position].index
