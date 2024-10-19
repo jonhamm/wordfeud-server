@@ -46,7 +46,7 @@ func Test_scanWordsDK(t *testing.T) {
 		"æblets",
 	}
 
-	corpus, err := GetFileCorpus("data_test/corpus_dk_test.txt", GetLanguagePieces(language.Danish))
+	corpus, err := GetFileCorpus("data_test/corpus_dk_test.txt", GetLanguageTiles(language.Danish))
 	if err != nil {
 		t.Errorf("scanWordsDK() : %v", err)
 		return

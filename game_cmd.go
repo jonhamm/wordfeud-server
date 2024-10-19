@@ -29,16 +29,13 @@ func gameCmd(options *gameOptions, args []string) *GameResult {
 	game := NewGame(corpus)
 	result.Width = int(game.width)
 	result.Height = int(game.height)
-	result.Pieces = game.pieces
-	if len(game.moves) > 0 {
-		result.StartBoard = game.moves[0].toBoard
-	}
-
+	result.LetterScores = game.letterScores
+	result.Board = game.board
 	p := message.NewPrinter(language.Danish)
 
 	p.Fprintf(result.logger(), "Game size: width=%d height=%d squares=%d\n", game.Width(), game.Height(), game.SquareCount())
-	if result.StartBoard != nil {
-		printBoard(result.logger(), result.StartBoard)
+	if game.board != nil {
+		printBoard(result.logger(), game.board)
 	}
 	return result.result()
 }

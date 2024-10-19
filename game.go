@@ -1,69 +1,29 @@
 package main
 
 import (
-	"math/rand"
 	"slices"
 )
-
-const DW byte = '='
-const TW byte = '#'
-const DL byte = '+'
-const TL byte = '*'
-const EMPTY rune = '.'
-const JOKER rune = '?'
-
-const TL_COUNT = 12
-const DL_COUNT = 24
-const TW_COUNT = 8
-const DW_COUNT = 16
 
 const JOKER_COUNT = 2
 const WIDTH = 15
 const HEIGHT = 15
 
-type SpecialField struct {
-	kind  byte
-	count int
-}
-
-type SpecialFields []SpecialField
-
-var specialFields = SpecialFields{
-	SpecialField{DW, DW_COUNT},
-	SpecialField{TW, TW_COUNT},
-	SpecialField{DL, DL_COUNT},
-	SpecialField{TL, TL_COUNT},
-}
-
-type PieceValues map[rune]byte
-
-type Move struct {
-	player     *Player
-	board      *Board
-	row        byte
-	column     byte
-	horizontal bool
-	word       Word
-}
-type MoveResult struct {
-	fromBoard *Board
-	move      *Move
-	score     int
-	toBoard   *Board
-}
+type Score uint
+type LetterScores [] /*Letter*/ Score
+type tileBag []Tile
 
 type Game struct {
-	corpus *Corpus
-	width  byte
-	height byte
-	values PieceValues
-	pieces []rune
-	moves  []*MoveResult
+	corpus       *Corpus
+	width        Coordinate
+	height       Coordinate
+	board        *Board
+	letterScores LetterScores
+	tiles        tileBag
 }
 
-func NewGame(corpus *Corpus, dimensions ...byte) *Game {
-	var width byte
-	var height byte
+func NewGame(corpus *Corpus, dimensions ...Coordinate) *Game {
+	var width Coordinate
+	var height Coordinate
 	switch len(dimensions) {
 	case 0:
 		width = WIDTH
@@ -76,79 +36,60 @@ func NewGame(corpus *Corpus, dimensions ...byte) *Game {
 		height = dimensions[1]
 	}
 	game := Game{
-		corpus: corpus,
-		width:  width,
-		height: height,
-		values: PieceValues{},
-		pieces: []rune{},
-		moves:  make([]*MoveResult, 0),
+		corpus:       corpus,
+		width:        width,
+		height:       height,
+		board:        nil,
+		letterScores: make(LetterScores, corpus.letterMax),
+		tiles:        []Tile{},
 	}
-	for _, piece := range corpus.pieces {
-		game.values[piece.character] = piece.value
-		game.pieces = slices.Grow(game.pieces, len(game.pieces)+int(piece.initalCount))
+	game.board = NewBoard(&game)
+
+	for _, tile := range corpus.tiles {
+		game.letterScores[game.corpus.runeLetter[tile.character]] = tile.value
+		game.tiles = slices.Grow(game.tiles, len(game.tiles)+int(tile.count))
 		var i byte
-		for i = 0; i < piece.initalCount; i++ {
-			game.pieces = append(game.pieces, piece.character)
+		for i = 0; i < tile.count; i++ {
+			game.tiles = append(game.tiles, Tile{false, corpus.runeLetter[tile.character]})
 		}
 		for i = 0; i < JOKER_COUNT; i++ {
-			game.pieces = append(game.pieces, JOKER)
+			game.tiles = append(game.tiles, Tile{true, 0})
 		}
 	}
-	game.values[JOKER] = 0
 
-	startBoard := NewBoard(&game)
-
-	fillSpecialFields(startBoard)
-	game.moves = append(game.moves, MakeMoveResult(nil, nil, 0, startBoard))
+	//game.moves = append(game.moves, MakeMoveResult(nil, nil, 0, startBoard))
 
 	return &game
-}
-
-func fillSpecialFields(board *Board) {
-	fillRandomSpecialFields(board)
-}
-
-func fillRandomSpecialFields(board *Board) {
-	normalSquares := make([]*Square, board.game.SquareCount())
-	w := board.game.Width()
-	h := board.game.Height()
-	n := 0
-	for r := 0; r < h; r++ {
-		for c := 0; c < w; c++ {
-			normalSquares[n] = &board.squares[r][c]
-			n++
-		}
-	}
-	for _, f := range specialFields {
-		for i := 0; i < f.count; i++ {
-			n := rand.Intn(len(normalSquares))
-			square := normalSquares[n]
-			board.squares[square.row][square.column].kind = f.kind
-			normalSquares = slices.Delete(normalSquares, n, n+1)
-		}
-	}
 }
 
 func (game *Game) SquareCount() int {
 	return int(game.width) * int(game.height)
 }
 
-func (game *Game) Width() int {
-	return int(game.width)
+func (game *Game) Width() Coordinate {
+	return game.width
 }
 
-func (game *Game) Height() int {
-	return int(game.height)
+func (game *Game) Height() Coordinate {
+	return game.height
 }
 
+func (game *Game) GetTileScore(tile Tile) Score {
+	if tile.joker {
+		return 0
+	}
+	return game.letterScores[tile.letter]
+}
+
+/*
 func (game *Game) PieceCount() int {
-	return len(game.pieces)
+	return len(game.tiles)
 }
 
 func (game *Game) DrawPiece() rune {
 	i := rand.Intn(game.PieceCount())
-	game.pieces = slices.Delete(game.pieces, i, i+1)
-	piece := game.pieces[i]
+	game.tiles = slices.Delete(game.tiles, i, i+1)
+	piece := game.tiles[i]
 	return piece
 }
 
@@ -168,3 +109,4 @@ func MakeMove(player *Player,
 	word Word) *Move {
 	return &Move{player, board, row, column, horizontal, word}
 }
+*/

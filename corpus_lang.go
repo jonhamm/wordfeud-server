@@ -6,48 +6,48 @@ import (
 	"golang.org/x/text/language"
 )
 
-type LanguagePiece struct {
-	character   rune
-	value       byte
-	initalCount byte
+type LanguageTile struct {
+	character rune
+	value     Score
+	count     byte
 }
 
-type LanguagePieces []LanguagePiece
+type LanguageTiles []LanguageTile
 type LanguageDefinition struct {
 	fileName string
-	pieces   LanguagePieces // string with all vowels
+	pieces   LanguageTiles // string with all vowels
 }
 
 var languageDefinition = map[language.Tag]LanguageDefinition{
 	language.Danish: {fileName: "corpus_dk.txt",
-		pieces: LanguagePieces{
-			LanguagePiece{'a', 7, 1},
-			LanguagePiece{'b', 4, 3},
-			LanguagePiece{'c', 2, 8},
-			LanguagePiece{'d', 5, 2},
-			LanguagePiece{'e', 9, 1},
-			LanguagePiece{'f', 3, 3},
-			LanguagePiece{'g', 3, 3},
-			LanguagePiece{'h', 2, 4},
-			LanguagePiece{'i', 4, 3},
-			LanguagePiece{'j', 2, 4},
-			LanguagePiece{'k', 4, 3},
-			LanguagePiece{'l', 5, 2},
-			LanguagePiece{'m', 3, 4},
-			LanguagePiece{'n', 7, 1},
-			LanguagePiece{'o', 5, 2},
-			LanguagePiece{'p', 2, 4},
-			LanguagePiece{'r', 7, 1},
-			LanguagePiece{'s', 6, 2},
-			LanguagePiece{'t', 6, 2},
-			LanguagePiece{'u', 3, 3},
-			LanguagePiece{'v', 3, 4},
-			LanguagePiece{'x', 1, 8},
-			LanguagePiece{'y', 2, 4},
-			LanguagePiece{'z', 1, 9},
-			LanguagePiece{'æ', 2, 4},
-			LanguagePiece{'ø', 2, 4},
-			LanguagePiece{'å', 2, 4},
+		pieces: LanguageTiles{
+			LanguageTile{'a', 7, 1},
+			LanguageTile{'b', 4, 3},
+			LanguageTile{'c', 2, 8},
+			LanguageTile{'d', 5, 2},
+			LanguageTile{'e', 9, 1},
+			LanguageTile{'f', 3, 3},
+			LanguageTile{'g', 3, 3},
+			LanguageTile{'h', 2, 4},
+			LanguageTile{'i', 4, 3},
+			LanguageTile{'j', 2, 4},
+			LanguageTile{'k', 4, 3},
+			LanguageTile{'l', 5, 2},
+			LanguageTile{'m', 3, 4},
+			LanguageTile{'n', 7, 1},
+			LanguageTile{'o', 5, 2},
+			LanguageTile{'p', 2, 4},
+			LanguageTile{'r', 7, 1},
+			LanguageTile{'s', 6, 2},
+			LanguageTile{'t', 6, 2},
+			LanguageTile{'u', 3, 3},
+			LanguageTile{'v', 3, 4},
+			LanguageTile{'x', 1, 8},
+			LanguageTile{'y', 2, 4},
+			LanguageTile{'z', 1, 9},
+			LanguageTile{'æ', 2, 4},
+			LanguageTile{'ø', 2, 4},
+			LanguageTile{'å', 2, 4},
 		}},
 
 	//language.English: {fileName: "corpus_en.txt", validCharacters: "a-z", vowels: "aeiouy"},
@@ -62,10 +62,10 @@ func GetLangCorpus() (*Corpus, error) {
 	return GetFileCorpus(fmt.Sprintf("data/%s", definition.fileName), definition.pieces)
 }
 
-func GetLanguagePieces(language language.Tag) LanguagePieces {
+func GetLanguageTiles(language language.Tag) LanguageTiles {
 	definition, ok := languageDefinition[language]
 	if ok {
 		return definition.pieces
 	}
-	return LanguagePieces{}
+	return LanguageTiles{}
 }

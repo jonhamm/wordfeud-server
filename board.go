@@ -1,15 +1,46 @@
 package main
 
-type Square struct {
-	row     byte
-	column  byte
-	kind    byte
-	content rune
+import (
+	"math/rand"
+	"slices"
+)
+
+type Square byte
+type Coordinate byte
+
+type Position struct {
+	row    Coordinate
+	column Coordinate
 }
+
+const (
+	DW Square = '='
+	TW Square = '#'
+	DL Square = '+'
+	TL Square = '*'
+)
+const TL_COUNT = 12
+const DL_COUNT = 24
+const TW_COUNT = 8
+const DW_COUNT = 16
 
 type Board struct {
 	game    *Game
 	squares [][]Square
+}
+
+type SpecialField struct {
+	kind  Square
+	count int
+}
+
+type SpecialFields []SpecialField
+
+var specialFields = SpecialFields{
+	SpecialField{DW, DW_COUNT},
+	SpecialField{TW, TW_COUNT},
+	SpecialField{DL, DL_COUNT},
+	SpecialField{TL, TL_COUNT},
 }
 
 func NewBoard(game *Game) *Board {
@@ -21,16 +52,45 @@ func NewBoard(game *Game) *Board {
 	for i := range board.squares {
 		board.squares[i] = make([]Square, game.width)
 	}
-	var r byte
-	var c byte
-	for r = 0; r < game.height; r++ {
-		for c = 0; c < game.width; c++ {
-			square := &board.squares[r][c]
-			square.row = r
-			square.column = c
-			square.kind = 0
-			square.content = EMPTY
+	board.fillSpecialFields()
+	return &board
+}
+
+func (board *Board) fillSpecialFields() {
+	board.fillRandomSpecialFields()
+}
+
+func (board *Board) fillRandomSpecialFields() {
+	normalSquares := make([]Position, board.game.SquareCount())
+	w := board.game.width
+	h := board.game.height
+	n := 0
+
+	for r := Coordinate(0); r < h; r++ {
+		for c := Coordinate(0); c < w; c++ {
+			normalSquares[n].row = r
+			normalSquares[n].column = c
+			n++
 		}
 	}
-	return &board
+	for _, f := range specialFields {
+		for i := 0; i < f.count; i++ {
+			n := rand.Intn(len(normalSquares))
+			square := normalSquares[n]
+			board.squares[square.row][square.column] = f.kind
+			normalSquares = slices.Delete(normalSquares, n, n+1)
+		}
+	}
+}
+
+func (board *Board) CalcTileScore(position Position, tile Tile) Score {
+	multiplier := Score(0)
+	tileScore := board.game.GetTileScore(tile)
+	switch board.squares[position.row][position.column] {
+	case DL:
+		multiplier = 2
+	case TL:
+		multiplier = 3
+	}
+	return multiplier * tileScore
 }

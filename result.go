@@ -63,11 +63,11 @@ type CorpusResult struct {
 
 type GameResult struct {
 	ActionResult
-	Width       int         `json:"width"`
-	Height      int         `json:"height"`
-	PieceValues PieceValues `json:"pieceValues"`
-	Pieces      []rune      `json:"pieces"`
-	StartBoard  *Board      `json:"startBoard"`
+	Width        int          `json:"width"`
+	Height       int          `json:"height"`
+	LetterScores LetterScores `json:"pieceValues"`
+	Tiles        []rune       `json:"tiles"`
+	Board        *Board       `json:"board"`
 }
 
 func (a *ActionResult) logger() ActionResultLogger {

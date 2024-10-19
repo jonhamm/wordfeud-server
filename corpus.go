@@ -37,7 +37,7 @@ type Corpus struct {
 	maxWordLength   int
 	wordLengthIndex [] /*wordlength*/ *CorpusIndex
 	letterPosIndex  [] /*Letter*/ [] /*letterPos*/ *CorpusIndex
-	pieces          LanguagePieces
+	tiles           LanguageTiles
 }
 
 var corpusCache *lru.Cache
@@ -61,7 +61,7 @@ func SetCorpus(corpus *Corpus) {
 	corpusCache.Add(corpus.key, corpus)
 }
 
-func GetFileCorpus(fileName string, pieces LanguagePieces) (*Corpus, error) {
+func GetFileCorpus(fileName string, tiles LanguageTiles) (*Corpus, error) {
 	fsys := os.DirFS(".")
 	corpus := GetCorpus(fileName)
 	if corpus != nil {
@@ -72,7 +72,7 @@ func GetFileCorpus(fileName string, pieces LanguagePieces) (*Corpus, error) {
 		return nil, err
 	}
 	defer f.Close()
-	corpus, err = NewCorpus(f, pieces)
+	corpus, err = NewCorpus(f, tiles)
 	if err != nil {
 		return nil, err
 	}
@@ -81,15 +81,15 @@ func GetFileCorpus(fileName string, pieces LanguagePieces) (*Corpus, error) {
 	return corpus, nil
 }
 
-func NewCorpus(content io.Reader, pieces LanguagePieces) (*Corpus, error) {
+func NewCorpus(content io.Reader, tiles LanguageTiles) (*Corpus, error) {
 
 	var err error
 	corpus := new(Corpus)
-	corpus.pieces = pieces
-	corpus.letterRune = make([]rune, len(pieces)+1)
+	corpus.tiles = tiles
+	corpus.letterRune = make([]rune, len(tiles)+1)
 	corpus.runeLetter = make(map[rune]Letter)
 	var n Letter = 0
-	for _, p := range pieces {
+	for _, p := range tiles {
 		n++
 		corpus.letterRune[n] = p.character
 		corpus.runeLetter[p.character] = n
