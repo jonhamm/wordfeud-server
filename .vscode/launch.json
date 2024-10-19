@@ -43,6 +43,7 @@
             "type": "go",
             "request": "launch",
             "mode": "test",
+            "console": "integratedTerminal",
             "program": ".",
             "env": {},
             "args": [],

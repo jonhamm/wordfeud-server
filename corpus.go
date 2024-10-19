@@ -12,7 +12,8 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-type Word []rune
+type Letter byte
+type Word []Letter
 type Words []Word
 
 type CorpusKey struct {
@@ -26,11 +27,16 @@ type CorpusIndex struct {
 
 type Corpus struct {
 	key             CorpusKey
+	letterRune      []rune
+	letterMax       Letter
+	firstLetter     Letter
+	lastLetter      Letter
+	runeLetter      map[rune]Letter
 	words           Words
 	wordCount       int
 	maxWordLength   int
 	wordLengthIndex [] /*wordlength*/ *CorpusIndex
-	runePosIndex    map[rune][] /*runePos*/ *CorpusIndex
+	letterPosIndex  map[Letter][] /*runePos*/ *CorpusIndex
 	pieces          LanguagePieces
 }
 
@@ -75,11 +81,24 @@ func GetFileCorpus(fileName string, pieces LanguagePieces) (*Corpus, error) {
 	return corpus, nil
 }
 
-func NewCorpus(content io.Reader, pices LanguagePieces) (*Corpus, error) {
+func NewCorpus(content io.Reader, pieces LanguagePieces) (*Corpus, error) {
 
 	var err error
 	corpus := new(Corpus)
-	corpus.pieces = pices
+	corpus.pieces = pieces
+	corpus.letterRune = make([]rune, len(pieces)+1)
+	corpus.runeLetter = make(map[rune]Letter)
+	var n Letter = 0
+	for _, p := range pieces {
+		n++
+		corpus.letterRune[n] = p.character
+		corpus.runeLetter[p.character] = n
+	}
+	if n > 0 {
+		corpus.firstLetter = 1
+		corpus.lastLetter = n
+		corpus.letterMax = n + 1
+	}
 	corpus.words, err = corpus.scanWords(content)
 	corpus.wordCount = len(corpus.words)
 	corpus.initStatistics()
@@ -94,9 +113,8 @@ func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
 	words := make(Words, 0, 10000)
 	var sb strings.Builder
 	sb.WriteString("^[")
-	for _, r := range corpus.pieces {
-
-		sb.WriteRune(r.character)
+	for _, l := range corpus.letterRune {
+		sb.WriteRune(l)
 	}
 	sb.WriteString("]+$")
 	ptn := sb.String()
@@ -113,7 +131,7 @@ func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
 		if !r.MatchString(line) {
 			continue
 		}
-		word := MakeWord(line)
+		word := corpus.MakeWord(line)
 		words = append(words, word)
 		if len(word) > corpus.maxWordLength {
 			corpus.maxWordLength = len(word)
@@ -132,16 +150,17 @@ func (corpus *Corpus) initStatistics() {
 	for i := range corpus.wordLengthIndex {
 		corpus.wordLengthIndex[i] = NewCorpusIndex(corpus, []int{})
 	}
+	//fp := message.NewPrinter(language.Danish)
 
+	corpus.letterPosIndex = make(map[Letter][]*CorpusIndex)
 	for i, word := range corpus.words {
 		length := len(word)
 		corpus.wordLengthIndex[length].index = append(corpus.wordLengthIndex[length].index, i)
-		corpus.runePosIndex = make(map[rune][]*CorpusIndex)
+
 		for p, r := range word {
-			index, found := corpus.runePosIndex[r]
+			index, found := corpus.letterPosIndex[r]
 			if !found {
 				index = make([]*CorpusIndex, 0)
-				corpus.runePosIndex[r] = index
 			}
 			if p >= len(index) {
 				index = slices.Grow(index, p+1-len(index))
@@ -153,6 +172,7 @@ func (corpus *Corpus) initStatistics() {
 				index[p] = NewCorpusIndex(corpus, []int{})
 			}
 			index[p].index = append(index[p].index, i)
+			corpus.letterPosIndex[r] = index
 		}
 
 	}
@@ -184,8 +204,8 @@ func (corpus *Corpus) GetWordLengthIndex(length int) []int {
 	}
 	return corpus.wordLengthIndex[length].index
 }
-func (corpus *Corpus) GetPositionIndex(character rune, position int) []int {
-	index, found := corpus.runePosIndex[character]
+func (corpus *Corpus) GetPositionIndex(character Letter, position int) []int {
+	index, found := corpus.letterPosIndex[character]
 	if !found {
 		return make([]int, 0)
 	}
@@ -224,21 +244,24 @@ func equalWord(lhs Word, rhs Word) bool {
 	return slices.Compare(lhs, rhs) == 0
 }
 
-func MakeWord(str string) Word {
-	var word Word = make([]rune, 0, len(str))
+func (corpus *Corpus) MakeWord(str string) Word {
+	var word Word = make(Word, 0, len(str))
 	for _, r := range str {
-		word = append(word, r)
+		l, ok := corpus.runeLetter[r]
+		if !ok {
+			return Word{}
+		}
+		word = append(word, l)
 	}
 	return word
 }
-
-func (word Word) String() string {
+func (word Word) String(corpus *Corpus) string {
 	var str strings.Builder
 	for _, c := range word {
 		if c == 0 {
 			break
 		}
-		str.WriteRune(c)
+		str.WriteRune(corpus.letterRune[c])
 	}
 	return str.String()
 }

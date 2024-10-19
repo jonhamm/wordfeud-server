@@ -47,25 +47,26 @@ func Test_scanWordsDK(t *testing.T) {
 		"æblets",
 	}
 
-	result_runes := make([]Word, 0)
-	for _, s := range result {
-		w := MakeWord(s)
-		result_runes = append(result_runes, w)
-	}
 	corpus, err := GetFileCorpus("data_test/corpus_dk_test.txt", GetLanguagePieces(language.Danish))
 	if err != nil {
 		t.Errorf("scanWordsDK() : %v", err)
 		return
 	}
+	result_letters := make([]Word, 0)
+	for _, s := range result {
+		w := corpus.MakeWord(s)
+		result_letters = append(result_letters, w)
+	}
+
 	testCorpusStatistics(t, corpus)
 
 	words := corpus.words
 
 	for i, w := range words {
-		if !equalWord(result_runes[i], w) {
-			wants := runesToString(result_runes)
+		if !equalWord(result_letters[i], w) {
+			wants := runesToString(result_letters)
 			got := runesToString(words)
-			t.Errorf("scanWordsDK(,5) :\nwants:\n%v\ngot:\n%v\nwants[%d]: %s  got[%d]: %s", wants, got, i, wordToString(result_runes[i]), i, wordToString(words[i]))
+			t.Errorf("scanWordsDK(,5) :\nwants:\n%v\ngot:\n%v\nwants[%d]: %s  got[%d]: %s", wants, got, i, corpus.wordToString(result_letters[i]), i, corpus.wordToString(words[i]))
 			return
 		}
 	}
@@ -105,7 +106,7 @@ func testCorpusStatistics(t *testing.T, corpus *Corpus) {
 		for j, r := range w {
 			index := corpus.GetPositionIndex(r, j)
 			if !slices.Contains(index, i) {
-				t.Errorf("CorpusStatistics() positionIndex[%s,%d] has no entry %d for word[%d]: %s", runeToString(r), j, i, i, wordToString(w))
+				t.Errorf("CorpusStatistics() positionIndex[%s,%d] has no entry %d for word[%d]: %s", corpus.letterToString(r), j, i, i, corpus.wordToString(w))
 				return
 			}
 		}
@@ -113,18 +114,18 @@ func testCorpusStatistics(t *testing.T, corpus *Corpus) {
 
 }
 
-func runeToString(r rune) string {
+func (corpus *Corpus) letterToString(l Letter) string {
 	var sb strings.Builder
 	sb.WriteString("'")
-	sb.WriteString(string(r))
+	sb.WriteString(string(corpus.letterRune[l]))
 	sb.WriteString("'")
 
 	return sb.String()
 }
-func wordToString(runes Word) string {
+func (corpus *Corpus) wordToString(word Word) string {
 	var sb strings.Builder
 	sb.WriteString("'")
-	sb.WriteString(string(runes))
+	sb.WriteString(word.String(corpus))
 	sb.WriteString("'")
 
 	return sb.String()
