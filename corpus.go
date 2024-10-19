@@ -203,12 +203,12 @@ func (corpus *Corpus) GetWordLengthIndex(length int) []int {
 	}
 	return corpus.wordLengthIndex[length].index
 }
-func (corpus *Corpus) GetPositionIndex(character Letter, position int) []int {
+func (corpus *Corpus) GetPositionIndex(character Letter, position int) *CorpusIndex {
 	index := corpus.letterPosIndex[character]
 	if position < 0 || position >= len(index) || index[position] == nil {
-		return make([]int, 0)
+		return &CorpusIndex{corpus, make([]int, 0)}
 	}
-	return index[position].index
+	return index[position]
 }
 
 func (corpus *Corpus) FindWord(word Word) (wordIndex int, found bool) {
@@ -260,4 +260,8 @@ func (word Word) String(corpus *Corpus) string {
 		str.WriteRune(corpus.letterRune[c])
 	}
 	return str.String()
+}
+
+func (index *CorpusIndex) Contains(x int) bool {
+	return slices.Contains(index.index, x)
 }

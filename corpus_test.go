@@ -1,7 +1,6 @@
 package main
 
 import (
-	"slices"
 	"strings"
 	"testing"
 
@@ -105,7 +104,7 @@ func testCorpusStatistics(t *testing.T, corpus *Corpus) {
 	for i, w := range corpus.words {
 		for j, r := range w {
 			index := corpus.GetPositionIndex(r, j)
-			if !slices.Contains(index, i) {
+			if !index.Contains(i) {
 				t.Errorf("CorpusStatistics() positionIndex[%s,%d] has no entry %d for word[%d]: %s", corpus.letterToString(r), j, i, i, corpus.wordToString(w))
 				return
 			}
