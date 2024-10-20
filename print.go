@@ -46,7 +46,7 @@ func printBoard(f io.Writer, board *Board) {
 	squares := board.squares
 	w := board.game.Width()
 	h := board.game.Height()
-	p.Fprintf(f, "    ")
+	p.Fprintf(f, "\n\n    ")
 	for c := Coordinate(0); c < w; c++ {
 		p.Fprintf(f, "%2d ", c)
 	}
@@ -89,5 +89,71 @@ func printBoard(f io.Writer, board *Board) {
 
 func printState(f io.Writer, state *GameState) {
 	p := message.NewPrinter(language.Danish)
+	board := state.game.board
+	corpus := state.game.corpus
+	squares := board.squares
+	w := board.game.Width()
+	h := board.game.Height()
+	tiles := state.tiles
+	p.Fprintf(f, "\n\n    ")
+	for c := Coordinate(0); c < w; c++ {
+		p.Fprintf(f, " %2d   ", c)
+	}
+	p.Fprintf(f, "\n")
+	for r := Coordinate(0); r < h; r++ {
+		p.Fprintf(f, "   ")
+		for c := Coordinate(0); c < w; c++ {
+			p.Fprintf(f, "+-----")
+		}
+		p.Fprintf(f, "+\n")
 
+		p.Fprintf(f, "   ")
+
+		for c := Coordinate(0); c < w; c++ {
+			s := squares[r][c]
+			k := "  "
+			switch s {
+			case DW:
+				k = "DW"
+			case TW:
+				k = "TW"
+			case DL:
+				k = "DL"
+			case TL:
+				k = "TL"
+			}
+			p.Fprintf(f, "|%s   ", k)
+		}
+		p.Fprintf(f, "|\n")
+
+		p.Fprintf(f, "%2d ", r)
+		for c := Coordinate(0); c < w; c++ {
+			t := tiles[r][c]
+			l := ' '
+			switch t.kind {
+			case TILE_LETTER:
+			case TILE_JOKER:
+				if t.letter != 0 {
+					l = corpus.letterRune[l]
+				}
+
+			}
+			p.Fprintf(f, "|  %c  ", l)
+
+		}
+		p.Fprintf(f, "|\n")
+
+		p.Fprintf(f, "   ")
+
+		for c := Coordinate(0); c < w; c++ {
+			p.Fprintf(f, "|     ")
+		}
+		p.Fprintf(f, "|\n")
+	}
+
+	p.Fprintf(f, "   ")
+	for c := Coordinate(0); c < w; c++ {
+		p.Fprintf(f, "+-----")
+	}
+	p.Fprintf(f, "+\n")
 }

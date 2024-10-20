@@ -47,7 +47,7 @@ type PlayerStates []PlayerState
 func InitialGameState(game *Game) *GameState {
 	state := &GameState{game: game, fromState: nil, move: nil, tiles: make(TileBoard, game.height)}
 	for r := Coordinate(0); r < game.height; r++ {
-		state.tiles[0] = make([]Tile, game.width)
+		state.tiles[r] = make([]Tile, game.width)
 	}
 
 	state.playerStates = make(PlayerStates, len(game.players))
