@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/rand"
 	"slices"
 )
 
@@ -19,9 +20,11 @@ type Game struct {
 	board        *Board
 	letterScores LetterScores
 	tiles        tileBag
+	players      []*Player
+	state        *GameState
 }
 
-func NewGame(corpus *Corpus, dimensions ...Coordinate) *Game {
+func NewGame(corpus *Corpus, players Players, dimensions ...Coordinate) *Game {
 	var width Coordinate
 	var height Coordinate
 	switch len(dimensions) {
@@ -42,6 +45,8 @@ func NewGame(corpus *Corpus, dimensions ...Coordinate) *Game {
 		board:        nil,
 		letterScores: make(LetterScores, corpus.letterMax),
 		tiles:        []Tile{},
+		players:      players,
+		state:        nil,
 	}
 	game.board = NewBoard(&game)
 
@@ -50,14 +55,14 @@ func NewGame(corpus *Corpus, dimensions ...Coordinate) *Game {
 		game.tiles = slices.Grow(game.tiles, len(game.tiles)+int(tile.count))
 		var i byte
 		for i = 0; i < tile.count; i++ {
-			game.tiles = append(game.tiles, Tile{false, corpus.runeLetter[tile.character]})
+			game.tiles = append(game.tiles, Tile{TILE_LETTER, corpus.runeLetter[tile.character]})
 		}
 		for i = 0; i < JOKER_COUNT; i++ {
-			game.tiles = append(game.tiles, Tile{true, 0})
+			game.tiles = append(game.tiles, Tile{TILE_JOKER, 0})
 		}
 	}
 
-	//game.moves = append(game.moves, MakeMoveResult(nil, nil, 0, startBoard))
+	game.state = InitialGameState(&game)
 
 	return &game
 }
@@ -75,10 +80,38 @@ func (game *Game) Height() Coordinate {
 }
 
 func (game *Game) GetTileScore(tile Tile) Score {
-	if tile.joker {
+	switch tile.kind {
+	case TILE_JOKER:
 		return 0
+	case TILE_NULL:
+		return 0
+	case TILE_LETTER:
+		return game.letterScores[tile.letter]
 	}
-	return game.letterScores[tile.letter]
+	return 0
+}
+
+func (game *Game) TakeTile() Tile {
+	n := len(game.tiles)
+	if n == 0 {
+		return Tile{TILE_NULL, 0}
+	}
+	i := rand.Intn(n)
+	t := game.tiles[i]
+	game.tiles = slices.Delete(game.tiles, i, i+1)
+	return t
+}
+
+func (game *Game) FillRack(rack Rack) Rack {
+	n := len(rack)
+	for n < int(RackSize) {
+		t := game.TakeTile()
+		if t.kind == TILE_NULL {
+			break
+		}
+		rack = append(rack, t)
+	}
+	return rack
 }
 
 /*
