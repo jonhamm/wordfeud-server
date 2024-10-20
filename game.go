@@ -53,13 +53,12 @@ func NewGame(corpus *Corpus, players Players, dimensions ...Coordinate) *Game {
 	for _, tile := range corpus.tiles {
 		game.letterScores[game.corpus.runeLetter[tile.character]] = tile.value
 		game.tiles = slices.Grow(game.tiles, len(game.tiles)+int(tile.count))
-		var i byte
-		for i = 0; i < tile.count; i++ {
+		for i := byte(0); i < tile.count; i++ {
 			game.tiles = append(game.tiles, Tile{TILE_LETTER, corpus.runeLetter[tile.character]})
 		}
-		for i = 0; i < JOKER_COUNT; i++ {
-			game.tiles = append(game.tiles, Tile{TILE_JOKER, 0})
-		}
+	}
+	for i := 0; byte(i) < JOKER_COUNT; i++ {
+		game.tiles = append(game.tiles, Tile{TILE_JOKER, 0})
 	}
 
 	game.state = InitialGameState(&game)
@@ -103,8 +102,8 @@ func (game *Game) TakeTile() Tile {
 }
 
 func (game *Game) FillRack(rack Rack) Rack {
-	n := len(rack)
-	for n < int(RackSize) {
+
+	for n := len(rack); n < int(RackSize); n++ {
 		t := game.TakeTile()
 		if t.kind == TILE_NULL {
 			break

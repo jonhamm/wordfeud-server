@@ -26,8 +26,8 @@ func BotPlayer(no PlayerNo) *Player {
 	}
 	if botPlayers[no] == nil {
 		p := message.NewPrinter(language.Danish)
-
-		botPlayers[no] = &Player{id: no, name: p.Sprintf("__BOT:%u__", no)}
+		name := p.Sprintf("__BOT:%v__", no)
+		botPlayers[no] = &Player{id: no, name: name}
 	}
 	return botPlayers[no]
 }

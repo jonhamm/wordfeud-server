@@ -42,7 +42,7 @@ type PlayerState struct {
 	rack   Rack
 }
 
-type PlayerStates []PlayerState
+type PlayerStates []*PlayerState
 
 func InitialGameState(game *Game) *GameState {
 	state := &GameState{game: game, fromState: nil, move: nil, tiles: make(TileBoard, game.height)}
@@ -52,12 +52,13 @@ func InitialGameState(game *Game) *GameState {
 
 	state.playerStates = make(PlayerStates, len(game.players))
 	for i := 0; i < len(state.playerStates); i++ {
-		state.playerStates[i].player = game.players[i]
-		state.playerStates[i].no = PlayerNo(i)
-		state.playerStates[i].score = 0
-		state.playerStates[i].rack = Rack{}
+		state.playerStates[i] = &PlayerState{
+			player: game.players[i],
+			no:     PlayerNo(i),
+			score:  0,
+			rack:   Rack{},
+		}
 		state.playerStates[i].rack = game.FillRack(state.playerStates[i].rack)
-
 	}
 	return state
 }

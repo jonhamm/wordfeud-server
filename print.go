@@ -156,4 +156,36 @@ func printState(f io.Writer, state *GameState) {
 		p.Fprintf(f, "+-----")
 	}
 	p.Fprintf(f, "+\n")
+	printPlayers(f, state.game, state.playerStates)
+
+}
+
+func printPlayers(f io.Writer, game *Game, players PlayerStates) {
+	p := message.NewPrinter(language.Danish)
+	if len(players) > 0 {
+		p.Fprint(f, "\n\n")
+	}
+	for _, p := range players {
+		printPlayer(f, game, p)
+	}
+
+}
+
+func printPlayer(f io.Writer, game *Game, player *PlayerState) {
+	p := message.NewPrinter(language.Danish)
+	p.Fprintf(f, "Player %v : %s\n", player.no, player.player.name)
+	p.Fprintf(f, "   Score: %v\n", player.score)
+	p.Fprintf(f, "    Rack: ")
+	for _, r := range player.rack {
+		switch r.kind {
+		case TILE_LETTER:
+			p.Fprintf(f, "%c(%v) ", game.corpus.letterRune[r.letter], game.letterScores[r.letter])
+		case TILE_JOKER:
+			p.Fprintf(f, "?(0) ")
+		case TILE_NULL:
+			p.Fprintf(f, "NULL")
+		}
+	}
+	p.Fprint(f, "\n")
+
 }
