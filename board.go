@@ -13,6 +13,8 @@ type Position struct {
 	column Coordinate
 }
 
+type Positions []Position
+
 const (
 	DW Square = '='
 	TW Square = '#'

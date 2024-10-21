@@ -3,10 +3,23 @@ package main
 type TileKind byte
 
 const (
-	TILE_NULL   = TileKind(0)
+	TILE_EMPTY  = TileKind(0)
 	TILE_JOKER  = TileKind(1)
 	TILE_LETTER = TileKind(2)
+	TILE_NONE   = TileKind(3)
 )
+
+type Direction byte
+
+const (
+	DIRECTION_NONE  = Direction(0)
+	DIRECTION_NORTH = Direction(1)
+	DIRECTION_EAST  = Direction(2)
+	DIRECTION_SOUTH = Direction(3)
+	DIRECTION_WEST  = Direction(4)
+)
+
+var AllDirections = []Direction{DIRECTION_NORTH, DIRECTION_EAST, DIRECTION_SOUTH, DIRECTION_WEST}
 
 type Tile struct {
 	kind   TileKind

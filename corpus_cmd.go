@@ -8,10 +8,10 @@ import (
 	"golang.org/x/text/message"
 )
 
-func corpusCmd(options *gameOptions, args []string) *CorpusResult {
+func corpusCmd(options *GameOptions, args []string) *CorpusResult {
 	result := new(CorpusResult)
 
-	flag := flag.NewFlagSet("solve", flag.ExitOnError)
+	flag := flag.NewFlagSet("exkt", flag.ExitOnError)
 	registerGlobalFlags(flag)
 
 	flag.Parse(args)

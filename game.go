@@ -14,6 +14,7 @@ type LetterScores [] /*Letter*/ Score
 type tileBag []Tile
 
 type Game struct {
+	options      *GameOptions
 	corpus       *Corpus
 	width        Coordinate
 	height       Coordinate
@@ -24,7 +25,7 @@ type Game struct {
 	state        *GameState
 }
 
-func NewGame(corpus *Corpus, players Players, dimensions ...Coordinate) *Game {
+func NewGame(options *GameOptions, corpus *Corpus, players Players, dimensions ...Coordinate) *Game {
 	var width Coordinate
 	var height Coordinate
 	switch len(dimensions) {
@@ -39,6 +40,7 @@ func NewGame(corpus *Corpus, players Players, dimensions ...Coordinate) *Game {
 		height = dimensions[1]
 	}
 	game := Game{
+		options:      options,
 		corpus:       corpus,
 		width:        width,
 		height:       height,
@@ -82,7 +84,7 @@ func (game *Game) GetTileScore(tile Tile) Score {
 	switch tile.kind {
 	case TILE_JOKER:
 		return 0
-	case TILE_NULL:
+	case TILE_EMPTY:
 		return 0
 	case TILE_LETTER:
 		return game.letterScores[tile.letter]
@@ -93,7 +95,7 @@ func (game *Game) GetTileScore(tile Tile) Score {
 func (game *Game) TakeTile() Tile {
 	n := len(game.tiles)
 	if n == 0 {
-		return Tile{TILE_NULL, 0}
+		return Tile{TILE_EMPTY, 0}
 	}
 	i := rand.Intn(n)
 	t := game.tiles[i]
@@ -105,7 +107,7 @@ func (game *Game) FillRack(rack Rack) Rack {
 
 	for n := len(rack); n < int(RackSize); n++ {
 		t := game.TakeTile()
-		if t.kind == TILE_NULL {
+		if t.kind == TILE_EMPTY {
 			break
 		}
 		rack = append(rack, t)

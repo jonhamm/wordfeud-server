@@ -8,7 +8,7 @@ import (
 	"golang.org/x/text/message"
 )
 
-func gameCmd(options *GameOptions, args []string) *GameResult {
+func autoplayCmd(options *GameOptions, args []string) *GameResult {
 	result := new(GameResult)
 
 	flag := flag.NewFlagSet("exit", flag.ExitOnError)
@@ -34,16 +34,15 @@ func gameCmd(options *GameOptions, args []string) *GameResult {
 	p := message.NewPrinter(language.Danish)
 
 	p.Fprintf(result.logger(), "Game size: width=%d height=%d squares=%d\n", game.Width(), game.Height(), game.SquareCount())
-	/*
-			if game.board != nil {
-		   		printBoard(result.logger(), game.board)
-		   	}
-	*/
-
 	state := game.state
 	if state != nil {
 		printState(result.logger(), state)
 	}
 
+	for n := 0; n < 10; n++ {
+		if !game.play() {
+			break
+		}
+	}
 	return result.result()
 }

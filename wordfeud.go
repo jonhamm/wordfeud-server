@@ -18,7 +18,7 @@ import (
 *
 */
 
-type gameOptions struct {
+type GameOptions struct {
 	help    bool
 	verbose bool
 	debug   int
@@ -54,7 +54,7 @@ const httpUsage = `
 `
 
 func main() {
-	var options gameOptions
+	var options GameOptions
 	var languageSpec string
 	options.out = os.Stdout
 	flag.Usage = func() { fmt.Fprint(options.out, usage) }
@@ -88,6 +88,9 @@ func main() {
 		fmt.Fprint(options.out, strings.Join(result.Log, "\n"))
 	case "game":
 		result := gameCmd(&options, args)
+		fmt.Fprint(options.out, strings.Join(result.Log, "\n"))
+	case "autoplay":
+		result := autoplayCmd(&options, args)
 		fmt.Fprint(options.out, strings.Join(result.Log, "\n"))
 	default:
 		fmt.Fprintf(options.out, "unknown subcommand '%q'.  (-help for more info)\n", cmd)
@@ -125,6 +128,6 @@ func StringVarFlag(f *flag.FlagSet, p *string, names []string, value string, usa
 	}
 }
 
-func (options gameOptions) copy() *gameOptions {
+func (options GameOptions) copy() *GameOptions {
 	return &options
 }

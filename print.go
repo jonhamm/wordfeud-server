@@ -182,7 +182,7 @@ func printPlayer(f io.Writer, game *Game, player *PlayerState) {
 			p.Fprintf(f, "%c(%v) ", game.corpus.letterRune[r.letter], game.letterScores[r.letter])
 		case TILE_JOKER:
 			p.Fprintf(f, "?(0) ")
-		case TILE_NULL:
+		case TILE_EMPTY:
 			p.Fprintf(f, "NULL")
 		}
 	}
