@@ -3,9 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
 )
 
 func autoplayCmd(options *GameOptions, args []string) *GameResult {
@@ -31,13 +28,6 @@ func autoplayCmd(options *GameOptions, args []string) *GameResult {
 	result.Height = int(game.height)
 	result.LetterScores = game.letterScores
 	result.Board = game.board
-	p := message.NewPrinter(language.Danish)
-
-	p.Fprintf(result.logger(), "Game size: width=%d height=%d squares=%d\n", game.Width(), game.Height(), game.SquareCount())
-	state := game.state
-	if state != nil {
-		printState(result.logger(), state)
-	}
 
 	for n := 0; n < 10; n++ {
 		if !game.play() {

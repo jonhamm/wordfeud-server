@@ -114,33 +114,3 @@ func (game *Game) FillRack(rack Rack) Rack {
 	}
 	return rack
 }
-
-/*
-func (game *Game) PieceCount() int {
-	return len(game.tiles)
-}
-
-func (game *Game) DrawPiece() rune {
-	i := rand.Intn(game.PieceCount())
-	game.tiles = slices.Delete(game.tiles, i, i+1)
-	piece := game.tiles[i]
-	return piece
-}
-
-func MakeMoveResult(
-	fromBoard *Board,
-	move *Move,
-	score int,
-	toBoard *Board) *MoveResult {
-	return &MoveResult{fromBoard, move, score, toBoard}
-}
-
-func MakeMove(player *Player,
-	board *Board,
-	row byte,
-	column byte,
-	horizontal bool,
-	word Word) *Move {
-	return &Move{player, board, row, column, horizontal, word}
-}
-*/

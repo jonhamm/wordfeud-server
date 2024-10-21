@@ -79,8 +79,10 @@ func (board *Board) fillRandomSpecialFields() {
 		for i := 0; i < f.count; i++ {
 			n := rand.Intn(len(normalSquares))
 			square := normalSquares[n]
-			board.squares[square.row][square.column] = f.kind
-			normalSquares = slices.Delete(normalSquares, n, n+1)
+			if square.row != h/2 && square.column != w/2 {
+				board.squares[square.row][square.column] = f.kind
+				normalSquares = slices.Delete(normalSquares, n, n+1)
+			}
 		}
 	}
 }

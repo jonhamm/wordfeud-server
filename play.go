@@ -42,7 +42,13 @@ func (state *GameState) Move(playerState *PlayerState) *GameState {
 		p.Fprintf(options.out, "\n\nMove for player %v : %s\n", playerState.no, playerState.player.name)
 		printState(options.out, state)
 	}
-	//anchors := state.GetAnchors()
+	anchors := state.GetAnchors()
+	if options.verbose {
+		p.Fprintf(options.out, "\nAnchors:\n")
+		for _, a := range anchors {
+			p.Fprintf(options.out, "   [%v,%v] \n", a.row, a.column)
+		}
+	}
 	return nil
 }
 
