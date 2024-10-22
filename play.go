@@ -7,7 +7,7 @@ import (
 
 func (game *Game) play() bool {
 	state := game.state
-	playerNo := game.nextPlayer()
+	playerNo := state.nextPlayer()
 	playerState := state.playerStates[playerNo]
 	//player := playerState.player
 	newState := state.Move(playerState)
@@ -18,14 +18,14 @@ func (game *Game) play() bool {
 	return false
 }
 
-func (game *Game) nextPlayer() PlayerNo {
-	if game.state.move == nil {
+func (state *GameState) nextPlayer() PlayerNo {
+	if state.move == nil {
 		return 0
 	}
-	for i, p := range game.players {
-		if game.state.move.player == p {
+	for i, p := range state.game.players {
+		if state.move.playerState.player == p {
 			n := i + 1
-			if n > len(game.players) {
+			if n > len(state.game.players) {
 				return 0
 			}
 			return PlayerNo(n)
@@ -42,15 +42,41 @@ func (state *GameState) Move(playerState *PlayerState) *GameState {
 		p.Fprintf(options.out, "\n\nMove for player %v : %s\n", playerState.no, playerState.player.name)
 		printState(options.out, state)
 	}
+
 	anchors := state.GetAnchors()
+
 	if options.verbose {
 		p.Fprintf(options.out, "\nAnchors:\n")
 		for _, a := range anchors {
 			p.Fprintf(options.out, "   [%v,%v] \n", a.row, a.column)
 		}
 	}
+
+	var bestMove *Move = nil
+	moveContext := MakeMoveContext(state, playerState)
+
+	for {
+		move := moveContext.NextMove()
+		if move == nil {
+			break
+		}
+		if move.score > bestMove.score {
+			bestMove = move
+		}
+	}
 	return nil
 }
+
+/* func (state *GameState) MoveOnAnchor(playerState *PlayerState, anchor Position) *GameState {
+	var p *message.Printer
+	options := state.game.options
+	if options.verbose {
+		p = message.NewPrinter(language.Danish)
+		p.Fprintf(options.out, "\n\nMoveAnchor [%v,%v\n", anchor.row, anchor.column)
+	}
+}
+
+*/
 
 func (state *GameState) GetAnchors() Positions {
 	anchors := make(Positions, 0)

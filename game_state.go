@@ -35,15 +35,6 @@ type GameState struct {
 	playerStates PlayerStates
 }
 
-type Move struct {
-	game       *Game
-	player     *Player
-	position   Position
-	horizontal bool
-	word       Word
-	score      Score
-}
-
 const RackSize = 7
 
 type Rack []Tile
