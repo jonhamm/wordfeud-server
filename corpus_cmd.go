@@ -21,7 +21,7 @@ func corpusCmd(options *GameOptions, args []string) *CorpusResult {
 		fmt.Fprintf(out, "options: %+v\n", options)
 	}
 
-	corpus, err := GetLangCorpus()
+	corpus, err := GetLanguageCorpus(options.language)
 	if err != nil {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()
@@ -41,6 +41,8 @@ func corpusCmd(options *GameOptions, args []string) *CorpusResult {
 	for i := 1; i <= corpus.MaxWordLength(); i++ {
 		p.Fprintf(result.logger(), "   %2d: %8d\n", i, len(corpus.GetWordLengthIndex(i)))
 	}
-	p.Fprintf(result.logger(), "Number of words: %d\n", result.WordCount)
+	p.Fprintf(result.logger(), "Number of words  : %d\n", result.WordCount)
+	p.Fprintf(result.logger(), "Total words size : %d\n", corpus.totalWordsSize)
+	p.Fprintf(result.logger(), "Word lengths     : %d .. %d\n", corpus.minWordLength, corpus.maxWordLength)
 	return result.result()
 }

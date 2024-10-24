@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"golang.org/x/text/language"
 )
 
 /*
@@ -19,10 +21,11 @@ import (
 */
 
 type GameOptions struct {
-	help    bool
-	verbose bool
-	debug   int
-	out     io.Writer
+	help     bool
+	verbose  bool
+	debug    int
+	out      io.Writer
+	language language.Tag
 }
 
 const usage = `
@@ -57,6 +60,7 @@ func main() {
 	var options GameOptions
 	var languageSpec string
 	options.out = os.Stdout
+	options.language = language.Danish
 	flag.Usage = func() { fmt.Fprint(options.out, usage) }
 	BoolVarFlag(flag.CommandLine, &options.verbose, []string{"verbose", "v"}, false, "show more output")
 	BoolVarFlag(flag.CommandLine, &options.help, []string{"help", "h"}, false, "print usage information")
@@ -74,6 +78,15 @@ func main() {
 		}
 		return
 	}
+	if len(languageSpec) > 0 {
+		tag, err := language.Default.Parse(languageSpec)
+		if err != nil {
+			fmt.Fprintf(options.out, "unknown language \"%s\"\n", languageSpec)
+			return
+		}
+		options.language = tag
+	}
+
 	cmd, args := args[0], args[1:]
 	if options.debug > 0 {
 		options.verbose = true

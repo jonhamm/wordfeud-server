@@ -25,7 +25,7 @@ type Game struct {
 	state        *GameState
 }
 
-func NewGame(options *GameOptions, corpus *Corpus, players Players, dimensions ...Coordinate) *Game {
+func NewGame(options *GameOptions, players Players, dimensions ...Coordinate) (*Game, error) {
 	var width Coordinate
 	var height Coordinate
 	switch len(dimensions) {
@@ -38,6 +38,10 @@ func NewGame(options *GameOptions, corpus *Corpus, players Players, dimensions .
 	default:
 		width = dimensions[0]
 		height = dimensions[1]
+	}
+	corpus, err := GetFileCorpus(GetLanguageFileName(options.language), GetLanguageAlphabet((options.language)))
+	if err != nil {
+		return nil, err
 	}
 	game := Game{
 		options:      options,
@@ -52,7 +56,7 @@ func NewGame(options *GameOptions, corpus *Corpus, players Players, dimensions .
 	}
 	game.board = NewBoard(&game)
 
-	for _, tile := range corpus.tiles {
+	for _, tile := range GetLanguageTiles(options.language) {
 		game.letterScores[game.corpus.runeLetter[tile.character]] = tile.value
 		game.tiles = slices.Grow(game.tiles, len(game.tiles)+int(tile.count))
 		for i := byte(0); i < tile.count; i++ {
@@ -65,7 +69,7 @@ func NewGame(options *GameOptions, corpus *Corpus, players Players, dimensions .
 
 	game.state = InitialGameState(&game)
 
-	return &game
+	return &game, nil
 }
 
 func (game *Game) SquareCount() int {

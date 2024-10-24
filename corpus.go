@@ -16,6 +16,8 @@ type Letter byte
 type Word []Letter
 type Words []Word
 
+type Alphabet []rune
+
 type CorpusKey struct {
 	fileName string
 }
@@ -27,6 +29,7 @@ type CorpusIndex struct {
 
 type Corpus struct {
 	key             CorpusKey
+	alphabet        Alphabet
 	letterRune      []rune
 	letterMax       Letter
 	firstLetter     Letter
@@ -34,10 +37,11 @@ type Corpus struct {
 	runeLetter      map[rune]Letter
 	words           Words
 	wordCount       int
+	minWordLength   int
 	maxWordLength   int
+	totalWordsSize  int
 	wordLengthIndex [] /*wordlength*/ *CorpusIndex
 	letterPosIndex  [] /*Letter*/ [] /*letterPos*/ *CorpusIndex
-	tiles           LanguageTiles
 }
 
 var corpusCache *lru.Cache
@@ -61,7 +65,7 @@ func SetCorpus(corpus *Corpus) {
 	corpusCache.Add(corpus.key, corpus)
 }
 
-func GetFileCorpus(fileName string, tiles LanguageTiles) (*Corpus, error) {
+func GetFileCorpus(fileName string, alphabet Alphabet) (*Corpus, error) {
 	fsys := os.DirFS(".")
 	corpus := GetCorpus(fileName)
 	if corpus != nil {
@@ -72,7 +76,7 @@ func GetFileCorpus(fileName string, tiles LanguageTiles) (*Corpus, error) {
 		return nil, err
 	}
 	defer f.Close()
-	corpus, err = NewCorpus(f, tiles)
+	corpus, err = NewCorpus(f, alphabet)
 	if err != nil {
 		return nil, err
 	}
@@ -81,18 +85,18 @@ func GetFileCorpus(fileName string, tiles LanguageTiles) (*Corpus, error) {
 	return corpus, nil
 }
 
-func NewCorpus(content io.Reader, tiles LanguageTiles) (*Corpus, error) {
+func NewCorpus(content io.Reader, alphabet Alphabet) (*Corpus, error) {
 
 	var err error
 	corpus := new(Corpus)
-	corpus.tiles = tiles
-	corpus.letterRune = make([]rune, len(tiles)+1)
+	corpus.alphabet = alphabet
+	corpus.letterRune = make([]rune, len(alphabet)+1)
 	corpus.runeLetter = make(map[rune]Letter)
 	var n Letter = 0
-	for _, p := range tiles {
+	for _, r := range alphabet {
 		n++
-		corpus.letterRune[n] = p.character
-		corpus.runeLetter[p.character] = n
+		corpus.letterRune[n] = r
+		corpus.runeLetter[r] = n
 	}
 	if n > 0 {
 		corpus.firstLetter = 1
@@ -133,9 +137,12 @@ func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
 		}
 		word := corpus.MakeWord(line)
 		words = append(words, word)
-		if len(word) > corpus.maxWordLength {
-			corpus.maxWordLength = len(word)
-
+		wordLength := len(word)
+		if wordLength > corpus.maxWordLength {
+			corpus.maxWordLength = wordLength
+		}
+		if corpus.minWordLength == 0 || wordLength < corpus.minWordLength {
+			corpus.minWordLength = wordLength
 		}
 	}
 	sort.Slice(words, func(i int, j int) bool {
@@ -157,6 +164,7 @@ func (corpus *Corpus) initStatistics() {
 	}
 	for i, word := range corpus.words {
 		length := len(word)
+		corpus.totalWordsSize += length
 		corpus.wordLengthIndex[length].index = append(corpus.wordLengthIndex[length].index, i)
 
 		for p, l := range word {

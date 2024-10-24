@@ -53,13 +53,20 @@ var languageDefinition = map[language.Tag]LanguageDefinition{
 	//language.English: {fileName: "corpus_en.txt", validCharacters: "a-z", vowels: "aeiouy"},
 }
 
-func GetLangCorpus() (*Corpus, error) {
-	language := language.Danish
+func GetLanguageCorpus(language language.Tag) (*Corpus, error) {
 	definition, ok := languageDefinition[language]
 	if !ok {
 		return nil, fmt.Errorf("unsupported language %s", language.String())
 	}
-	return GetFileCorpus(fmt.Sprintf("data/%s", definition.fileName), definition.pieces)
+	return GetFileCorpus(fmt.Sprintf("data/%s", definition.fileName), GetLanguageAlphabet(language))
+}
+
+func GetLanguageFileName(language language.Tag) string {
+	definition, ok := languageDefinition[language]
+	if ok {
+		return fmt.Sprintf("data/%s", definition.fileName)
+	}
+	return ""
 }
 
 func GetLanguageTiles(language language.Tag) LanguageTiles {
@@ -68,4 +75,16 @@ func GetLanguageTiles(language language.Tag) LanguageTiles {
 		return definition.pieces
 	}
 	return LanguageTiles{}
+}
+
+func GetLanguageAlphabet(language language.Tag) Alphabet {
+	definition, ok := languageDefinition[language]
+	if ok {
+		letters := make(Alphabet, len(definition.pieces))
+		for i, p := range definition.pieces {
+			letters[i] = p.character
+		}
+		return letters
+	}
+	return Alphabet{}
 }
