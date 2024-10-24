@@ -55,10 +55,11 @@ func (w ActionResultErrorLogger) WriteString(str string) (int, error) {
 
 type CorpusResult struct {
 	ActionResult
-	Words           []string                               `json:"words"`
-	WordCount       int                                    `json:"wordCount"`     // total number of words - i.e. len(Words)
-	MaxWordLength   int                                    `json:"maxWordLength"` // the longest word in Words
-	WordLengthIndex [] /*word length*/ [] /*word ids*/ int `json:"wordLengthIndex"`
+	Words          []string `json:"words"`
+	WordCount      int      `json:"wordCount"`      // total number of words - i.e. len(Words)
+	MinWordLength  int      `json:"minWordLength"`  // the shortest word in Words
+	MaxWordLength  int      `json:"maxWordLength"`  // the longest word in Words
+	TotalWordsSize int      `json:"totalWordsSize"` // the total number of characters in all word in Words
 }
 
 type GameResult struct {

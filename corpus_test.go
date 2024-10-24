@@ -57,8 +57,6 @@ func Test_scanWordsDK(t *testing.T) {
 		result_letters = append(result_letters, w)
 	}
 
-	testCorpusStatistics(t, corpus)
-
 	words := corpus.words
 
 	for i, w := range words {
@@ -72,47 +70,6 @@ func Test_scanWordsDK(t *testing.T) {
 
 }
 
-func Test_CorpusStatistics(t *testing.T) {
-	corpus, err := GetLanguageCorpus(language.Danish)
-	if err != nil {
-		t.Errorf("CorpusStatistics() : %v", err)
-		return
-	}
-	testCorpusStatistics(t, corpus)
-}
-
-func testCorpusStatistics(t *testing.T, corpus *Corpus) {
-	maxWordLength := corpus.MaxWordLength()
-	wordOccurence := make([]int, corpus.wordCount)
-	wordsByLengthCount := 0
-	for length := 1; length <= maxWordLength; length++ {
-		index := corpus.GetWordLengthIndex(length)
-		wordsByLengthCount += len(index)
-		for _, x := range index {
-			if x < 0 || x >= corpus.wordCount {
-				t.Errorf("CorpusStatistics() wordLengthIndex[%d] has index entry %d which is out of rage %d..%d", length, x, 0, corpus.wordCount)
-				return
-			}
-			if wordOccurence[x] != 0 {
-				t.Errorf("CorpusStatistics() wordLengthIndex[%d] has index entry %d which is also present in  wordLengthIndex[%d]", length, x, wordOccurence[x])
-				return
-			}
-
-			wordOccurence[x] = length
-		}
-	}
-	for i, w := range corpus.words {
-		for j, r := range w {
-			index := corpus.GetPositionIndex(r, j)
-			if !index.Contains(i) {
-				t.Errorf("CorpusStatistics() positionIndex[%s,%d] has no entry %d for word[%d]: %s", corpus.letterToString(r), j, i, i, corpus.wordToString(w))
-				return
-			}
-		}
-	}
-
-}
-
 func (corpus *Corpus) letterToString(l Letter) string {
 	var sb strings.Builder
 	sb.WriteString("'")
@@ -121,6 +78,7 @@ func (corpus *Corpus) letterToString(l Letter) string {
 
 	return sb.String()
 }
+
 func (corpus *Corpus) wordToString(word Word) string {
 	var sb strings.Builder
 	sb.WriteString("'")

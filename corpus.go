@@ -28,20 +28,18 @@ type CorpusIndex struct {
 }
 
 type Corpus struct {
-	key             CorpusKey
-	alphabet        Alphabet
-	letterRune      []rune
-	letterMax       Letter
-	firstLetter     Letter
-	lastLetter      Letter
-	runeLetter      map[rune]Letter
-	words           Words
-	wordCount       int
-	minWordLength   int
-	maxWordLength   int
-	totalWordsSize  int
-	wordLengthIndex [] /*wordlength*/ *CorpusIndex
-	letterPosIndex  [] /*Letter*/ [] /*letterPos*/ *CorpusIndex
+	key            CorpusKey
+	alphabet       Alphabet
+	letterRune     []rune
+	letterMax      Letter
+	firstLetter    Letter
+	lastLetter     Letter
+	runeLetter     map[rune]Letter
+	words          Words
+	wordCount      int
+	minWordLength  int
+	maxWordLength  int
+	totalWordsSize int
 }
 
 var corpusCache *lru.Cache
@@ -105,7 +103,6 @@ func NewCorpus(content io.Reader, alphabet Alphabet) (*Corpus, error) {
 	}
 	corpus.words, err = corpus.scanWords(content)
 	corpus.wordCount = len(corpus.words)
-	corpus.initStatistics()
 	return corpus, err
 }
 
@@ -144,46 +141,13 @@ func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
 		if corpus.minWordLength == 0 || wordLength < corpus.minWordLength {
 			corpus.minWordLength = wordLength
 		}
+		corpus.totalWordsSize += wordLength
 	}
 	sort.Slice(words, func(i int, j int) bool {
 		return slices.Compare(words[i], words[j]) < 0
 	})
 
 	return words, nil
-}
-
-func (corpus *Corpus) initStatistics() {
-	corpus.wordLengthIndex = make([]*CorpusIndex, corpus.maxWordLength+1)
-	for i := range corpus.wordLengthIndex {
-		corpus.wordLengthIndex[i] = NewCorpusIndex(corpus, []int{})
-	}
-
-	corpus.letterPosIndex = make([][]*CorpusIndex, corpus.letterMax)
-	for l := Letter(0); l < corpus.letterMax; l++ {
-		corpus.letterPosIndex[l] = make([]*CorpusIndex, 0)
-	}
-	for i, word := range corpus.words {
-		length := len(word)
-		corpus.totalWordsSize += length
-		corpus.wordLengthIndex[length].index = append(corpus.wordLengthIndex[length].index, i)
-
-		for p, l := range word {
-			index := corpus.letterPosIndex[l]
-			if p >= len(index) {
-				index = slices.Grow(index, p+1-len(index))
-				for n := len(index); n <= p; n++ {
-					index = append(index, nil)
-				}
-			}
-			if index[p] == nil {
-				index[p] = NewCorpusIndex(corpus, []int{})
-			}
-			index[p].index = append(index[p].index, i)
-			corpus.letterPosIndex[l] = index
-		}
-
-	}
-
 }
 
 func (corpus *Corpus) WordList() Words {
@@ -203,20 +167,6 @@ func (corpus *Corpus) GetWord(i int) Word {
 		return make(Word, 0)
 	}
 	return corpus.words[i]
-}
-
-func (corpus *Corpus) GetWordLengthIndex(length int) []int {
-	if length < 1 || length >= len(corpus.wordLengthIndex) {
-		return make([]int, 0)
-	}
-	return corpus.wordLengthIndex[length].index
-}
-func (corpus *Corpus) GetPositionIndex(character Letter, position int) *CorpusIndex {
-	index := corpus.letterPosIndex[character]
-	if position < 0 || position >= len(index) || index[position] == nil {
-		return &CorpusIndex{corpus, make([]int, 0)}
-	}
-	return index[position]
 }
 
 func (corpus *Corpus) FindWord(word Word) (wordIndex int, found bool) {

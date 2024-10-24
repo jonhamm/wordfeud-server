@@ -31,18 +31,13 @@ func corpusCmd(options *GameOptions, args []string) *CorpusResult {
 		result.Words[i] = string(w)
 	}
 	result.WordCount = corpus.wordCount
+	result.MinWordLength = corpus.minWordLength
 	result.MaxWordLength = corpus.maxWordLength
-	result.WordLengthIndex = make([][]int, len(corpus.wordLengthIndex))
-	for i, x := range corpus.wordLengthIndex {
-		result.WordLengthIndex[i] = x.index
-	}
+	result.TotalWordsSize = corpus.totalWordsSize
+
 	p := message.NewPrinter(language.Danish)
-	p.Fprintf(result.logger(), "Word length frequencies:    \n")
-	for i := 1; i <= corpus.MaxWordLength(); i++ {
-		p.Fprintf(result.logger(), "   %2d: %8d\n", i, len(corpus.GetWordLengthIndex(i)))
-	}
 	p.Fprintf(result.logger(), "Number of words  : %d\n", result.WordCount)
-	p.Fprintf(result.logger(), "Total words size : %d\n", corpus.totalWordsSize)
-	p.Fprintf(result.logger(), "Word lengths     : %d .. %d\n", corpus.minWordLength, corpus.maxWordLength)
+	p.Fprintf(result.logger(), "Total words size : %d\n", result.TotalWordsSize)
+	p.Fprintf(result.logger(), "Word lengths     : %d .. %d\n", result.MinWordLength, result.MaxWordLength)
 	return result.result()
 }
