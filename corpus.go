@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"regexp"
@@ -17,6 +18,10 @@ type Word []Letter
 type Words []Word
 
 type Alphabet []rune
+
+const AlphabetMax = byte(32) // max 32 (0..31) letters in alphabet
+// OBS if AlphabetMax is changed, so must the definition below of LetterSet
+type LetterSet uint32 // set of Letter - i.e. bitset of 0..31
 
 type CorpusKey struct {
 	fileName string
@@ -93,6 +98,9 @@ func NewCorpus(content io.Reader, alphabet Alphabet) (*Corpus, error) {
 	var n Letter = 0
 	for _, r := range alphabet {
 		n++
+		if n >= Letter(AlphabetMax) {
+			return nil, fmt.Errorf("the alphabet specified has more than %v characters", AlphabetMax)
+		}
 		corpus.letterRune[n] = r
 		corpus.runeLetter[r] = n
 	}
@@ -209,6 +217,11 @@ func (corpus *Corpus) MakeWord(str string) Word {
 	}
 	return word
 }
+
+func (corpus *Corpus) String(letterSet *LetterSet) string {
+	return letterSet.String((corpus))
+}
+
 func (word Word) String(corpus *Corpus) string {
 	var str strings.Builder
 	for _, c := range word {
@@ -222,4 +235,36 @@ func (word Word) String(corpus *Corpus) string {
 
 func (index *CorpusIndex) Contains(x int) bool {
 	return slices.Contains(index.index, x)
+}
+
+func (letterSet LetterSet) test(letter Letter) bool {
+	return (letterSet & (1 << letter)) != 0
+}
+
+func (letterSet *LetterSet) set(letter Letter) *LetterSet {
+	*letterSet |= LetterSet(1 << letter)
+	return letterSet
+}
+
+func (letterSet *LetterSet) unset(letter Letter) *LetterSet {
+	*letterSet &^= LetterSet(1 << letter)
+	return letterSet
+}
+
+func (letterSet *LetterSet) String(corpus *Corpus) string {
+	var s strings.Builder
+	var first = true
+	s.WriteRune('[')
+	for l := corpus.firstLetter; l <= corpus.lastLetter; l++ {
+		if letterSet.test(l) {
+			if first {
+				first = false
+			} else {
+				s.WriteRune(',')
+			}
+			s.WriteRune(rune(corpus.letterRune[l]))
+		}
+	}
+	s.WriteRune(']')
+	return s.String()
 }
