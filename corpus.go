@@ -254,7 +254,7 @@ func (letterSet *LetterSet) unset(letter Letter) *LetterSet {
 func (letterSet *LetterSet) String(corpus *Corpus) string {
 	var s strings.Builder
 	var first = true
-	s.WriteRune('[')
+	s.WriteRune('{')
 	for l := corpus.firstLetter; l <= corpus.lastLetter; l++ {
 		if letterSet.test(l) {
 			if first {
@@ -265,6 +265,6 @@ func (letterSet *LetterSet) String(corpus *Corpus) string {
 			s.WriteRune(rune(corpus.letterRune[l]))
 		}
 	}
-	s.WriteRune(']')
+	s.WriteRune('}')
 	return s.String()
 }
