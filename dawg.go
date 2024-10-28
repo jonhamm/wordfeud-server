@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-const TRACE = true
+const TRACE = false
 
 type CRC uint32
 type ID uint32
@@ -401,7 +401,7 @@ func (dawg *Dawg) printState(state State) {
 func (dawg *Dawg) fprintState(f io.Writer, state State) {
 	startNode := "node#nil"
 	if state.startNode != nil {
-		startNode = fmt.Sprintf("node#%v\n", state.startNode.id)
+		startNode = fmt.Sprintf("node#%v", state.startNode.id)
 	}
 	fmt.Fprintf(f, "state startNode:%s\n", startNode)
 	for i, v := range state.vertices {
