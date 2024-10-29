@@ -99,6 +99,9 @@ func main() {
 	case "corpus":
 		result := corpusCmd(&options, args)
 		fmt.Fprint(options.out, strings.Join(result.Log, "\n"))
+	case "dawg":
+		result := dawgCmd(&options, args)
+		fmt.Fprint(options.out, strings.Join(result.Log, "\n"))
 	case "game":
 		result := gameCmd(&options, args)
 		fmt.Fprint(options.out, strings.Join(result.Log, "\n"))

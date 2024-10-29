@@ -71,6 +71,12 @@ type GameResult struct {
 	Board        *Board       `json:"board"`
 }
 
+type DawgResult struct {
+	ActionResult
+	NodeCount   int `json:"nodeCount"`
+	VertexCount int `json:"vertexCount"`
+}
+
 func (a *ActionResult) logger() ActionResultLogger {
 	return ActionResultLogger{a}
 }
@@ -87,7 +93,13 @@ func (r *CorpusResult) result() *CorpusResult {
 	r.setResult()
 	return r
 }
+
 func (r *GameResult) result() *GameResult {
+	r.setResult()
+	return r
+}
+
+func (r *DawgResult) result() *DawgResult {
 	r.setResult()
 	return r
 }
