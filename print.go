@@ -2,9 +2,7 @@ package main
 
 import (
 	"io"
-
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
+	"unicode"
 )
 
 func printBoard(f io.Writer, board *Board) {
@@ -42,7 +40,7 @@ func printBoard(f io.Writer, board *Board) {
 		14 |  |  |  |  |  |  |DW|  |DL|  |  |  |  |  |TL|
 		   +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 	*/
-	p := message.NewPrinter(language.Danish)
+	p := board.game.board.game.fmt
 	squares := board.squares
 	w := board.game.Width()
 	h := board.game.Height()
@@ -88,7 +86,7 @@ func printBoard(f io.Writer, board *Board) {
 }
 
 func printState(f io.Writer, state *GameState) {
-	p := message.NewPrinter(language.Danish)
+	p := state.game.fmt
 	board := state.game.board
 	corpus := state.game.corpus
 	squares := board.squares
@@ -134,7 +132,7 @@ func printState(f io.Writer, state *GameState) {
 			case TILE_LETTER:
 			case TILE_JOKER:
 				if t.letter != 0 {
-					l = corpus.letterRune[l]
+					l = unicode.ToUpper(corpus.letterRune[l])
 				}
 
 			}
@@ -161,9 +159,8 @@ func printState(f io.Writer, state *GameState) {
 }
 
 func printPlayers(f io.Writer, game *Game, players PlayerStates) {
-	p := message.NewPrinter(language.Danish)
 	if len(players) > 0 {
-		p.Fprint(f, "\n\n")
+		game.fmt.Fprint(f, "\n\n")
 	}
 	for _, p := range players {
 		printPlayer(f, game, p)
@@ -172,20 +169,25 @@ func printPlayers(f io.Writer, game *Game, players PlayerStates) {
 }
 
 func printPlayer(f io.Writer, game *Game, player *PlayerState) {
-	p := message.NewPrinter(language.Danish)
+	p := game.fmt
 	p.Fprintf(f, "Player %v : %s\n", player.no, player.player.name)
 	p.Fprintf(f, "   Score: %v\n", player.score)
 	p.Fprintf(f, "    Rack: ")
-	for _, r := range player.rack {
+	printRack(f, game, player.rack)
+	p.Fprint(f, "\n")
+
+}
+
+func printRack(f io.Writer, game *Game, rack Rack) {
+	p := game.fmt
+	for _, r := range rack {
 		switch r.kind {
 		case TILE_LETTER:
-			p.Fprintf(f, "%c(%v) ", game.corpus.letterRune[r.letter], game.letterScores[r.letter])
+			p.Fprintf(f, "%c(%v) ", unicode.ToUpper(game.corpus.letterRune[r.letter]), game.letterScores[r.letter])
 		case TILE_JOKER:
 			p.Fprintf(f, "?(0) ")
 		case TILE_EMPTY:
 			p.Fprintf(f, "NULL")
 		}
 	}
-	p.Fprint(f, "\n")
-
 }

@@ -1,8 +1,7 @@
 package main
 
 import (
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
+	"fmt"
 )
 
 type PlayerNo uint
@@ -25,8 +24,7 @@ func BotPlayer(no PlayerNo) *Player {
 		return nil
 	}
 	if botPlayers[no] == nil {
-		p := message.NewPrinter(language.Danish)
-		name := p.Sprintf("__BOT:%v__", no)
+		name := fmt.Sprintf("__BOT:%v__", no)
 		botPlayers[no] = &Player{id: no, name: name}
 	}
 	return botPlayers[no]

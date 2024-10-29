@@ -3,6 +3,8 @@ package main
 import (
 	"math/rand"
 	"slices"
+
+	"golang.org/x/text/message"
 )
 
 const JOKER_COUNT = 2
@@ -15,9 +17,11 @@ type tileBag []Tile
 
 type Game struct {
 	options      *GameOptions
-	corpus       *Corpus
+	fmt          *message.Printer
 	width        Coordinate
 	height       Coordinate
+	corpus       *Corpus
+	dawg         *Dawg
 	board        *Board
 	letterScores LetterScores
 	tiles        tileBag
@@ -28,6 +32,8 @@ type Game struct {
 func NewGame(options *GameOptions, players Players, dimensions ...Coordinate) (*Game, error) {
 	var width Coordinate
 	var height Coordinate
+	printer := message.NewPrinter(options.language)
+
 	switch len(dimensions) {
 	case 0:
 		width = WIDTH
@@ -39,15 +45,22 @@ func NewGame(options *GameOptions, players Players, dimensions ...Coordinate) (*
 		width = dimensions[0]
 		height = dimensions[1]
 	}
+	var err error
 	corpus, err := GetFileCorpus(GetLanguageFileName(options.language), GetLanguageAlphabet((options.language)))
+	if err != nil {
+		return nil, err
+	}
+	dawg, err := MakeDawg(corpus)
 	if err != nil {
 		return nil, err
 	}
 	game := Game{
 		options:      options,
-		corpus:       corpus,
 		width:        width,
 		height:       height,
+		corpus:       corpus,
+		fmt:          printer,
+		dawg:         dawg,
 		board:        nil,
 		letterScores: make(LetterScores, corpus.letterMax),
 		tiles:        []Tile{},

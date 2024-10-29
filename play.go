@@ -1,7 +1,6 @@
 package main
 
 import (
-	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
 
@@ -38,8 +37,7 @@ func (state *GameState) Move(playerState *PlayerState) *GameState {
 	var p *message.Printer
 	options := state.game.options
 	if options.verbose {
-		p = message.NewPrinter(language.Danish)
-		p.Fprintf(options.out, "\n\nMove for player %v : %s\n", playerState.no, playerState.player.name)
+		state.game.fmt.Fprintf(options.out, "\n\nMove for player %v : %s\n", playerState.no, playerState.player.name)
 		printState(options.out, state)
 	}
 
@@ -71,8 +69,7 @@ func (state *GameState) Move(playerState *PlayerState) *GameState {
 	var p *message.Printer
 	options := state.game.options
 	if options.verbose {
-		p = message.NewPrinter(language.Danish)
-		p.Fprintf(options.out, "\n\nMoveAnchor [%v,%v\n", anchor.row, anchor.column)
+		state.game.fmt.Fprintf(options.out, "\n\nMoveAnchor [%v,%v\n", anchor.row, anchor.column)
 	}
 }
 

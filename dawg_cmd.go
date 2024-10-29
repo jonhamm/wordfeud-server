@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 
-	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
 
@@ -41,7 +40,7 @@ func dawgCmd(options *GameOptions, args []string) *DawgResult {
 	statistics := dawgStatistics(dawg)
 	result.NodeCount = statistics.nodeCount
 	result.VertexCount = statistics.vertexCount
-	p := message.NewPrinter(language.Danish)
+	p := message.NewPrinter(options.language)
 
 	p.Fprintf(result.logger(), "Number of words       : %d\n", dawg.corpus.wordCount)
 	p.Fprintf(result.logger(), "Total words size      : %d\n", dawg.corpus.totalWordsSize)

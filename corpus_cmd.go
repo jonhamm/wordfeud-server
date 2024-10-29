@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 
-	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
 
@@ -35,7 +34,7 @@ func corpusCmd(options *GameOptions, args []string) *CorpusResult {
 	result.MaxWordLength = corpus.maxWordLength
 	result.TotalWordsSize = corpus.totalWordsSize
 
-	p := message.NewPrinter(language.Danish)
+	p := message.NewPrinter(options.language)
 	p.Fprintf(result.logger(), "Number of words  : %d\n", result.WordCount)
 	p.Fprintf(result.logger(), "Total words size : %d\n", result.TotalWordsSize)
 	p.Fprintf(result.logger(), "Word lengths     : %d .. %d\n", result.MinWordLength, result.MaxWordLength)

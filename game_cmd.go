@@ -3,9 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
 )
 
 func gameCmd(options *GameOptions, args []string) *GameResult {
@@ -30,18 +27,10 @@ func gameCmd(options *GameOptions, args []string) *GameResult {
 	result.Height = int(game.height)
 	result.LetterScores = game.letterScores
 	result.Board = game.board
-	p := message.NewPrinter(language.Danish)
 
-	p.Fprintf(result.logger(), "Game size: width=%d height=%d squares=%d\n", game.Width(), game.Height(), game.SquareCount())
-	/*
-			if game.board != nil {
-		   		printBoard(result.logger(), game.board)
-		   	}
-	*/
-
-	state := game.state
-	if state != nil {
-		printState(result.logger(), state)
+	game.fmt.Fprintf(result.logger(), "Game size: width=%d height=%d squares=%d\n", game.Width(), game.Height(), game.SquareCount())
+	if game.state != nil {
+		printState(result.logger(), game.state)
 	}
 
 	return result.result()
