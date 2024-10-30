@@ -26,7 +26,11 @@ func Test_DawgBasic(t *testing.T) {
 	testDawgContent(t, language.Danish, content)
 }
 
-func Test_DawgComplete(t *testing.T) {
+func Test_DawgPartialDK(t *testing.T) {
+	testDawgLanguageFile(t, language.Danish, "data_test/dk_partial.txt")
+}
+
+func Test_DawgCompleteDK(t *testing.T) {
 	testDawgLanguage(t, language.Danish)
 }
 
@@ -45,9 +49,13 @@ func testDawgContent(t *testing.T, language language.Tag, corpusContent []string
 }
 
 func testDawgLanguage(t *testing.T, language language.Tag) {
-	corpus, err := GetFileCorpus(GetLanguageFileName(language), GetLanguageAlphabet((language)))
+	testDawgLanguageFile(t, language, GetLanguageFileName(language))
+}
+
+func testDawgLanguageFile(t *testing.T, language language.Tag, fileName string) {
+	corpus, err := GetFileCorpus(fileName, GetLanguageAlphabet((language)))
 	if err != nil {
-		t.Errorf("testDawgLanguage() failed to create corpus : %v", err)
+		t.Errorf("testDawgLanguageFile(\"%s\") failed to create corpus : %v", fileName, err)
 		return
 	}
 	testDawgCorpus(t, corpus)
