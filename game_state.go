@@ -26,7 +26,26 @@ type Tile struct {
 	letter Letter
 }
 
-type TileBoard [][]Tile
+var NullTile = Tile{kind: TILE_NONE, letter: 0}
+
+type BoardTile struct {
+	Tile
+	validHorizontal   LetterSet
+	validVertical     LetterSet
+	validHorizontalOk bool
+	validVerticalOk   bool
+	score             Score
+}
+
+var NullBoardTile = BoardTile{
+	Tile:              NullTile,
+	validHorizontal:   0,
+	validVertical:     0,
+	validHorizontalOk: false,
+	validVerticalOk:   false,
+}
+
+type TileBoard [][]BoardTile
 type GameState struct {
 	game         *Game
 	fromState    *GameState
@@ -51,7 +70,11 @@ type PlayerStates []*PlayerState
 func InitialGameState(game *Game) *GameState {
 	state := &GameState{game: game, fromState: nil, move: nil, tiles: make(TileBoard, game.height)}
 	for r := Coordinate(0); r < game.height; r++ {
-		state.tiles[r] = make([]Tile, game.width)
+		state.tiles[r] = make([]BoardTile, game.width)
+		for c := Coordinate(0); r < game.width; c++ {
+			state.tiles[r][c].validHorizontal = game.corpus.allLetters
+			state.tiles[r][c].validVertical = game.corpus.allLetters
+		}
 	}
 
 	state.playerStates = make(PlayerStates, len(game.players))

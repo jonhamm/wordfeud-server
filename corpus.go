@@ -35,6 +35,7 @@ type CorpusIndex struct {
 type Corpus struct {
 	key            CorpusKey
 	alphabet       Alphabet
+	allLetters     LetterSet
 	letterRune     []rune
 	letterMax      Letter
 	firstLetter    Letter
@@ -103,6 +104,7 @@ func NewCorpus(content io.Reader, alphabet Alphabet) (*Corpus, error) {
 		}
 		corpus.letterRune[n] = r
 		corpus.runeLetter[r] = n
+		corpus.allLetters.set(n)
 	}
 	if n > 0 {
 		corpus.firstLetter = 1

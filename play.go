@@ -94,7 +94,7 @@ func (state *GameState) GetAnchors() Positions {
 	return anchors
 }
 
-func (state *GameState) AdjacentNonEmptyTile(pos Position) (Tile, Direction, Position) {
+func (state *GameState) AdjacentNonEmptyTile(pos Position) (BoardTile, Direction, Position) {
 	for _, d := range AllDirections {
 		t, p := state.AdjacentTile(pos, d)
 		switch t.kind {
@@ -102,17 +102,17 @@ func (state *GameState) AdjacentNonEmptyTile(pos Position) (Tile, Direction, Pos
 			return t, d, p
 		}
 	}
-	return Tile{TILE_NONE, 0}, DIRECTION_NONE, Position{state.game.height + 1, state.game.width + 1}
+	return NullBoardTile, DIRECTION_NONE, Position{state.game.height + 1, state.game.width + 1}
 }
 
-func (state *GameState) AdjacentTile(pos Position, d Direction) (Tile, Position) {
+func (state *GameState) AdjacentTile(pos Position, d Direction) (BoardTile, Position) {
 	ok, adjacentPos := state.AdjacentPosition(pos, d)
 
 	if ok {
 		return state.tiles[adjacentPos.row][adjacentPos.column], adjacentPos
 	}
 
-	return Tile{TILE_NONE, 0}, Position{state.game.height + 1, state.game.width + 1}
+	return NullBoardTile, Position{state.game.height + 1, state.game.width + 1}
 }
 
 func (state *GameState) AdjacentPosition(pos Position, d Direction) (bool, Position) {
