@@ -23,6 +23,7 @@ import (
 type GameOptions struct {
 	help     bool
 	verbose  bool
+	trace    bool
 	debug    int
 	out      io.Writer
 	language language.Tag
@@ -44,6 +45,7 @@ const usage = `
 		-h		-help
 		-v		-verbose
 		-d		-debug
+		-t		-trace
 `
 
 const httpUsage = `
@@ -66,6 +68,7 @@ func main() {
 	BoolVarFlag(flag.CommandLine, &options.help, []string{"help", "h"}, false, "print usage information")
 	IntVarFlag(flag.CommandLine, &options.debug, []string{"debug", "d"}, 0, "increase above 0 to get debug info - more than verbose")
 	StringVarFlag(flag.CommandLine, &languageSpec, []string{"language", "l"}, "", "the requested corpus language")
+	BoolVarFlag(flag.CommandLine, &options.trace, []string{"trace", "t"}, false, "print usage information")
 
 	flag.Parse()
 	args := flag.Args()
@@ -91,6 +94,9 @@ func main() {
 	if options.debug > 0 {
 		options.verbose = true
 		fmt.Fprintf(options.out, "cmd: %v\noptions: %+v\n", cmd, options)
+	}
+	if options.trace {
+		DAWG_TRACE = true
 	}
 
 	switch cmd {

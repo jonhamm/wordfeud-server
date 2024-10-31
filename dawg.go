@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-const TRACE = false
+var DAWG_TRACE = false
 
 type CRC uint32
 type ID uint32
@@ -51,7 +51,7 @@ type Dawg struct {
 }
 
 func (dawg *Dawg) trace(format string, a ...any) {
-	if TRACE {
+	if DAWG_TRACE {
 		fmt.Fprintf(os.Stdout, format, a...)
 	}
 }
@@ -188,7 +188,7 @@ func (dawg *Dawg) MakeVertex(letter Letter, destination *Node, final bool) *Vert
 }
 
 func (dawg *Dawg) AddVertex(node *Node, letter Letter, destination *Node, final bool) *Vertex {
-	if TRACE {
+	if DAWG_TRACE {
 		fmt.Printf("AddVertex node#%v letter:'%c' destination:node%v final:%v\n", node.id, dawg.corpus.letterRune[letter], destination.id, final)
 		dawg.printNode(node)
 	}
@@ -202,7 +202,7 @@ func (dawg *Dawg) AddVertex(node *Node, letter Letter, destination *Node, final 
 	node.vertices = append(node.vertices, vertex)
 	node.vertexLetters.set(vertex.letter)
 	node.crc = 0 // invalidate crc
-	if TRACE {
+	if DAWG_TRACE {
 		dawg.printNode(node)
 	}
 	return vertex
@@ -213,7 +213,7 @@ func (dawg *Dawg) Lookup(node *Node) *Node {
 }
 
 func (dawg *Dawg) Register(node *Node) {
-	if TRACE {
+	if DAWG_TRACE {
 		fmt.Printf("Register node#%v\n", node.id)
 		dawg.printNode(node)
 	}
@@ -230,20 +230,20 @@ func (dawg *Dawg) Register(node *Node) {
 }
 
 func (dawg *Dawg) Transition(state State, letter Letter) State {
-	if TRACE {
+	if DAWG_TRACE {
 		fmt.Printf("Transition '%c' on state: \n", dawg.corpus.letterRune[letter])
 		dawg.printState(state)
 	}
 
 	if state.startNode == nil {
-		if TRACE {
+		if DAWG_TRACE {
 			fmt.Printf("Transition '%c' on null state => NullState\n", dawg.corpus.letterRune[letter])
 		}
 		return NullState
 	}
 	node := state.LastNode()
 	if node == nil {
-		if TRACE {
+		if DAWG_TRACE {
 			fmt.Printf("Transition '%c' on nil destination => NullState\n", dawg.corpus.letterRune[letter])
 		}
 		return NullState
@@ -251,7 +251,7 @@ func (dawg *Dawg) Transition(state State, letter Letter) State {
 
 	_, v := node.FindVertex(letter)
 	if v == nil {
-		if TRACE {
+		if DAWG_TRACE {
 			fmt.Printf("vertext for letter '%c' not found in node#%v  => NullState\n", dawg.corpus.letterRune[letter], node.id)
 			dawg.printNode(node)
 		}
@@ -260,7 +260,7 @@ func (dawg *Dawg) Transition(state State, letter Letter) State {
 
 	transitionState := State{startNode: state.startNode, vertices: append(state.vertices, v), word: append(state.word, letter)}
 
-	if TRACE {
+	if DAWG_TRACE {
 		fmt.Printf("Transition '%c' in node#%v  => vertex#%v node#%v final:%v word:\"%s\"\n",
 			dawg.corpus.letterRune[letter], node.id, v.id, v.destination.id, v.final, transitionState.word.String(dawg.corpus))
 		dawg.printState(transitionState)
@@ -287,7 +287,7 @@ func (dawg *Dawg) CommonPrefix(word Word) State {
 		}
 		state = nextState
 	}
-	if TRACE {
+	if DAWG_TRACE {
 		fmt.Printf("CommonPrefix \"%s\" => \n", word.String(dawg.corpus))
 		dawg.printState(state)
 	}
@@ -295,14 +295,14 @@ func (dawg *Dawg) CommonPrefix(word Word) State {
 }
 
 func (dawg *Dawg) ReplaceOrRegister(node *Node) {
-	if TRACE {
+	if DAWG_TRACE {
 		fmt.Printf("ReplaceOrRegister node#%v\n", node.id)
 		dawg.printNode(node)
 	}
 
 	lastVertex := node.LastVertex()
 
-	if TRACE {
+	if DAWG_TRACE {
 		hasVertices := "has no vertices"
 		if lastVertex.destination.HasVertices() {
 			hasVertices = "has vertices"
@@ -314,7 +314,7 @@ func (dawg *Dawg) ReplaceOrRegister(node *Node) {
 		dawg.ReplaceOrRegister(lastVertex.destination)
 	}
 
-	if TRACE {
+	if DAWG_TRACE {
 		fmt.Printf("-->ReplaceOrRegister node#%v\n", node.id)
 	}
 
@@ -322,7 +322,7 @@ func (dawg *Dawg) ReplaceOrRegister(node *Node) {
 	if registryNode != nil {
 		lastVertex.destination = registryNode
 
-		if TRACE {
+		if DAWG_TRACE {
 			fmt.Printf("lastvertex#%v('%c').destination <= registry node#%v\n", lastVertex.id, dawg.corpus.letterRune[lastVertex.letter], registryNode.id)
 		}
 
@@ -339,14 +339,14 @@ func (dawg *Dawg) AddCorpus(corpus *Corpus) error {
 		}
 	}
 	dawg.ReplaceOrRegister(dawg.rootNode)
-	if TRACE {
+	if DAWG_TRACE {
 		dawg.print()
 	}
 	return nil
 }
 
 func (dawg *Dawg) AddWord(word Word) error {
-	if TRACE {
+	if DAWG_TRACE {
 		dawg.trace("\n\nAddWord \"%s\"\n\n", word.String(dawg.corpus))
 	}
 	prefixState := dawg.CommonPrefix(word)
@@ -403,7 +403,7 @@ func (dawg *Dawg) fprintState(f io.Writer, state State) {
 	if state.startNode != nil {
 		startNode = fmt.Sprintf("node#%v", state.startNode.id)
 	}
-	fmt.Fprintf(f, "state startNode:%s\n", startNode)
+	fmt.Fprintf(f, "state startNode:%s  word:\"%s\"\n", startNode, state.word.String(dawg.corpus))
 	for i, v := range state.vertices {
 		dest := "!! nil destination !!"
 		if v.destination != nil {
