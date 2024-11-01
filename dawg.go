@@ -32,6 +32,8 @@ type Node struct {
 	vertexLetters LetterSet // if there is a vertex v in vertices then (vertexLetters & (1 << v.letter))!=0
 }
 
+type Nodes []*Node
+
 type State struct {
 	startNode *Node
 	vertices  Vertices
@@ -40,7 +42,7 @@ type State struct {
 
 var NullState = State{}
 
-type Registry map[CRC]*Node
+type Registry map[CRC]Nodes
 
 type Dawg struct {
 	corpus       *Corpus
@@ -78,6 +80,35 @@ func (node *Node) CRC() CRC {
 		node.crc = CRC(cs.Sum32())
 	}
 	return node.crc
+}
+
+func (node *Node) equal(other *Node) bool {
+	if node == other {
+		return true
+	}
+	if other == nil {
+		return false
+	}
+	if node.vertexLetters != other.vertexLetters {
+		return false
+	}
+	if len(node.vertices) != len(other.vertices) {
+		return false
+	}
+	for i := range node.vertices {
+		myVertex := node.vertices[i]
+		otherVertex := other.vertices[i]
+		if myVertex.letter != otherVertex.letter {
+			return false
+		}
+		if myVertex.final != otherVertex.final {
+			return false
+		}
+		if !myVertex.destination.equal(otherVertex.destination) {
+			return false
+		}
+	}
+	return true
 }
 
 func (node *Node) FindVertex(l Letter) (byte, *Vertex) {
@@ -214,7 +245,13 @@ func (dawg *Dawg) AddVertex(node *Node, letter Letter, destination *Node, final 
 }
 
 func (dawg *Dawg) Lookup(node *Node) *Node {
-	return dawg.registry[node.CRC()]
+	registryNodes := dawg.registry[node.CRC()]
+	for _, registryNode := range registryNodes {
+		if node.equal(registryNode) {
+			return registryNode
+		}
+	}
+	return nil
 }
 
 func (dawg *Dawg) Register(node *Node) {
@@ -230,7 +267,13 @@ func (dawg *Dawg) Register(node *Node) {
 	if node.registered {
 		panic(fmt.Sprintf("Dawg node:%v is not in registry but node.registered is true (Dawg.Register): ", node.id))
 	}
-	dawg.registry[node.CRC()] = node
+	crc := node.CRC()
+	registryNodes := dawg.registry[crc]
+	if registryNodes == nil {
+		registryNodes = make(Nodes, 1)
+		dawg.registry[crc] = registryNodes
+	}
+	dawg.registry[crc] = append(registryNodes, node)
 	node.registered = true
 }
 
