@@ -39,6 +39,20 @@
             "program": "."
         },
         {
+            "name": "Test DawgPartialDK",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "console": "integratedTerminal",
+            "program": ".",
+            "env": {},
+            "args": [
+                "--run",
+                "Test_DawgPartialDK"
+            ],
+            "showLog": true
+        },
+        {
             "name": "Test Debug",
             "type": "go",
             "request": "launch",

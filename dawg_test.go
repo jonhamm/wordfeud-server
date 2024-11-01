@@ -83,6 +83,9 @@ func verifyDawgCoverage(t *testing.T, dawg *Dawg) {
 func verifyCorpusMatches(t *testing.T, dawg *Dawg) {
 	corpus := dawg.corpus
 	for i, w := range corpus.words {
+		if DAWG_TRACE {
+			fmt.Printf("\nverifyCorpusMatches: %d \"%s\n\n", i, w.String(corpus))
+		}
 		s := dawg.CommonPrefix(w)
 		v := s.LastVertex()
 		if v == nil {

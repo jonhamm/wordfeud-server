@@ -10,6 +10,8 @@ import (
 
 var DAWG_TRACE = false
 
+const dotDir = "/tmp/dot/"
+
 type CRC uint32
 type ID uint32
 
@@ -65,7 +67,10 @@ func (node *Node) CRC() CRC {
 			if e != nil {
 				break
 			}
-			e = binary.Write(cs, binary.LittleEndian, v.destination.CRC())
+			e = binary.Write(cs, binary.LittleEndian, v.final)
+			if e == nil {
+				e = binary.Write(cs, binary.LittleEndian, v.destination.CRC())
+			}
 		}
 		if e != nil {
 			panic("Node failure in ")
@@ -279,6 +284,10 @@ func (dawg *Dawg) Transitions(state State, word Word) State {
 
 func (dawg *Dawg) CommonPrefix(word Word) State {
 	state := dawg.initialState
+	if DAWG_TRACE {
+		fmt.Printf("CommonPrefix \"%s\" : \n", word.String(dawg.corpus))
+		dawg.printState(state)
+	}
 
 	for _, l := range word {
 		nextState := dawg.Transition(state, l)
@@ -332,14 +341,24 @@ func (dawg *Dawg) ReplaceOrRegister(node *Node) {
 }
 
 func (dawg *Dawg) AddCorpus(corpus *Corpus) error {
-	for _, w := range corpus.words {
+	for i, w := range corpus.words {
 		err := dawg.AddWord((w))
 		if err != nil {
 			return err
 		}
+		if DAWG_TRACE {
+			if i == 0 {
+				err = os.MkdirAll(dotDir, os.ModePerm)
+				if err != nil {
+					return err
+				}
+			}
+			dawg.printDot(i, w.String(dawg.corpus))
+		}
 	}
 	dawg.ReplaceOrRegister(dawg.rootNode)
 	if DAWG_TRACE {
+		dawg.printDot(corpus.WordCount(), "FINAL")
 		dawg.print()
 	}
 	return nil
@@ -368,6 +387,9 @@ func (dawg *Dawg) AddWord(word Word) error {
 func (dawg *Dawg) AddSuffix(node *Node, suffix Word) {
 	if len(suffix) == 0 {
 		return
+	}
+	if DAWG_TRACE {
+		fmt.Printf("AddSuffix node#%d \"%s\"", node.id, suffix)
 	}
 	letter := suffix[0]
 	suffix = suffix[1:]
@@ -400,10 +422,15 @@ func (dawg *Dawg) printState(state State) {
 
 func (dawg *Dawg) fprintState(f io.Writer, state State) {
 	startNode := "node#nil"
+	lastNode := "node#nil"
 	if state.startNode != nil {
 		startNode = fmt.Sprintf("node#%v", state.startNode.id)
 	}
-	fmt.Fprintf(f, "state startNode:%s  word:\"%s\"\n", startNode, state.word.String(dawg.corpus))
+	if state.LastNode() != nil {
+		lastNode = fmt.Sprintf("node#%v", state.LastNode().id)
+	}
+
+	fmt.Fprintf(f, "state startNode:%s  word:\"%s\"  lastNode:%s\n", startNode, state.word.String(dawg.corpus), lastNode)
 	for i, v := range state.vertices {
 		dest := "!! nil destination !!"
 		if v.destination != nil {
@@ -422,20 +449,67 @@ func (dawg *Dawg) print() {
 }
 
 func (dawg *Dawg) fprint(f io.Writer) {
-	nodes := make(map[*Node]bool)
 	fmt.Fprintf(f, "\n\n======== D A W G ========\n\n")
-	dawg.fprintfRecurse(f, nodes, dawg.initialState.startNode)
+	dawg.fprintfRecurse(f, make(map[*Node]bool), dawg.initialState.startNode)
 }
 
-func (dawg *Dawg) fprintfRecurse(f io.Writer, nodes map[*Node]bool, node *Node) {
-	if nodes[node] {
+func (dawg *Dawg) fprintfRecurse(f io.Writer, printedNodes map[*Node]bool, node *Node) {
+	if printedNodes[node] {
 		return
 	}
 	dawg.fprintfNode(f, node)
-	nodes[node] = true
+	printedNodes[node] = true
 	for _, v := range node.vertices {
 		if v.destination != nil {
-			dawg.fprintfRecurse(f, nodes, v.destination)
+			dawg.fprintfRecurse(f, printedNodes, v.destination)
+		}
+	}
+}
+
+func (dawg *Dawg) printDot(seqno int, label string) {
+	dotFileName := fmt.Sprintf("%s/%d_%s.gv", dotDir, seqno, label)
+	dotFile, err := os.OpenFile(dotFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		fmt.Printf("error writing dot file : %s\n%v", dotFileName, err.Error())
+		return
+	}
+	dawg.printDotSubtree(dotFile, label, dawg.initialState.startNode)
+	dotFile.Close()
+	fmt.Printf("wrote dot file : %s\n", dotFileName)
+}
+
+func (dawg *Dawg) printDotSubtree(f io.Writer, label string, node *Node) {
+	fmt.Fprint(f, "digraph {\n")
+	dawg.printfDotRecurse(f, make(map[*Node]bool), false, node)
+	dawg.printfDotRecurse(f, make(map[*Node]bool), true, node)
+	fmt.Fprintf(f, "label=\"\\n\\n%s\"\n", label)
+	fmt.Fprint(f, "scale=\"0.5\"\n")
+	fmt.Fprint(f, "}\n")
+
+}
+
+func (dawg *Dawg) printfDotRecurse(f io.Writer, printedNodes map[*Node]bool, printVertices bool, node *Node) {
+	if printedNodes[node] {
+		return
+	}
+	printedNodes[node] = true
+	nodeRegistered := ""
+	if node.registered {
+		nodeRegistered = "+"
+
+	}
+	fmt.Fprintf(f, "node [ label=\"%d%s\" ] %d\n", node.id, nodeRegistered, node.id)
+
+	for _, v := range node.vertices {
+		if v.destination != nil {
+			if printVertices {
+				if v.final {
+					fmt.Fprintf(f, "%d -> %d [label=\" %c\" arrowhead=\"diamond\"]\n", node.id, v.destination.id, dawg.corpus.letterRune[v.letter])
+				} else {
+					fmt.Fprintf(f, "%d -> %d [label=\" %c\"]\n", node.id, v.destination.id, dawg.corpus.letterRune[v.letter])
+				}
+			}
+			dawg.printfDotRecurse(f, printedNodes, printVertices, v.destination)
 		}
 	}
 }
