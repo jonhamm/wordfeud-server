@@ -16,26 +16,26 @@ type Directions []Direction
 type DirectionSet byte
 
 const (
-	DIRECTION_NONE  = Direction(0)
-	DIRECTION_NORTH = Direction(1)
-	DIRECTION_EAST  = Direction(2)
-	DIRECTION_SOUTH = Direction(3)
-	DIRECTION_WEST  = Direction(4)
+	NONE  = Direction(0)
+	NORTH = Direction(1)
+	EAST  = Direction(2)
+	SOUTH = Direction(3)
+	WEST  = Direction(4)
 )
 
-var AllDirections = Directions{DIRECTION_NORTH, DIRECTION_SOUTH, DIRECTION_EAST, DIRECTION_WEST}
+var AllDirections = Directions{NORTH, SOUTH, EAST, WEST}
 
-type Plane byte
-type Planes []Plane
+type Orientation byte
+type Planes []Orientation
 
 const (
-	PLANE_HORIZONTAL = Plane(0)
-	PLANE_VERTICAL   = Plane(1)
+	HORIZONTAL = Orientation(0)
+	VERTICAL   = Orientation(1)
 )
 
-var AllPlanes = Planes{PLANE_HORIZONTAL, PLANE_VERTICAL}
+var AllPlanes = Planes{HORIZONTAL, VERTICAL}
 
-const PlaneMax = PLANE_VERTICAL + 1
+const PlaneMax = VERTICAL + 1
 
 type Tile struct {
 	kind   TileKind
@@ -85,24 +85,24 @@ type PlayerState struct {
 
 type PlayerStates []*PlayerState
 
-func (p Plane) Directions() Directions {
-	switch p {
-	case PLANE_HORIZONTAL:
-		return Directions{DIRECTION_EAST, DIRECTION_WEST}
-	case PLANE_VERTICAL:
-		return Directions{DIRECTION_NORTH, DIRECTION_SOUTH}
+func (o Orientation) Directions() Directions {
+	switch o {
+	case HORIZONTAL:
+		return Directions{EAST, WEST}
+	case VERTICAL:
+		return Directions{NORTH, SOUTH}
 	}
-	panic("invalid plane (Plane.Directions)")
+	panic("invalid plane (Orientation.Directions)")
 }
 
-func (p Plane) Inverse() Plane {
-	switch p {
-	case PLANE_HORIZONTAL:
-		return PLANE_VERTICAL
-	case PLANE_VERTICAL:
-		return PLANE_HORIZONTAL
+func (o Orientation) Inverse() Orientation {
+	switch o {
+	case HORIZONTAL:
+		return VERTICAL
+	case VERTICAL:
+		return HORIZONTAL
 	}
-	panic("invalid plane (Plane.Inverse)")
+	panic("invalid plane (Orientation.Inverse)")
 }
 
 func InitialGameState(game *Game) *GameState {
@@ -166,13 +166,13 @@ func (directionSet *DirectionSet) String(corpus *Corpus) string {
 
 func (dir Direction) String() string {
 	switch dir {
-	case DIRECTION_NORTH:
+	case NORTH:
 		return "N"
-	case DIRECTION_SOUTH:
+	case SOUTH:
 		return "S"
-	case DIRECTION_EAST:
+	case EAST:
 		return "E"
-	case DIRECTION_WEST:
+	case WEST:
 		return "W"
 	}
 	panic("invalid direction in Direction.String")

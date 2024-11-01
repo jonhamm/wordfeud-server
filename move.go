@@ -1,5 +1,7 @@
 package main
 
+import "slices"
+
 type Move struct {
 	state       *GameState
 	playerState *PlayerState
@@ -10,17 +12,22 @@ type Move struct {
 }
 
 type MoveContext struct {
-	state       *GameState
-	playerState *PlayerState
+	state   *GameState
+	rack    Rack
+	anchors Positions
 }
 
-func MakeMoveContext(state *GameState,
-	playerState *PlayerState) *MoveContext {
-	return &MoveContext{state, playerState}
+func MakeMoveContext(state *GameState, rack Rack, anchors Positions) *MoveContext {
+	return &MoveContext{
+		state:   state,
+		rack:    slices.Clone(rack),
+		anchors: slices.Clone(anchors),
+	}
 }
 
 func MakeMove(context *MoveContext, postion Position, direction Direction, word Word, score Score) *Move {
-	return &Move{context.state, context.playerState, postion, direction, word, score}
+	//return &Move{context.state, context.playerState, postion, direction, word, score}
+	return nil
 }
 
 func (context *MoveContext) NextMove() *Move {

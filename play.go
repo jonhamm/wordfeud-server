@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"slices"
-
-	"golang.org/x/text/message"
 )
 
 func (game *Game) play() bool {
@@ -36,7 +34,7 @@ func (state *GameState) nextPlayer() PlayerNo {
 }
 
 func (state *GameState) Move(playerState *PlayerState) *GameState {
-	var p *message.Printer
+	p := state.game.fmt
 	options := state.game.options
 	if options.verbose {
 		state.game.fmt.Fprintf(options.out, "\n\nMove for player %v : %s\n", playerState.no, playerState.player.name)
@@ -52,39 +50,26 @@ func (state *GameState) Move(playerState *PlayerState) *GameState {
 		}
 	}
 
-	var bestMove *Move = nil
-	moveContext := MakeMoveContext(state, playerState)
+	possibleMoves := state.GenerateAllMoves(anchors)
+	filteredMoves := state.FilterBestMove(possibleMoves)
 
-	for {
-		move := moveContext.NextMove()
-		if move == nil {
-			break
-		}
-		if move.score > bestMove.score {
-			bestMove = move
-		}
+	_, ok := <-filteredMoves
+	if !ok {
+		return nil
 	}
+
 	return nil
 }
-
-/* func (state *GameState) MoveOnAnchor(playerState *PlayerState, anchor Position) *GameState {
-	var p *message.Printer
-	options := state.game.options
-	if options.verbose {
-		state.game.fmt.Fprintf(options.out, "\n\nMoveAnchor [%v,%v\n", anchor.row, anchor.column)
-	}
-}
-
-*/
 
 func (state *GameState) GetAnchors() Positions {
 	anchors := make(Positions, 0)
 	for r := Coordinate(0); r < state.game.height; r++ {
 		for c := Coordinate(0); c < state.game.width; c++ {
 			pos := Position{row: r, column: c}
-			if state.tiles[r][c].kind == TILE_EMPTY {
+			switch state.tiles[r][c].kind {
+			case TILE_EMPTY:
 				_, d, pos := state.AdjacentNonEmptyTile(pos)
-				if d != DIRECTION_NONE {
+				if d != NONE {
 					anchors = append(anchors, pos)
 				}
 			}
@@ -104,7 +89,7 @@ func (state *GameState) AdjacentNonEmptyTile(pos Position) (BoardTile, Direction
 			return t, d, p
 		}
 	}
-	return NullBoardTile, DIRECTION_NONE, Position{state.game.height + 1, state.game.width + 1}
+	return NullBoardTile, NONE, Position{state.game.height + 1, state.game.width + 1}
 }
 
 func (state *GameState) AdjacentTile(pos Position, d Direction) (BoardTile, Position) {
@@ -119,21 +104,21 @@ func (state *GameState) AdjacentTile(pos Position, d Direction) (BoardTile, Posi
 
 func (state *GameState) AdjacentPosition(pos Position, d Direction) (bool, Position) {
 	switch d {
-	case DIRECTION_NORTH:
+	case NORTH:
 		if pos.row > 0 {
 			return true, Position{pos.row - 1, pos.column}
 		}
-	case DIRECTION_SOUTH:
+	case SOUTH:
 		if pos.row+1 < state.game.height {
 			return true, Position{pos.row + 1, pos.column}
 
 		}
-	case DIRECTION_WEST:
+	case WEST:
 		if pos.column > 0 {
 			return true, Position{pos.row, pos.column}
 		}
 
-	case DIRECTION_EAST:
+	case EAST:
 		if pos.column+1 < state.game.width {
 			return true, Position{pos.row, pos.column + 1}
 
@@ -161,10 +146,10 @@ func (state *GameState) PrepareMove() {
 
 }
 
-func (state *GameState) CalcValidCrossLetters(pos Position, plane Plane) LetterSet {
+func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orientation) LetterSet {
 	dawg := state.game.dawg
 	validLetters := NullLetterSet
-	directions := plane.Inverse().Directions()
+	directions := orienttation.Inverse().Directions()
 	prefix := state.FindPrefix(pos, directions[0])
 	prefixEndNode := prefix.LastNode()
 	suffixWord := Word{}
@@ -216,7 +201,10 @@ func (state *GameState) FindPrefix(pos Position, dir Direction) DawgState {
 		prefix = append(prefix, tile.letter)
 		prefixPos = p
 	}
-	slices.Reverse(prefix)
+	switch dir {
+	case WEST, NORTH:
+		slices.Reverse(prefix)
+	}
 	return dawg.FindPrefix(prefix)
 }
 
@@ -238,4 +226,41 @@ func (state *GameState) GetWord(pos Position, dir Direction) Word {
 		word = append(word, tile.letter)
 	}
 	return word
+}
+
+func (state *GameState) GenerateAllMoves(anchors Positions) <-chan *Move {
+	out := make(chan *Move, 100)
+	go func() {
+		for _, anchor := range anchors {
+			state.GenerateAllMovesForAnchor(out, anchor)
+			/*		rack := state.move.playerState.rack
+					tiles := state.tiles
+					board := state.game.board */
+		}
+		close(out)
+	}()
+	return out
+}
+
+func (state *GameState) GenerateAllMovesForAnchor(out chan *Move, anchor Position) {
+
+}
+
+func (state *GameState) FilterBestMove(allMoves <-chan *Move) <-chan *Move {
+	out := make(chan *Move, 10)
+	go func() {
+		var bestMove *Move = nil
+		for {
+			move, ok := <-allMoves
+			if !ok {
+				break
+			}
+			if move != nil {
+				if move.score > bestMove.score {
+					bestMove = move
+				}
+			}
+		}
+	}()
+	return out
 }
