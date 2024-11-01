@@ -270,7 +270,7 @@ func (dawg *Dawg) Register(node *Node) {
 	crc := node.CRC()
 	registryNodes := dawg.registry[crc]
 	if registryNodes == nil {
-		registryNodes = make(Nodes, 1)
+		registryNodes = make(Nodes, 0, 1)
 		dawg.registry[crc] = registryNodes
 	}
 	dawg.registry[crc] = append(registryNodes, node)

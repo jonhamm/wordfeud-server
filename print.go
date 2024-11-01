@@ -119,6 +119,8 @@ func printState(f io.Writer, state *GameState) {
 				k = "DL"
 			case TL:
 				k = "TL"
+			case CE:
+				k = "CE"
 			}
 			p.Fprintf(f, "|%s   ", k)
 		}

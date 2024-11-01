@@ -71,7 +71,7 @@ func InitialGameState(game *Game) *GameState {
 	state := &GameState{game: game, fromState: nil, move: nil, tiles: make(TileBoard, game.height)}
 	for r := Coordinate(0); r < game.height; r++ {
 		state.tiles[r] = make([]BoardTile, game.width)
-		for c := Coordinate(0); r < game.width; c++ {
+		for c := Coordinate(0); c < game.width; c++ {
 			state.tiles[r][c].validHorizontal = game.corpus.allLetters
 			state.tiles[r][c].validVertical = game.corpus.allLetters
 		}

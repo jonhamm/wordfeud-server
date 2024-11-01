@@ -20,6 +20,7 @@ const (
 	TW Square = '#'
 	DL Square = '+'
 	TL Square = '*'
+	CE Square = '@'
 )
 const TL_COUNT = 12
 const DL_COUNT = 24
@@ -63,23 +64,29 @@ func (board *Board) fillSpecialFields() {
 }
 
 func (board *Board) fillRandomSpecialFields() {
-	normalSquares := make([]Position, board.game.SquareCount())
+	normalSquares := make([]Position, board.game.SquareCount()-1)
 	w := board.game.width
 	h := board.game.height
 	n := 0
 
+	cr := h / 2
+	cc := w / 2
+	board.squares[cr][cc] = CE
+
 	for r := Coordinate(0); r < h; r++ {
 		for c := Coordinate(0); c < w; c++ {
-			normalSquares[n].row = r
-			normalSquares[n].column = c
-			n++
+			if board.squares[r][c] == 0 {
+				normalSquares[n].row = r
+				normalSquares[n].column = c
+				n++
+			}
 		}
 	}
 	for _, f := range specialFields {
 		for i := 0; i < f.count; i++ {
 			n := rand.Intn(len(normalSquares))
 			square := normalSquares[n]
-			if square.row != h/2 && square.column != w/2 {
+			if board.squares[square.row][square.column] == 0 {
 				board.squares[square.row][square.column] = f.kind
 				normalSquares = slices.Delete(normalSquares, n, n+1)
 			}
