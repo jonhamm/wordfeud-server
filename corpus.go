@@ -22,6 +22,7 @@ type Alphabet []rune
 const AlphabetMax = byte(32) // max 32 (0..31) letters in alphabet
 // OBS if AlphabetMax is changed, so must the definition below of LetterSet
 type LetterSet uint32 // set of Letter - i.e. bitset of 0..31
+const NullLetterSet = LetterSet(0)
 
 type CorpusKey struct {
 	fileName string

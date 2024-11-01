@@ -86,7 +86,7 @@ func verifyCorpusMatches(t *testing.T, dawg *Dawg) {
 		if DAWG_TRACE {
 			fmt.Printf("\nverifyCorpusMatches: %d \"%s\n\n", i, w.String(corpus))
 		}
-		s := dawg.CommonPrefix(w)
+		s := dawg.FindPrefix(w)
 		v := s.LastVertex()
 		if v == nil {
 			t.Errorf("corpus word #%v \"%s\" not matched by dawg", i, w.String(corpus))
@@ -107,7 +107,7 @@ func verifyMatchesInCorpus(t *testing.T, dawg *Dawg) {
 	}
 }
 
-func verifyMatchesInCorpusRecurse(t *testing.T, dawg *Dawg, state State) int {
+func verifyMatchesInCorpusRecurse(t *testing.T, dawg *Dawg, state DawgState) int {
 	count := 0
 	corpus := dawg.corpus
 	node := state.LastNode()

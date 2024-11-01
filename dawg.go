@@ -34,13 +34,13 @@ type Node struct {
 
 type Nodes []*Node
 
-type State struct {
+type DawgState struct {
 	startNode *Node
 	vertices  Vertices
 	word      Word
 }
 
-var NullState = State{}
+var NullState = DawgState{}
 
 type Registry map[CRC]Nodes
 
@@ -48,7 +48,7 @@ type Dawg struct {
 	corpus       *Corpus
 	rootNode     *Node
 	finalNode    *Node
-	initialState State
+	initialState DawgState
 	registry     Registry
 	nextNodeId   ID
 	nextVertexId ID
@@ -161,7 +161,7 @@ func (node *Node) LastVertex() *Vertex {
 	return node.vertices[len(node.vertices)-1]
 }
 
-func (state *State) LastVertex() *Vertex {
+func (state *DawgState) LastVertex() *Vertex {
 	if state.startNode == nil {
 		return nil
 	}
@@ -172,7 +172,7 @@ func (state *State) LastVertex() *Vertex {
 	return state.vertices[n-1]
 }
 
-func (state *State) LastNode() *Node {
+func (state *DawgState) LastNode() *Node {
 	lastVertex := state.LastVertex()
 	if lastVertex == nil {
 		return state.startNode
@@ -193,7 +193,7 @@ func MakeDawg(corpus *Corpus) (*Dawg, error) {
 	dawg.rootNode = dawg.MakeNode()
 	dawg.finalNode = dawg.MakeNode()
 	dawg.Register(dawg.finalNode)
-	dawg.initialState = State{startNode: dawg.rootNode, vertices: Vertices{}, word: Word{}}
+	dawg.initialState = DawgState{startNode: dawg.rootNode, vertices: Vertices{}, word: Word{}}
 	err := dawg.AddCorpus(corpus)
 	if err != nil {
 		return nil, err
@@ -277,7 +277,7 @@ func (dawg *Dawg) Register(node *Node) {
 	node.registered = true
 }
 
-func (dawg *Dawg) Transition(state State, letter Letter) State {
+func (dawg *Dawg) Transition(state DawgState, letter Letter) DawgState {
 	if DAWG_TRACE {
 		fmt.Printf("Transition '%c' on state: \n", dawg.corpus.letterRune[letter])
 		dawg.printState(state)
@@ -306,7 +306,7 @@ func (dawg *Dawg) Transition(state State, letter Letter) State {
 		return NullState
 	}
 
-	transitionState := State{startNode: state.startNode, vertices: append(state.vertices, v), word: append(state.word, letter)}
+	transitionState := DawgState{startNode: state.startNode, vertices: append(state.vertices, v), word: append(state.word, letter)}
 
 	if DAWG_TRACE {
 		fmt.Printf("Transition '%c' in node#%v  => vertex#%v node#%v final:%v word:\"%s\"\n",
@@ -317,7 +317,7 @@ func (dawg *Dawg) Transition(state State, letter Letter) State {
 	return transitionState
 }
 
-func (dawg *Dawg) Transitions(state State, word Word) State {
+func (dawg *Dawg) Transitions(state DawgState, word Word) DawgState {
 	if len(word) == 0 {
 		return state
 	}
@@ -325,10 +325,10 @@ func (dawg *Dawg) Transitions(state State, word Word) State {
 	return dawg.Transitions(state, word[1:])
 }
 
-func (dawg *Dawg) CommonPrefix(word Word) State {
+func (dawg *Dawg) FindPrefix(word Word) DawgState {
 	state := dawg.initialState
 	if DAWG_TRACE {
-		fmt.Printf("CommonPrefix \"%s\" : \n", word.String(dawg.corpus))
+		fmt.Printf("FindPrefix \"%s\" : \n", word.String(dawg.corpus))
 		dawg.printState(state)
 	}
 
@@ -340,7 +340,7 @@ func (dawg *Dawg) CommonPrefix(word Word) State {
 		state = nextState
 	}
 	if DAWG_TRACE {
-		fmt.Printf("CommonPrefix \"%s\" => \n", word.String(dawg.corpus))
+		fmt.Printf("FindPrefix \"%s\" => \n", word.String(dawg.corpus))
 		dawg.printState(state)
 	}
 	return state
@@ -415,7 +415,7 @@ func (dawg *Dawg) AddWord(word Word) error {
 	if DAWG_TRACE {
 		dawg.trace("\n\nAddWord \"%s\"\n\n", word.String(dawg.corpus))
 	}
-	prefixState := dawg.CommonPrefix(word)
+	prefixState := dawg.FindPrefix(word)
 	prefixNode := prefixState.LastNode()
 	if prefixNode.HasVertices() {
 		dawg.ReplaceOrRegister(prefixNode)
@@ -463,11 +463,11 @@ func (dawg *Dawg) fprintfNode(f io.Writer, node *Node) {
 	}
 }
 
-func (dawg *Dawg) printState(state State) {
+func (dawg *Dawg) printState(state DawgState) {
 	dawg.fprintState(os.Stdout, state)
 }
 
-func (dawg *Dawg) fprintState(f io.Writer, state State) {
+func (dawg *Dawg) fprintState(f io.Writer, state DawgState) {
 	startNode := "node#nil"
 	lastNode := "node#nil"
 	if state.startNode != nil {

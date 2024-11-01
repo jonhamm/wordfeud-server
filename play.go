@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"slices"
+
 	"golang.org/x/text/message"
 )
 
@@ -8,7 +11,6 @@ func (game *Game) play() bool {
 	state := game.state
 	playerNo := state.nextPlayer()
 	playerState := state.playerStates[playerNo]
-	//player := playerState.player
 	newState := state.Move(playerState)
 	if newState != nil {
 		game.state = newState
@@ -40,7 +42,7 @@ func (state *GameState) Move(playerState *PlayerState) *GameState {
 		state.game.fmt.Fprintf(options.out, "\n\nMove for player %v : %s\n", playerState.no, playerState.player.name)
 		printState(options.out, state)
 	}
-
+	state.PrepareMove()
 	anchors := state.GetAnchors()
 
 	if options.verbose {
@@ -138,4 +140,102 @@ func (state *GameState) AdjacentPosition(pos Position, d Direction) (bool, Posit
 		}
 	}
 	return false, Position{state.game.height + 1, state.game.width + 1}
+}
+
+func (state *GameState) PrepareMove() {
+	game := state.game
+	h := game.height
+	w := game.width
+	tiles := state.tiles
+	for _, p := range AllPlanes {
+		for r := Coordinate(0); r < h; r++ {
+			for c := Coordinate(0); c < w; c++ {
+				validCrossLetters := &tiles[r][c].validCrossLetters[p]
+				if !validCrossLetters.ok {
+					validCrossLetters.letters = state.CalcValidCrossLetters(Position{r, c}, p)
+					validCrossLetters.ok = true
+				}
+			}
+		}
+	}
+
+}
+
+func (state *GameState) CalcValidCrossLetters(pos Position, plane Plane) LetterSet {
+	dawg := state.game.dawg
+	validLetters := NullLetterSet
+	directions := plane.Inverse().Directions()
+	prefix := state.FindPrefix(pos, directions[0])
+	prefixEndNode := prefix.LastNode()
+	suffixWord := Word{}
+	ok, p := state.AdjacentPosition(pos, directions[1])
+	if ok {
+		suffixWord = state.GetWord(p, directions[1])
+		if len(suffixWord) > 0 {
+			for _, v := range prefixEndNode.vertices {
+				suffix := dawg.Transitions(DawgState{startNode: v.destination, vertices: Vertices{}, word: Word{}}, suffixWord)
+				if suffix.startNode != nil {
+					if suffix.LastVertex().final {
+						validLetters.set(v.letter)
+					}
+				}
+			}
+		} else {
+			for _, v := range prefixEndNode.vertices {
+				if v.final {
+					validLetters.set(v.letter)
+				}
+			}
+
+		}
+	} else {
+		if len(prefix.word) == 0 && len(suffixWord) == 0 {
+			return state.game.corpus.allLetters
+		}
+	}
+	return validLetters
+}
+
+func (state *GameState) FindPrefix(pos Position, dir Direction) DawgState {
+	dawg := state.game.dawg
+	tiles := state.tiles
+	prefixPos := pos
+	prefix := Word{}
+	for {
+		ok, p := state.AdjacentPosition(prefixPos, dir)
+		if !ok {
+			break
+		}
+		tile := &tiles[pos.row][pos.column]
+		if tile.kind == TILE_EMPTY {
+			break
+		}
+		if tile.kind == TILE_NONE {
+			panic(fmt.Sprintf("unexpected TILE_NONE on GameState board[%v,%v] (GameState.FindPrefix)", p.row, p.column))
+		}
+		prefix = append(prefix, tile.letter)
+		prefixPos = p
+	}
+	slices.Reverse(prefix)
+	return dawg.FindPrefix(prefix)
+}
+
+func (state *GameState) GetWord(pos Position, dir Direction) Word {
+	word := Word{}
+	tiles := state.tiles
+	for {
+		ok, pos := state.AdjacentPosition(pos, dir)
+		if !ok {
+			break
+		}
+		tile := &tiles[pos.row][pos.column]
+		if tile.kind == TILE_EMPTY {
+			break
+		}
+		if tile.kind == TILE_NONE {
+			panic(fmt.Sprintf("unexpected TILE_NONE on GameState board[%v,%v] (GameState.GetWord)", pos.row, pos.column))
+		}
+		word = append(word, tile.letter)
+	}
+	return word
 }
