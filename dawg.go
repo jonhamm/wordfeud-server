@@ -391,7 +391,11 @@ func (dawg *Dawg) AddCorpus(corpus *Corpus) error {
 		}
 		if DAWG_TRACE {
 			if i == 0 {
-				err = os.MkdirAll(dotDir, os.ModePerm)
+				err = os.RemoveAll(dotDir)
+				if err != nil {
+					return err
+				}
+				err = os.MkdirAll(dotDir, 0744)
 				if err != nil {
 					return err
 				}
