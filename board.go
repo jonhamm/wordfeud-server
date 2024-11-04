@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"slices"
 )
@@ -94,14 +95,10 @@ func (board *Board) fillRandomSpecialFields() {
 	}
 }
 
-func (board *Board) CalcTileScore(position Position, tile Tile) Score {
-	multiplier := Score(0)
-	tileScore := board.game.GetTileScore(tile)
-	switch board.squares[position.row][position.column] {
-	case DL:
-		multiplier = 2
-	case TL:
-		multiplier = 3
-	}
-	return multiplier * tileScore
+func (pos Position) String() string {
+	return fmt.Sprintf("(%v,%v)", pos.row, pos.column)
+}
+
+func (pos Position) equal(otherPos Position) bool {
+	return pos.row == otherPos.row && pos.column == otherPos.column
 }

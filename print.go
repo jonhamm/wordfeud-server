@@ -165,7 +165,7 @@ func printPlayers(f io.Writer, game *Game, players PlayerStates) {
 		game.fmt.Fprint(f, "\n\n")
 	}
 	for _, p := range players {
-		printPlayer(f, game, p)
+		printPlayer(f, game, &p)
 	}
 
 }

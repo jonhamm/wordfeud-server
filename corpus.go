@@ -194,18 +194,7 @@ func (corpusIndex *CorpusIndex) FindIndex(x int) (int, bool) {
 	return -1, false
 }
 
-/* func (wordIndex *CorpusIndex) dump() []string {
-	corpus := wordIndex.corpus
-	result := make([]string, len(wordIndex.index))
-	for i, x := range wordIndex.index {
-		w := corpus.GetWord(x)
-		result[i] = fmt.Sprintf("%d [%d] : '%q'", i, x, w.String())
-	}
-	return result
-}
-*/
-
-func equalWord(lhs Word, rhs Word) bool {
+func (lhs Word) equal(rhs Word) bool {
 	return slices.Compare(lhs, rhs) == 0
 }
 

@@ -60,7 +60,7 @@ func Test_scanWordsDK(t *testing.T) {
 	words := corpus.words
 
 	for i, w := range words {
-		if !equalWord(result_letters[i], w) {
+		if !w.equal(result_letters[i]) {
 			wants := runesToString(result_letters)
 			got := runesToString(words)
 			t.Errorf("scanWordsDK(,5) :\nwants:\n%v\ngot:\n%v\nwants[%d]: %s  got[%d]: %s", wants, got, i, corpus.wordToString(result_letters[i]), i, corpus.wordToString(words[i]))

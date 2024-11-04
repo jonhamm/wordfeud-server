@@ -1,6 +1,8 @@
 package main
 
-import "strings"
+import (
+	"strings"
+)
 
 type TileKind byte
 
@@ -33,7 +35,7 @@ const (
 	VERTICAL   = Orientation(1)
 )
 
-var AllPlanes = Planes{HORIZONTAL, VERTICAL}
+var AllOrientations = Planes{HORIZONTAL, VERTICAL}
 
 const PlaneMax = VERTICAL + 1
 
@@ -48,19 +50,20 @@ type ValidCrossLetters struct {
 	ok      bool
 	letters LetterSet
 }
+
+var NullValidCrossLetters = [PlaneMax]ValidCrossLetters{
+	{ok: false, letters: 0},
+	{ok: false, letters: 0},
+}
+
 type BoardTile struct {
 	Tile
 	validCrossLetters [PlaneMax]ValidCrossLetters
-	score             Score
 }
 
 var NullBoardTile = BoardTile{
-	Tile: NullTile,
-	validCrossLetters: [PlaneMax]ValidCrossLetters{
-		{ok: false, letters: 0},
-		{ok: false, letters: 0},
-	},
-	score: 0,
+	Tile:              NullTile,
+	validCrossLetters: NullValidCrossLetters,
 }
 
 type TileBoard [][]BoardTile
@@ -83,7 +86,7 @@ type PlayerState struct {
 	rack   Rack
 }
 
-type PlayerStates []*PlayerState
+type PlayerStates []PlayerState
 
 func (o Orientation) Directions() Directions {
 	switch o {
@@ -95,14 +98,22 @@ func (o Orientation) Directions() Directions {
 	panic("invalid plane (Orientation.Directions)")
 }
 
-func (o Orientation) Inverse() Orientation {
+func (o Orientation) PrefixDirection() Direction {
+	return o.Directions()[0]
+}
+
+func (o Orientation) SuffixDirection() Direction {
+	return o.Directions()[1]
+}
+
+func (o Orientation) Perpendicular() Orientation {
 	switch o {
 	case HORIZONTAL:
 		return VERTICAL
 	case VERTICAL:
 		return HORIZONTAL
 	}
-	panic("invalid plane (Orientation.Inverse)")
+	panic("invalid plane (Orientation.Perpendicular)")
 }
 
 func InitialGameState(game *Game) *GameState {
@@ -111,7 +122,7 @@ func InitialGameState(game *Game) *GameState {
 	for r := Coordinate(0); r < game.height; r++ {
 		state.tiles[r] = make([]BoardTile, game.width)
 		for c := Coordinate(0); c < game.width; c++ {
-			for p := range AllPlanes {
+			for p := range AllOrientations {
 				validCrossLetters := &state.tiles[r][c].validCrossLetters[p]
 				validCrossLetters.ok = true
 				validCrossLetters.letters = allLetters
@@ -121,7 +132,7 @@ func InitialGameState(game *Game) *GameState {
 
 	state.playerStates = make(PlayerStates, len(game.players))
 	for i := 0; i < len(state.playerStates); i++ {
-		state.playerStates[i] = &PlayerState{
+		state.playerStates[i] = PlayerState{
 			player: game.players[i],
 			no:     PlayerNo(i),
 			score:  0,
@@ -146,6 +157,49 @@ func (directionSet *DirectionSet) unset(dir Direction) *DirectionSet {
 	return directionSet
 }
 
+func (kind TileKind) String() string {
+	switch kind {
+	case TILE_EMPTY:
+		return "EMPTY"
+	case TILE_JOKER:
+		return "JOKER"
+	case TILE_LETTER:
+		return "LETTER"
+	case TILE_NONE:
+		return "NONE"
+	}
+	return "????"
+}
+
+func (dir Direction) String() string {
+	switch dir {
+	case NONE:
+		return "NONE"
+	case NORTH:
+		return "N"
+	case SOUTH:
+		return "S"
+	case EAST:
+		return "E"
+	case WEST:
+		return "W"
+	}
+	return "????"
+}
+
+func (dirs Directions) String() string {
+	var sb strings.Builder
+	sb.WriteRune('[')
+	for i, dir := range dirs {
+		if i > 0 {
+			sb.WriteRune(',')
+		}
+		sb.WriteString(dir.String())
+	}
+	sb.WriteRune(']')
+	return sb.String()
+}
+
 func (directionSet *DirectionSet) String(corpus *Corpus) string {
 	var s strings.Builder
 	var first = true
@@ -162,18 +216,4 @@ func (directionSet *DirectionSet) String(corpus *Corpus) string {
 	}
 	s.WriteRune('}')
 	return s.String()
-}
-
-func (dir Direction) String() string {
-	switch dir {
-	case NORTH:
-		return "N"
-	case SOUTH:
-		return "S"
-	case EAST:
-		return "E"
-	case WEST:
-		return "W"
-	}
-	panic("invalid direction in Direction.String")
 }

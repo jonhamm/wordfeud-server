@@ -109,6 +109,18 @@ func (game *Game) GetTileScore(tile Tile) Score {
 	return 0
 }
 
+func (game *Game) CalcTileScore(position Position, tile Tile) Score {
+	multiplier := Score(0)
+	tileScore := game.GetTileScore(tile)
+	switch game.board.squares[position.row][position.column] {
+	case DL:
+		multiplier = 2
+	case TL:
+		multiplier = 3
+	}
+	return multiplier * tileScore
+}
+
 func (game *Game) TakeTile() Tile {
 	n := len(game.tiles)
 	if n == 0 {

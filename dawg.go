@@ -325,6 +325,21 @@ func (dawg *Dawg) Transitions(state DawgState, word Word) DawgState {
 	return dawg.Transitions(state, word[1:])
 }
 
+func (dawg *Dawg) Match(word Word) bool {
+	state := dawg.FindPrefix(word)
+	if state.startNode == nil {
+		return false
+	}
+	if len(word) > len(state.word) {
+		return false
+	}
+	v := state.LastVertex()
+	if !v.final {
+		return false
+	}
+	return true
+}
+
 func (dawg *Dawg) FindPrefix(word Word) DawgState {
 	state := dawg.initialState
 	if DAWG_TRACE {
