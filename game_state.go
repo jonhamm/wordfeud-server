@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -20,9 +21,9 @@ type DirectionSet byte
 const (
 	NONE  = Direction(0)
 	NORTH = Direction(1)
-	EAST  = Direction(2)
-	SOUTH = Direction(3)
-	WEST  = Direction(4)
+	SOUTH = Direction(2)
+	WEST  = Direction(3)
+	EAST  = Direction(4)
 )
 
 var AllDirections = Directions{NORTH, SOUTH, EAST, WEST}
@@ -43,6 +44,8 @@ type Tile struct {
 	kind   TileKind
 	letter Letter
 }
+
+type Tiles []Tile
 
 var NullTile = Tile{kind: TILE_NONE, letter: 0}
 
@@ -77,7 +80,7 @@ type GameState struct {
 
 const RackSize = 7
 
-type Rack []Tile
+type Rack Tiles
 
 type PlayerState struct {
 	player *Player
@@ -91,7 +94,7 @@ type PlayerStates []PlayerState
 func (o Orientation) Directions() Directions {
 	switch o {
 	case HORIZONTAL:
-		return Directions{EAST, WEST}
+		return Directions{WEST, EAST}
 	case VERTICAL:
 		return Directions{NORTH, SOUTH}
 	}
@@ -160,13 +163,13 @@ func (directionSet *DirectionSet) unset(dir Direction) *DirectionSet {
 func (kind TileKind) String() string {
 	switch kind {
 	case TILE_EMPTY:
-		return "EMPTY"
+		return "="
 	case TILE_JOKER:
-		return "JOKER"
+		return "?"
 	case TILE_LETTER:
-		return "LETTER"
+		return "+"
 	case TILE_NONE:
-		return "NONE"
+		return "-"
 	}
 	return "????"
 }
@@ -216,4 +219,9 @@ func (directionSet *DirectionSet) String(corpus *Corpus) string {
 	}
 	s.WriteRune('}')
 	return s.String()
+}
+
+func (player *PlayerState) String(corpus *Corpus) string {
+	return fmt.Sprintf("%v : %s score: %v rack: %v",
+		player.no, player.player.name, player.score, player.rack.String(corpus))
 }

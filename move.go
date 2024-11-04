@@ -7,17 +7,17 @@ type Move struct {
 	playerState PlayerState
 	position    Position
 	direction   Direction
-	tiles       []Tile
+	tiles       Tiles
 	score       Score
 }
 
-func (state *GameState) MakeMove(postion Position, direction Direction, tiles []Tile, playerState PlayerState) *Move {
+func (state *GameState) MakeMove(postion Position, direction Direction, tiles Tiles, playerState PlayerState) *Move {
 	move := &Move{state, playerState, postion, direction, tiles, 0}
 	move.score = state.CalcScore(postion, direction, tiles)
 	return move
 }
 
-func (state *GameState) CalcScore(anchor Position, dir Direction, tiles []Tile) Score {
+func (state *GameState) CalcScore(anchor Position, dir Direction, tiles Tiles) Score {
 	score := Score(0)
 	multiplyer := Score(1)
 	squares := state.game.board.squares

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"slices"
+	"strings"
 )
 
 type Square byte
@@ -97,6 +98,33 @@ func (board *Board) fillRandomSpecialFields() {
 
 func (pos Position) String() string {
 	return fmt.Sprintf("(%v,%v)", pos.row, pos.column)
+}
+
+func (pos Positions) String() string {
+	var sb strings.Builder
+	sb.WriteRune('[')
+	for i, p := range pos {
+		if i > 0 {
+			sb.WriteRune(',')
+		}
+		sb.WriteString(p.String())
+	}
+	sb.WriteRune(']')
+	return sb.String()
+
+}
+
+func (rack Rack) String(corpus *Corpus) string {
+	var sb strings.Builder
+	sb.WriteRune('[')
+	for i, t := range rack {
+		if i > 0 {
+			sb.WriteString(" ,")
+		}
+		sb.WriteString(t.String(corpus))
+	}
+	sb.WriteRune(']')
+	return sb.String()
 }
 
 func (pos Position) equal(otherPos Position) bool {

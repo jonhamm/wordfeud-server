@@ -260,3 +260,7 @@ func (letterSet *LetterSet) String(corpus *Corpus) string {
 	s.WriteRune('}')
 	return s.String()
 }
+
+func (letter Letter) String(corpus *Corpus) string {
+	return string(corpus.letterRune[letter])
+}

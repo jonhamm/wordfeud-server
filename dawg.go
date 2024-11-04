@@ -479,10 +479,10 @@ func (dawg *Dawg) fprintfNode(f io.Writer, node *Node) {
 }
 
 func (dawg *Dawg) printState(state DawgState) {
-	dawg.fprintState(os.Stdout, state)
+	dawg.fprintState(os.Stdout, "", state)
 }
 
-func (dawg *Dawg) fprintState(f io.Writer, state DawgState) {
+func (dawg *Dawg) fprintState(f io.Writer, indent string, state DawgState) {
 	startNode := "node#nil"
 	lastNode := "node#nil"
 	if state.startNode != nil {
@@ -492,13 +492,13 @@ func (dawg *Dawg) fprintState(f io.Writer, state DawgState) {
 		lastNode = fmt.Sprintf("node#%v", state.LastNode().id)
 	}
 
-	fmt.Fprintf(f, "state startNode:%s  word:\"%s\"  lastNode:%s\n", startNode, state.word.String(dawg.corpus), lastNode)
+	fmt.Fprintf(f, "%sstate startNode:%s  word:\"%s\"  lastNode:%s\n", indent, startNode, state.word.String(dawg.corpus), lastNode)
 	for i, v := range state.vertices {
 		dest := "!! nil destination !!"
 		if v.destination != nil {
 			dest = fmt.Sprintf("node#%v", v.destination.id)
 		}
-		fmt.Fprintf(f, "  +-- [%v] vertex#%v  letter:'%c' final:%v destination:%s \n", i, v.id, dawg.corpus.letterRune[v.letter], v.final, dest)
+		fmt.Fprintf(f, "%s  +-- [%v] vertex#%v  letter:'%c' final:%v destination:%s \n", indent, i, v.id, dawg.corpus.letterRune[v.letter], v.final, dest)
 	}
 }
 

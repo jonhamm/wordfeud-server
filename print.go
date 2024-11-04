@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"unicode"
 )
@@ -165,31 +166,27 @@ func printPlayers(f io.Writer, game *Game, players PlayerStates) {
 		game.fmt.Fprint(f, "\n\n")
 	}
 	for _, p := range players {
-		printPlayer(f, game, &p)
+		fmt.Fprintf(f, "%s\n", p.String(game.corpus))
 	}
 
 }
 
 func printPlayer(f io.Writer, game *Game, player *PlayerState) {
 	p := game.fmt
-	p.Fprintf(f, "Player %v : %s\n", player.no, player.player.name)
-	p.Fprintf(f, "   Score: %v\n", player.score)
-	p.Fprintf(f, "    Rack: ")
-	printRack(f, game, player.rack)
-	p.Fprint(f, "\n")
-
+	p.Fprintf(f, "Player %%s\n", player.String(game.corpus))
 }
 
-func printRack(f io.Writer, game *Game, rack Rack) {
-	p := game.fmt
-	for _, r := range rack {
-		switch r.kind {
-		case TILE_LETTER:
-			p.Fprintf(f, "%c(%v) ", unicode.ToUpper(game.corpus.letterRune[r.letter]), game.letterScores[r.letter])
-		case TILE_JOKER:
-			p.Fprintf(f, "?(0) ")
-		case TILE_EMPTY:
-			p.Fprintf(f, "NULL")
-		}
-	}
+func printPartialMove(f io.Writer, pm *PartialMove) {
+	p := pm.gameState.game.fmt
+	corpus := pm.gameState.game.corpus
+	p.Fprint(f, "PartialMove: \n")
+	p.Fprintf(f, "   startPos:  %s\n", pm.startPos.String())
+	p.Fprintf(f, "   direction: %s\n", pm.direction.String())
+	p.Fprintf(f, "   endPos:    %s\n", pm.endPos.String())
+	p.Fprintf(f, "   rack:      %s\n", pm.rack.String(corpus))
+	p.Fprintf(f, "   tiles:     %s\n", pm.tiles.String(corpus))
+	p.Fprintf(f, "   word:      \"%s\"\n", pm.gameState.TilesToWord(pm.tiles))
+	p.Fprintf(f, "   score:     %v\n", pm.score)
+	p.Fprintf(f, "   state:     \n")
+	pm.gameState.game.dawg.fprintState(f, "            ", pm.state)
 }

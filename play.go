@@ -2,12 +2,25 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"slices"
+	"strings"
 )
 
 type RackTile struct {
 	tile Tile
 	rack Rack
+}
+
+type PartialMove struct {
+	gameState *GameState
+	rack      Rack
+	startPos  Position
+	endPos    Position
+	direction Direction
+	state     DawgState
+	tiles     Tiles
+	score     Score
 }
 
 func (game *Game) play() bool {
@@ -286,8 +299,8 @@ func (state *GameState) FindPrefix(pos Position, dir Direction) DawgState {
 	return dawg.FindPrefix(prefix)
 }
 
-func (state *GameState) GetNonEmptyBoardTiles(pos Position, dir Direction) []Tile {
-	tiles := []Tile{}
+func (state *GameState) GetNonEmptyBoardTiles(pos Position, dir Direction) Tiles {
+	tiles := Tiles{}
 	for {
 		var ok bool
 		tile := state.tiles[pos.row][pos.column].Tile
@@ -307,8 +320,8 @@ func (state *GameState) GetNonEmptyBoardTiles(pos Position, dir Direction) []Til
 	return tiles
 }
 
-func (state *GameState) GetEmptyNonAnchorTiles(pos Position, dir Direction) []Tile {
-	tiles := []Tile{}
+func (state *GameState) GetEmptyNonAnchorTiles(pos Position, dir Direction) Tiles {
+	tiles := Tiles{}
 	for {
 		var ok bool
 		tile := state.tiles[pos.row][pos.column].Tile
@@ -342,48 +355,39 @@ func (state *GameState) IsTileEmpty(pos Position) bool {
 
 func (state *GameState) GetWord(pos Position, dir Direction) Word {
 	tiles := state.GetNonEmptyBoardTiles(pos, dir)
-	word := TilesToWord(tiles)
+	word := state.TilesToWord(tiles)
 	return word
 }
 
-func TilesToWord(tiles []Tile) Word {
+func (state *GameState) TilesToWord(tiles Tiles) Word {
+	corpus := state.game.corpus
 	word := make(Word, 0, len(tiles))
 	for _, t := range tiles {
 		switch t.kind {
 		case TILE_LETTER, TILE_JOKER:
-			word = append(word, t.letter)
-		default:
-			break
+			word = append(word, Letter(corpus.letterRune[t.letter]))
 		}
 	}
 	return word
 }
 
-type PartialMove struct {
-	rack      Rack
-	startPos  Position
-	endPos    Position
-	direction Direction
-	state     DawgState
-	tiles     []Tile
-	score     Score
-}
-
 func (state *GameState) GenerateAllMoves(playerState PlayerState) <-chan *PartialMove {
-	out := make(chan *PartialMove, 1)
+	options := state.game.options
+	if options.debug > 0 {
+		fmt.Print("\n\n--------------------------------\n GenrateAllMoves:\n")
+		printState(os.Stdout, state)
+	}
+	out := make(chan *PartialMove, 100)
 	go func() {
-		options := state.game.options
 		fmt := state.game.fmt
 		width := state.game.width
 		height := state.game.height
 		for r := Coordinate(0); r < height; r++ {
 			anchors := state.GetAnchors(r, HORIZONTAL)
-			if options.verbose {
-				fmt.Fprintf(options.out, "Anchors row %d:", r)
-				for _, anchor := range anchors {
-					fmt.Fprintf(options.out, " (%v,%v)", anchor.row, anchor.column)
+			if options.debug > 0 {
+				if len(anchors) > 0 {
+					fmt.Fprintf(options.out, "Anchors row %v: %s\n", r, anchors.String())
 				}
-				fmt.Print("\n")
 			}
 			for _, anchor := range anchors {
 				state.GenerateAllMovesForAnchor(out, playerState, anchor, HORIZONTAL)
@@ -392,11 +396,9 @@ func (state *GameState) GenerateAllMoves(playerState PlayerState) <-chan *Partia
 		for c := Coordinate(0); c < width; c++ {
 			anchors := state.GetAnchors(c, VERTICAL)
 			if options.verbose {
-				fmt.Fprintf(options.out, "Anchors column %d:", c)
-				for _, anchor := range anchors {
-					fmt.Fprintf(options.out, " (%v,%v)", anchor.row, anchor.column)
+				if len(anchors) > 0 {
+					fmt.Fprintf(options.out, "Anchors column %dv %s\n", c, anchors.String())
 				}
-				fmt.Print("\n")
 			}
 			for _, anchor := range anchors {
 				state.GenerateAllMovesForAnchor(out, playerState, anchor, VERTICAL)
@@ -419,15 +421,12 @@ func (state *GameState) GenerateAllMovesForAnchor(out chan *PartialMove, playerS
 			prefixTiles := state.GetEmptyNonAnchorTiles(preceedingnPosition, prefixDirection)
 			maxPrefixLen := Coordinate(len(prefixTiles))
 			prefixes := state.GenerateAllPrefixes(anchor, prefixDirection, playerState.rack, maxPrefixLen)
-			for {
-				prefix, ok := <-prefixes
-				if !ok {
-					break
-				}
+			for prefix := range prefixes {
 				if !prefix.endPos.equal(anchor) {
-					panic(fmt.Sprintf("endpos of generated prefix should be the anchor (GameState.GenerateAllMovesForAnchor)"))
+					panic("endpos of generated prefix should be the anchor (GameState.GenerateAllMovesForAnchor)")
 				}
 				state.GenerateAllSuffixMoves(out, &PartialMove{
+					gameState: state,
 					rack:      prefix.rack,
 					startPos:  prefix.startPos,
 					endPos:    prefix.endPos,
@@ -440,7 +439,7 @@ func (state *GameState) GenerateAllMovesForAnchor(out chan *PartialMove, playerS
 
 		case TILE_JOKER, TILE_LETTER:
 			prefix := state.GetNonEmptyBoardTiles(preceedingnPosition, prefixDirection)
-			prefixWord := TilesToWord(prefix)
+			prefixWord := state.TilesToWord(prefix)
 			dawgState := state.game.dawg.FindPrefix(prefixWord)
 			if !prefixWord.equal(dawgState.word) {
 				panic(fmt.Sprintf("word on board not matched by dawg?? \"%s\" (GameState.GenerateAllMovesForAnchor)", prefixWord))
@@ -450,6 +449,7 @@ func (state *GameState) GenerateAllMovesForAnchor(out chan *PartialMove, playerS
 				panic(fmt.Sprintf("prefix \"%s\" from anchor %s has no valid start position (GameState.GenerateAllMovesForAnchor)", prefixWord, anchor))
 			}
 			state.GenerateAllSuffixMoves(out, &PartialMove{
+				gameState: state,
 				rack:      playerState.rack,
 				startPos:  prefixPos,
 				endPos:    anchor,
@@ -465,30 +465,43 @@ func (state *GameState) GenerateAllMovesForAnchor(out chan *PartialMove, playerS
 		// anchor is first tile in row/col
 		// not possible to generate a prefix
 		state.GenerateAllSuffixMoves(out, &PartialMove{
+			gameState: state,
 			rack:      playerState.rack,
 			startPos:  anchor,
 			endPos:    anchor,
 			direction: suffixDirection,
 			state:     state.game.dawg.initialState,
-			tiles:     []Tile{},
+			tiles:     Tiles{},
 			score:     0,
 		})
 	}
 }
 
 func (state *GameState) GenerateAllPrefixes(anchor Position, direction Direction, rack Rack, maxLength Coordinate) <-chan *PartialMove {
-	out := make(chan *PartialMove, 1)
+	options := state.game.options
+	corpus := state.game.corpus
+	out := make(chan *PartialMove, 100)
 	go func() {
 		// first emit the zero length prefix
-		out <- &PartialMove{
+		pm := &PartialMove{
+			gameState: state,
 			rack:      rack,
 			startPos:  anchor,
 			endPos:    anchor,
 			direction: direction,
 			state:     state.game.dawg.initialState,
-			tiles:     make([]Tile, 0),
+			tiles:     make(Tiles, 0),
 			score:     0,
 		}
+		if options.debug > 0 {
+			fmt.Printf("GenerateAllPrefixes anchor: %s direction: %s rack: %s maxLen: %v\n",
+				anchor.String(),
+				direction.String(),
+				rack.String(corpus),
+				maxLength)
+			printPartialMove(os.Stdout, pm)
+		}
+		out <- pm
 
 		// now create prefixes of length [1..maxLen]
 		for prefixLength := Coordinate(1); prefixLength <= maxLength; prefixLength++ {
@@ -497,12 +510,13 @@ func (state *GameState) GenerateAllPrefixes(anchor Position, direction Direction
 				panic(fmt.Sprintf("could not locate prefix relative position %v %s (GameState.GenerateAllPrefixes)", anchor.String(), direction.String()))
 			}
 			from := &PartialMove{
+				gameState: state,
 				rack:      rack,
 				startPos:  startPos,
 				endPos:    anchor,
 				direction: direction,
 				state:     state.game.dawg.initialState,
-				tiles:     make([]Tile, 0),
+				tiles:     make(Tiles, 0),
 				score:     0,
 			}
 			state.GeneratePrefixes(out, from, prefixLength)
@@ -516,6 +530,7 @@ func (state *GameState) GeneratePrefixes(out chan *PartialMove, from *PartialMov
 	if length < 1 {
 		return
 	}
+	options := state.game.options
 	dawg := state.game.dawg
 	dawgState := from.state
 	for rackTile := range state.GenerateAllRackTiles(from.rack) {
@@ -524,6 +539,7 @@ func (state *GameState) GeneratePrefixes(out chan *PartialMove, from *PartialMov
 			v := dawgState.LastVertex()
 			_, endPos := state.AdjacentPosition(from.endPos, from.direction)
 			to := &PartialMove{
+				gameState: state,
 				rack:      rackTile.rack,
 				startPos:  from.startPos,
 				endPos:    endPos,
@@ -533,6 +549,11 @@ func (state *GameState) GeneratePrefixes(out chan *PartialMove, from *PartialMov
 				score:     0,
 			}
 			if v.final {
+				to.score = state.CalcScore(to.startPos, to.direction, to.tiles)
+				if options.debug > 0 {
+					fmt.Printf("GeneratePrefixes length: %v\n", length)
+					printPartialMove(os.Stdout, to)
+				}
 				out <- to
 			}
 			state.GeneratePrefixes(out, to, length-1)
@@ -541,7 +562,7 @@ func (state *GameState) GeneratePrefixes(out chan *PartialMove, from *PartialMov
 }
 
 func (state *GameState) GenerateAllRackTiles(rack Rack) <-chan *RackTile {
-	out := make(chan *RackTile, 1)
+	out := make(chan *RackTile, 100)
 	corpus := state.game.corpus
 	go func() {
 		for i, tile := range rack {
@@ -559,16 +580,18 @@ func (state *GameState) GenerateAllRackTiles(rack Rack) <-chan *RackTile {
 				copy(newRack, rack[:i])
 				copy(newRack[i:], rack[i+1:])
 				out <- &RackTile{
-					tile: Tile{kind: TILE_JOKER, letter: tile.letter},
+					tile: Tile{kind: TILE_LETTER, letter: tile.letter},
 					rack: newRack,
 				}
 			}
 		}
+		close(out)
 	}()
 	return out
 }
 
 func (state *GameState) GenerateAllSuffixMoves(out chan *PartialMove, from *PartialMove) {
+	options := state.game.options
 	dawg := state.game.dawg
 	rack := from.rack
 	pos := from.endPos
@@ -580,6 +603,7 @@ func (state *GameState) GenerateAllSuffixMoves(out chan *PartialMove, from *Part
 					_, endPos := state.AdjacentPosition(pos, from.direction)
 					v := toState.LastVertex()
 					to := &PartialMove{
+						gameState: state,
 						rack:      rackTile.rack,
 						startPos:  from.startPos,
 						endPos:    endPos,
@@ -589,6 +613,11 @@ func (state *GameState) GenerateAllSuffixMoves(out chan *PartialMove, from *Part
 						score:     0,
 					}
 					if v.final {
+						to.score = state.CalcScore(to.startPos, to.direction, to.tiles)
+						if options.debug > 0 {
+							fmt.Printf("GenerateAllSuffixMoves\n")
+							printPartialMove(os.Stdout, to)
+						}
 						out <- to
 					}
 					state.GenerateAllSuffixMoves(out, to)
@@ -599,20 +628,73 @@ func (state *GameState) GenerateAllSuffixMoves(out chan *PartialMove, from *Part
 }
 
 func (state *GameState) FilterBestMove(allMoves <-chan *PartialMove) <-chan *PartialMove {
-	out := make(chan *PartialMove, 1)
+	options := state.game.options
+	out := make(chan *PartialMove, 100)
 	go func() {
 		var bestMove *PartialMove = nil
-		for {
-			move, ok := <-allMoves
-			if !ok {
-				break
-			}
+		for move := range allMoves {
 			if move != nil {
-				if move.score > bestMove.score {
+				if bestMove == nil || move.score > bestMove.score {
+					if options.debug > 0 {
+						fmt.Printf("\n\n################# FilterBestMove #################\n")
+						printPartialMove(os.Stdout, move)
+						fmt.Printf("\n\n")
+					}
 					bestMove = move
 				}
 			}
 		}
+		if options.debug > 0 {
+			fmt.Printf("\n\nEND FilterBestMove\n")
+		}
+
+		close(out)
 	}()
 	return out
+}
+
+/*^
+type RackTile struct {
+	tile Tile
+	rack Rack
+}
+
+
+type PartialMove struct {
+	gameState *GameState
+	rack      Rack
+	startPos  Position
+	endPos    Position
+	direction Direction
+	state     DawgState
+	tiles     Tiles
+	score     Score
+}
+*/
+
+func (rackTile *RackTile) String(corpus *Corpus) string {
+	var sb strings.Builder
+	sb.WriteString("Tile: ")
+	sb.WriteString(rackTile.tile.String(corpus))
+	sb.WriteString(" Rack: ")
+	sb.WriteString(rackTile.rack.String(corpus))
+	return sb.String()
+}
+
+func (tile *Tile) String(corpus *Corpus) string {
+	return fmt.Sprintf("'%s':%v:%s", tile.letter.String(corpus), tile.letter, tile.kind.String())
+
+}
+
+func (tiles Tiles) String(corpus *Corpus) string {
+	var sb strings.Builder
+	sb.WriteString("[ ")
+	for i, tile := range tiles {
+		if i > 0 {
+			sb.WriteString(" ,")
+		}
+		sb.WriteString(tile.String(corpus))
+	}
+	sb.WriteString(" ]")
+	return sb.String()
 }

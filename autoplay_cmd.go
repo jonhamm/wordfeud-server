@@ -28,7 +28,7 @@ func autoplayCmd(options *GameOptions, args []string) *GameResult {
 	result.LetterScores = game.letterScores
 	result.Board = game.board
 
-	for n := 0; n < 10; n++ {
+	for n := 0; n < 100; n++ {
 		if !game.play() {
 			break
 		}

@@ -13,7 +13,6 @@ const HEIGHT = 15
 
 type Score uint
 type LetterScores [] /*Letter*/ Score
-type tileBag []Tile
 
 type Game struct {
 	options      *GameOptions
@@ -24,7 +23,7 @@ type Game struct {
 	dawg         *Dawg
 	board        *Board
 	letterScores LetterScores
-	tiles        tileBag
+	tiles        Tiles
 	players      []*Player
 	state        *GameState
 }
@@ -63,7 +62,7 @@ func NewGame(options *GameOptions, players Players, dimensions ...Coordinate) (*
 		dawg:         dawg,
 		board:        nil,
 		letterScores: make(LetterScores, corpus.letterMax),
-		tiles:        []Tile{},
+		tiles:        Tiles{},
 		players:      players,
 		state:        nil,
 	}
