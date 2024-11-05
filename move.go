@@ -3,6 +3,7 @@ package main
 import "fmt"
 
 type Move struct {
+	id          uint
 	state       *GameState
 	playerState PlayerState
 	position    Position
@@ -12,7 +13,7 @@ type Move struct {
 }
 
 func (state *GameState) MakeMove(postion Position, direction Direction, tiles Tiles, playerState PlayerState) *Move {
-	move := &Move{state, playerState, postion, direction, tiles, 0}
+	move := &Move{state.NextMoveId(), state, playerState, postion, direction, tiles, 0}
 	move.score = state.CalcScore(postion, direction, tiles)
 	return move
 }

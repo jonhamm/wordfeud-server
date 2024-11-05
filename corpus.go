@@ -97,6 +97,7 @@ func NewCorpus(content io.Reader, alphabet Alphabet) (*Corpus, error) {
 	corpus.alphabet = alphabet
 	corpus.letterRune = make([]rune, len(alphabet)+1)
 	corpus.runeLetter = make(map[rune]Letter)
+	corpus.minWordLength = 2 // scrabble rules : words may not be one letter words
 	var n Letter = 0
 	for _, r := range alphabet {
 		n++
@@ -144,15 +145,14 @@ func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
 			continue
 		}
 		word := corpus.MakeWord(line)
-		words = append(words, word)
-		wordLength := len(word)
-		if wordLength > corpus.maxWordLength {
-			corpus.maxWordLength = wordLength
+		if len(word) >= corpus.minWordLength {
+			words = append(words, word)
+			wordLength := len(word)
+			if wordLength > corpus.maxWordLength {
+				corpus.maxWordLength = wordLength
+			}
+			corpus.totalWordsSize += wordLength
 		}
-		if corpus.minWordLength == 0 || wordLength < corpus.minWordLength {
-			corpus.minWordLength = wordLength
-		}
-		corpus.totalWordsSize += wordLength
 	}
 	sort.Slice(words, func(i int, j int) bool {
 		return slices.Compare(words[i], words[j]) < 0

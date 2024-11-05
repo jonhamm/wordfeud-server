@@ -131,7 +131,47 @@ func (game *Game) TakeTile() Tile {
 	return t
 }
 
+func (game *Game) TilesToWord(tiles Tiles) Word {
+	corpus := game.corpus
+	word := make(Word, 0, len(tiles))
+	for _, t := range tiles {
+		switch t.kind {
+		case TILE_LETTER, TILE_JOKER:
+			word = append(word, Letter(corpus.letterRune[t.letter]))
+		}
+	}
+	return word
+}
+
+func (game *Game) WordToTiles(word Word) Tiles {
+	tiles := make(Tiles, 0, len(word))
+	for _, letter := range word {
+		tiles = append(tiles, Tile{kind: TILE_LETTER, letter: letter})
+	}
+	return tiles
+}
+
+func (game *Game) WordToRack(word Word) Rack {
+	rack := make(Rack, 0, len(word))
+	for _, letter := range word {
+		rack = append(rack, Tile{kind: TILE_LETTER, letter: letter})
+	}
+	return rack
+}
+
+var fillRackCount = 0
+
 func (game *Game) FillRack(rack Rack) Rack {
+	fillRackCount++
+	if game.options.debug > 0 {
+		corpus := game.corpus
+		switch fillRackCount {
+		case 1:
+			return game.WordToRack(corpus.MakeWord("czvanse"))
+		case 2:
+			return game.WordToRack(corpus.MakeWord("perangs"))
+		}
+	}
 
 	for n := len(rack); n < int(RackSize); n++ {
 		t := game.TakeTile()

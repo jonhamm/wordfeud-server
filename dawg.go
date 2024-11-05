@@ -56,7 +56,7 @@ type Dawg struct {
 
 func (dawg *Dawg) trace(format string, a ...any) {
 	if DAWG_TRACE {
-		fmt.Fprintf(os.Stdout, format, a...)
+		fmt.Printf(format, a...)
 	}
 }
 
@@ -334,10 +334,7 @@ func (dawg *Dawg) Match(word Word) bool {
 		return false
 	}
 	v := state.LastVertex()
-	if !v.final {
-		return false
-	}
-	return true
+	return v.final
 }
 
 func (dawg *Dawg) FindPrefix(word Word) DawgState {
@@ -478,11 +475,15 @@ func (dawg *Dawg) fprintfNode(f io.Writer, node *Node) {
 	}
 }
 
-func (dawg *Dawg) printState(state DawgState) {
-	dawg.fprintState(os.Stdout, "", state)
+func (dawg *Dawg) printState(state DawgState, args ...string) {
+	dawg.fprintState(os.Stdout, state, args...)
 }
 
-func (dawg *Dawg) fprintState(f io.Writer, indent string, state DawgState) {
+func (dawg *Dawg) fprintState(f io.Writer, state DawgState, args ...string) {
+	indent := ""
+	if len(args) > 0 {
+		indent = args[0]
+	}
 	startNode := "node#nil"
 	lastNode := "node#nil"
 	if state.startNode != nil {

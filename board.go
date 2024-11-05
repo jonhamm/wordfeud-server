@@ -96,8 +96,27 @@ func (board *Board) fillRandomSpecialFields() {
 	}
 }
 
+func (from Position) Distance(to Position, direction Direction) int {
+	var length int
+	switch direction {
+	case EAST:
+		length = int(to.column) - int(from.column)
+	case WEST:
+		length = int(from.column) - int(to.column)
+	case SOUTH:
+		length = int(to.row) - int(from.row)
+	case NORTH:
+		length = int(from.row) - int(to.row)
+	}
+	return length
+}
+
 func (pos Position) String() string {
 	return fmt.Sprintf("(%v,%v)", pos.row, pos.column)
+}
+
+func (lhs Position) equal(rhs Position) bool {
+	return lhs.row == rhs.row && lhs.column == rhs.column
 }
 
 func (pos Positions) String() string {
@@ -105,7 +124,7 @@ func (pos Positions) String() string {
 	sb.WriteRune('[')
 	for i, p := range pos {
 		if i > 0 {
-			sb.WriteRune(',')
+			sb.WriteString(", ")
 		}
 		sb.WriteString(p.String())
 	}
@@ -119,14 +138,10 @@ func (rack Rack) String(corpus *Corpus) string {
 	sb.WriteRune('[')
 	for i, t := range rack {
 		if i > 0 {
-			sb.WriteString(" ,")
+			sb.WriteString(", ")
 		}
 		sb.WriteString(t.String(corpus))
 	}
 	sb.WriteRune(']')
 	return sb.String()
-}
-
-func (pos Position) equal(otherPos Position) bool {
-	return pos.row == otherPos.row && pos.column == otherPos.column
 }

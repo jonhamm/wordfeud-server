@@ -30,7 +30,7 @@ func gameCmd(options *GameOptions, args []string) *GameResult {
 
 	game.fmt.Fprintf(result.logger(), "Game size: width=%d height=%d squares=%d\n", game.Width(), game.Height(), game.SquareCount())
 	if game.state != nil {
-		printState(result.logger(), game.state)
+		fprintState(result.logger(), game.state)
 	}
 
 	return result.result()

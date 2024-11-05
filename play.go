@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 )
@@ -12,7 +11,10 @@ type RackTile struct {
 	rack Rack
 }
 
+type RackTiles []RackTile
+
 type PartialMove struct {
+	id        uint
 	gameState *GameState
 	rack      Rack
 	startPos  Position
@@ -22,6 +24,8 @@ type PartialMove struct {
 	tiles     Tiles
 	score     Score
 }
+
+type PartialMoves []*PartialMove
 
 func (game *Game) play() bool {
 	state := game.state
@@ -56,29 +60,22 @@ func (state *GameState) Move(playerState PlayerState) *GameState {
 	options := state.game.options
 	if options.verbose {
 		fmt.Fprintf(options.out, "\n\nMove for player %v : %s\n", playerState.no, playerState.player.name)
-		printState(options.out, state)
+		fprintState(options.out, state)
 	}
 	state.PrepareMove()
 
 	filteredPartialMoves := state.FilterBestMove(state.GenerateAllMoves(playerState))
 
-	possiblePartialMoves := make([]*PartialMove, 0)
-	for {
-		m, ok := <-filteredPartialMoves
-		if !ok {
-			break
-		}
-		possiblePartialMoves = append(possiblePartialMoves, m)
-	}
-	if len(possiblePartialMoves) == 0 {
+	if len(filteredPartialMoves) == 0 {
 		return nil
 	}
 
-	newState := state.AddMove(possiblePartialMoves[0], playerState)
+	newState := state.AddMove(filteredPartialMoves[0], playerState)
 	return newState
 }
 
 func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *GameState {
+	options := state.game.options
 	playerState.rack = partial.rack
 	move := state.MakeMove(partial.startPos, partial.direction, partial.tiles, playerState)
 	newState := &GameState{
@@ -107,18 +104,31 @@ func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *
 		switch boardTile.kind {
 		case TILE_EMPTY:
 		case TILE_JOKER, TILE_LETTER:
-			panic(fmt.Sprintf("move generation will add new tile at %s which is not empty (GameState.AddMove)", pos.String()))
+			if !boardTile.Tile.equal(tile) {
+				panic(fmt.Sprintf("move generation will add new tile %v at %s which is not empty and differs %v (GameState.AddMove)", tile, pos.String(), boardTile.Tile))
+			}
+			// this is a tile from a previous move -- skip
+			continue
 		case TILE_NONE:
 			panic(fmt.Sprintf("move generation will add new tile at non-existing next position after %s direction %s (GameState.AddMove)", nextPos.String(), dir.String()))
 		default:
 			panic(fmt.Sprintf("move generation will add new tile of unknown kind %v (GameState.AddMove)", tile.kind))
 		}
 		newState.tiles[pos.row][pos.column] = BoardTile{Tile: tile, validCrossLetters: NullValidCrossLetters}
+		switch dir.Orientation() {
+		case HORIZONTAL:
+		case VERTICAL:
+		}
 		ok, nextPos = state.AdjacentPosition(pos, dir)
 		if !ok {
 			panic(fmt.Sprintf("move generation will add new tile at non-existing next position after %s direction %s (GameState.AddMove)", nextPos.String(), dir.String()))
 		}
 		pos = nextPos
+	}
+	if options.debug > 0 {
+		printState(state)
+		fmt.Printf("AddMove :")
+		printMove(move)
 	}
 	return newState
 }
@@ -151,82 +161,17 @@ func (state *GameState) GetAnchors(coordinate Coordinate, orientation Orientatio
 	return anchors
 }
 
-func (state *GameState) IsAnchor(pos Position) bool {
-	return state.AnyAdjacentNonEmptyTile(pos) || (state.game.board.squares[pos.row][pos.column] == CE)
-}
-
-func (state *GameState) AnyAdjacentNonEmptyTile(pos Position) bool {
-	for _, d := range AllDirections {
-		t, _ := state.AdjacentTile(pos, d)
-		switch t.kind {
-		case TILE_JOKER, TILE_LETTER:
-			return true
-		}
-	}
-	return false
-}
-
-func (state *GameState) AdjacentTile(pos Position, d Direction) (BoardTile, Position) {
-	ok, adjacentPos := state.AdjacentPosition(pos, d)
-
-	if ok {
-		return state.tiles[adjacentPos.row][adjacentPos.column], adjacentPos
-	}
-
-	return NullBoardTile, Position{state.game.height + 1, state.game.width + 1}
-}
-
-func (state *GameState) AdjacentPosition(pos Position, dir Direction) (bool, Position) {
-	return state.RelativePosition(pos, dir, 1)
-
-}
-
-func (state *GameState) RelativeTile(pos Position, dir Direction, n Coordinate) (BoardTile, Position) {
-	ok, relativePos := state.RelativePosition(pos, dir, n)
-
-	if ok {
-		return state.tiles[relativePos.row][relativePos.column], relativePos
-	}
-
-	return NullBoardTile, Position{state.game.height + 1, state.game.width + 1}
-}
-
-func (state *GameState) RelativePosition(pos Position, dir Direction, n Coordinate) (bool, Position) {
-	switch dir {
-	case NORTH:
-		if pos.row >= n {
-			return true, Position{pos.row - n, pos.column}
-		}
-	case SOUTH:
-		if pos.row+n < state.game.height {
-			return true, Position{pos.row + n, pos.column}
-
-		}
-	case WEST:
-		if pos.column >= n {
-			return true, Position{pos.row, pos.column - n}
-		}
-
-	case EAST:
-		if pos.column+n < state.game.width {
-			return true, Position{pos.row, pos.column + n}
-
-		}
-	}
-	return false, Position{state.game.height + 1, state.game.width + 1}
-}
-
 func (state *GameState) PrepareMove() {
 	game := state.game
 	h := game.height
 	w := game.width
 	tiles := state.tiles
-	for _, p := range AllOrientations {
+	for _, orientation := range AllOrientations {
 		for r := Coordinate(0); r < h; r++ {
 			for c := Coordinate(0); c < w; c++ {
-				validCrossLetters := &tiles[r][c].validCrossLetters[p]
+				validCrossLetters := &tiles[r][c].validCrossLetters[orientation]
 				if !validCrossLetters.ok {
-					validCrossLetters.letters = state.CalcValidCrossLetters(Position{r, c}, p)
+					validCrossLetters.letters = state.CalcValidCrossLetters(Position{r, c}, orientation)
 					validCrossLetters.ok = true
 				}
 			}
@@ -235,197 +180,78 @@ func (state *GameState) PrepareMove() {
 
 }
 
-func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orientation) LetterSet {
-	dawg := state.game.dawg
-	validLetters := NullLetterSet
-	crossDirection := orienttation.Perpendicular()
-	crossPrefixDirection := crossDirection.PrefixDirection()
-	crossSufixDirection := crossDirection.SuffixDirection()
-	prefix := state.FindPrefix(pos, crossPrefixDirection)
-	prefixEndNode := prefix.LastNode()
-	suffixWord := Word{}
-	ok, p := state.AdjacentPosition(pos, crossSufixDirection)
-	if ok {
-		suffixWord = state.GetWord(p, crossSufixDirection)
-		if len(suffixWord) > 0 {
-			for _, v := range prefixEndNode.vertices {
-				suffix := dawg.Transitions(DawgState{startNode: v.destination, vertices: Vertices{}, word: Word{}}, suffixWord)
-				if suffix.startNode != nil {
-					if suffix.LastVertex().final {
-						validLetters.set(v.letter)
-					}
-				}
-			}
-		} else {
-			for _, v := range prefixEndNode.vertices {
-				if v.final {
-					validLetters.set(v.letter)
-				}
-			}
-
-		}
-	} else {
-		if len(prefix.word) == 0 && len(suffixWord) == 0 {
-			return state.game.corpus.allLetters
-		}
-	}
-	return validLetters
-}
-
-func (state *GameState) FindPrefix(pos Position, dir Direction) DawgState {
-	dawg := state.game.dawg
-	tiles := state.tiles
-	prefixPos := pos
-	prefix := Word{}
-	for {
-		ok, p := state.AdjacentPosition(prefixPos, dir)
-		if !ok {
-			break
-		}
-		tile := &tiles[pos.row][pos.column]
-		if tile.kind == TILE_EMPTY {
-			break
-		}
-		if tile.kind == TILE_NONE {
-			panic(fmt.Sprintf("unexpected TILE_NONE on GameState board[%v,%v] (GameState.FindPrefix)", p.row, p.column))
-		}
-		prefix = append(prefix, tile.letter)
-		prefixPos = p
-	}
-	switch dir {
-	case WEST, NORTH:
-		slices.Reverse(prefix)
-	}
-	return dawg.FindPrefix(prefix)
-}
-
-func (state *GameState) GetNonEmptyBoardTiles(pos Position, dir Direction) Tiles {
-	tiles := Tiles{}
-	for {
-		var ok bool
-		tile := state.tiles[pos.row][pos.column].Tile
-		if state.IsTileEmpty(pos) {
-			break
-		}
-		tiles = append(tiles, tile)
-		ok, pos = state.AdjacentPosition(pos, dir)
-		if !ok {
-			break
-		}
-	}
-	switch dir {
-	case WEST, NORTH:
-		slices.Reverse(tiles)
-	}
-	return tiles
-}
-
-func (state *GameState) GetEmptyNonAnchorTiles(pos Position, dir Direction) Tiles {
-	tiles := Tiles{}
-	for {
-		var ok bool
-		tile := state.tiles[pos.row][pos.column].Tile
-		if !state.IsTileEmpty(pos) {
-			break
-		}
-		if state.IsAnchor(pos) {
-			break
-		}
-		tiles = append(tiles, tile)
-		ok, pos = state.AdjacentPosition(pos, dir)
-		if !ok {
-			break
-		}
-	}
-	return tiles
-}
-
-func (state *GameState) IsTileEmpty(pos Position) bool {
-	tile := &state.tiles[pos.row][pos.column]
-	switch tile.kind {
-	case TILE_EMPTY:
-		return true
-	case TILE_JOKER, TILE_LETTER:
-		return false
-	case TILE_NONE:
-		panic(fmt.Sprintf("unexpected TILE_NONE on GameState board[%v,%v] (GameState.IsEmptyTile)", pos.row, pos.column))
-	}
-	panic(fmt.Sprintf("invalid tile kind %v on GameState board[%v,%v] (GameState.GetNonEmptyBoardTiles)", tile.kind, pos.row, pos.column))
-}
-
-func (state *GameState) GetWord(pos Position, dir Direction) Word {
-	tiles := state.GetNonEmptyBoardTiles(pos, dir)
-	word := state.TilesToWord(tiles)
-	return word
-}
-
-func (state *GameState) TilesToWord(tiles Tiles) Word {
-	corpus := state.game.corpus
-	word := make(Word, 0, len(tiles))
-	for _, t := range tiles {
-		switch t.kind {
-		case TILE_LETTER, TILE_JOKER:
-			word = append(word, Letter(corpus.letterRune[t.letter]))
-		}
-	}
-	return word
-}
-
-func (state *GameState) GenerateAllMoves(playerState PlayerState) <-chan *PartialMove {
+func (state *GameState) GenerateAllMoves(playerState PlayerState) PartialMoves {
 	options := state.game.options
 	if options.debug > 0 {
 		fmt.Print("\n\n--------------------------------\n GenrateAllMoves:\n")
-		printState(os.Stdout, state)
+		printState(state)
 	}
-	out := make(chan *PartialMove, 100)
-	go func() {
-		fmt := state.game.fmt
-		width := state.game.width
-		height := state.game.height
-		for r := Coordinate(0); r < height; r++ {
-			anchors := state.GetAnchors(r, HORIZONTAL)
-			if options.debug > 0 {
-				if len(anchors) > 0 {
-					fmt.Fprintf(options.out, "Anchors row %v: %s\n", r, anchors.String())
-				}
-			}
-			for _, anchor := range anchors {
-				state.GenerateAllMovesForAnchor(out, playerState, anchor, HORIZONTAL)
+	out := make(PartialMoves, 0, 100)
+	fmt := state.game.fmt
+	width := state.game.width
+	height := state.game.height
+	for r := Coordinate(0); r < height; r++ {
+		anchors := state.GetAnchors(r, HORIZONTAL)
+		if options.debug > 0 {
+			if len(anchors) > 0 {
+				fmt.Fprintf(options.out, "Anchors row %v: %s\n", r, anchors.String())
 			}
 		}
-		for c := Coordinate(0); c < width; c++ {
-			anchors := state.GetAnchors(c, VERTICAL)
-			if options.verbose {
-				if len(anchors) > 0 {
-					fmt.Fprintf(options.out, "Anchors column %dv %s\n", c, anchors.String())
-				}
-			}
-			for _, anchor := range anchors {
-				state.GenerateAllMovesForAnchor(out, playerState, anchor, VERTICAL)
+		for _, anchor := range anchors {
+			moves := state.GenerateAllMovesForAnchor(playerState, anchor, HORIZONTAL)
+			out = slices.Concat(out, moves)
+		}
+	}
+	for c := Coordinate(0); c < width; c++ {
+		anchors := state.GetAnchors(c, VERTICAL)
+		if options.verbose {
+			if len(anchors) > 0 {
+				fmt.Fprintf(options.out, "Anchors column %dv %s\n", c, anchors.String())
 			}
 		}
-		close(out)
-	}()
+		for _, anchor := range anchors {
+			moves := state.GenerateAllMovesForAnchor(playerState, anchor, VERTICAL)
+			out = slices.Concat(out, moves)
+		}
+	}
 	return out
 }
 
-func (state *GameState) GenerateAllMovesForAnchor(out chan *PartialMove, playerState PlayerState, anchor Position, orientation Orientation) {
+func (state *GameState) GenerateAllMovesForAnchor(playerState PlayerState, anchor Position, orientation Orientation) PartialMoves {
+	out := make(PartialMoves, 0, 100)
+	game := state.game
+	options := game.options
+	corpus := game.corpus
+	fmt := game.fmt
 	boardTiles := state.tiles
 	prefixDirection := orientation.PrefixDirection()
 	suffixDirection := orientation.SuffixDirection()
 	ok, preceedingnPosition := state.AdjacentPosition(anchor, prefixDirection)
+	if options.debug > 0 {
+		fmt.Printf("GenerateAllMovesForAnchor anchor: %s orientation: %s player: %s\n",
+			anchor.String(), orientation.String(), playerState.String(corpus))
+	}
 	if ok {
 		preceedingTile := boardTiles[preceedingnPosition.row][preceedingnPosition.column]
 		switch preceedingTile.kind {
 		case TILE_EMPTY:
-			prefixTiles := state.GetEmptyNonAnchorTiles(preceedingnPosition, prefixDirection)
+			prefixTiles := state.GetEmptyNonAnchorTiles(preceedingnPosition, prefixDirection, RackSize-1)
 			maxPrefixLen := Coordinate(len(prefixTiles))
 			prefixes := state.GenerateAllPrefixes(anchor, prefixDirection, playerState.rack, maxPrefixLen)
-			for prefix := range prefixes {
+			if options.debug > 0 {
+				fmt.Printf("GenerateAllMovesForAnchor... anchor: %s orientation: %s player: %s\n",
+					anchor.String(), orientation.String(), playerState.String(corpus))
+				if options.debug > 1 {
+					fmt.Print("   prefixes:\n")
+					printPartialMoves(prefixes, "       ")
+				}
+			}
+			for _, prefix := range prefixes {
 				if !prefix.endPos.equal(anchor) {
 					panic("endpos of generated prefix should be the anchor (GameState.GenerateAllMovesForAnchor)")
 				}
-				state.GenerateAllSuffixMoves(out, &PartialMove{
+				suffixMoves := state.GenerateAllSuffixMoves(&PartialMove{
+					id:        state.NextMoveId(),
 					gameState: state,
 					rack:      prefix.rack,
 					startPos:  prefix.startPos,
@@ -435,20 +261,22 @@ func (state *GameState) GenerateAllMovesForAnchor(out chan *PartialMove, playerS
 					tiles:     prefix.tiles,
 					score:     0,
 				})
+				out = slices.Concat(out, suffixMoves)
 			}
 
 		case TILE_JOKER, TILE_LETTER:
 			prefix := state.GetNonEmptyBoardTiles(preceedingnPosition, prefixDirection)
-			prefixWord := state.TilesToWord(prefix)
-			dawgState := state.game.dawg.FindPrefix(prefixWord)
+			prefixWord := game.TilesToWord(prefix)
+			dawgState := game.dawg.FindPrefix(prefixWord)
 			if !prefixWord.equal(dawgState.word) {
-				panic(fmt.Sprintf("word on board not matched by dawg?? \"%s\" (GameState.GenerateAllMovesForAnchor)", prefixWord))
+				panic(fmt.Sprintf("word on board not matched by dawg?? \"%s\" (GameState.GenerateAllMovesForAnchor)", prefixWord.String(game.corpus)))
 			}
 			ok, prefixPos := state.RelativePosition(anchor, prefixDirection, Coordinate(len(prefix)))
 			if !ok {
-				panic(fmt.Sprintf("prefix \"%s\" from anchor %s has no valid start position (GameState.GenerateAllMovesForAnchor)", prefixWord, anchor))
+				panic(fmt.Sprintf("prefix \"%s\" from anchor %s has no valid start position (GameState.GenerateAllMovesForAnchor)", prefixWord.String(game.corpus), anchor))
 			}
-			state.GenerateAllSuffixMoves(out, &PartialMove{
+			suffixMoves := state.GenerateAllSuffixMoves(&PartialMove{
+				id:        state.NextMoveId(),
 				gameState: state,
 				rack:      playerState.rack,
 				startPos:  prefixPos,
@@ -458,198 +286,224 @@ func (state *GameState) GenerateAllMovesForAnchor(out chan *PartialMove, playerS
 				tiles:     prefix,
 				score:     0,
 			})
+			out = slices.Concat(out, suffixMoves)
 
 		}
 
 	} else {
 		// anchor is first tile in row/col
 		// not possible to generate a prefix
-		state.GenerateAllSuffixMoves(out, &PartialMove{
+		suffixMoves := state.GenerateAllSuffixMoves(&PartialMove{
+			id:        state.NextMoveId(),
 			gameState: state,
 			rack:      playerState.rack,
 			startPos:  anchor,
 			endPos:    anchor,
 			direction: suffixDirection,
-			state:     state.game.dawg.initialState,
+			state:     game.dawg.initialState,
 			tiles:     Tiles{},
 			score:     0,
 		})
+		out = slices.Concat(out, suffixMoves)
 	}
+	return out
 }
 
-func (state *GameState) GenerateAllPrefixes(anchor Position, direction Direction, rack Rack, maxLength Coordinate) <-chan *PartialMove {
+func (state *GameState) GenerateAllPrefixes(anchor Position, direction Direction, rack Rack, maxLength Coordinate) PartialMoves {
 	options := state.game.options
 	corpus := state.game.corpus
-	out := make(chan *PartialMove, 100)
-	go func() {
-		// first emit the zero length prefix
-		pm := &PartialMove{
+	out := make(PartialMoves, 0, 100)
+	// first emit the zero length prefix
+	pm := &PartialMove{
+		id:        state.NextMoveId(),
+		gameState: state,
+		rack:      rack,
+		startPos:  anchor,
+		endPos:    anchor,
+		direction: direction,
+		state:     state.game.dawg.initialState,
+		tiles:     make(Tiles, 0),
+		score:     0,
+	}
+	if options.debug > 0 {
+		fmt.Printf("GenerateAllPrefixes emit empty prefix   anchor: %s direction: %s rack: %s maxLen: %v\n",
+			anchor.String(),
+			direction.String(),
+			rack.String(corpus),
+			maxLength)
+		printPartialMove(pm)
+	}
+	out = append(out, pm)
+
+	// now create prefixes of length [1..maxLen]
+	for prefixLength := Coordinate(1); prefixLength <= maxLength; prefixLength++ {
+		ok, startPos := state.RelativePosition(anchor, direction, prefixLength)
+		if !ok {
+			panic(fmt.Sprintf("could not locate prefix relative position %v %s (GameState.GenerateAllPrefixes)", anchor.String(), direction.String()))
+		}
+		from := &PartialMove{
+			id:        state.NextMoveId(),
 			gameState: state,
 			rack:      rack,
-			startPos:  anchor,
-			endPos:    anchor,
-			direction: direction,
+			startPos:  startPos,
+			endPos:    startPos,
+			direction: direction.Reverse(),
 			state:     state.game.dawg.initialState,
 			tiles:     make(Tiles, 0),
 			score:     0,
 		}
 		if options.debug > 0 {
-			fmt.Printf("GenerateAllPrefixes anchor: %s direction: %s rack: %s maxLen: %v\n",
+			fmt.Printf("GenerateAllPrefixes extend prefix to %v max length: %v anchor: %s direction: %s rack: %s\n",
+				prefixLength,
+				maxLength,
 				anchor.String(),
 				direction.String(),
-				rack.String(corpus),
-				maxLength)
-			printPartialMove(os.Stdout, pm)
+				rack.String(corpus))
+			printPartialMove(from)
 		}
-		out <- pm
+		prefixes := state.GeneratePrefixes(from, prefixLength)
+		out = slices.Concat(out, prefixes)
+	}
 
-		// now create prefixes of length [1..maxLen]
-		for prefixLength := Coordinate(1); prefixLength <= maxLength; prefixLength++ {
-			ok, startPos := state.RelativePosition(anchor, direction, prefixLength)
-			if !ok {
-				panic(fmt.Sprintf("could not locate prefix relative position %v %s (GameState.GenerateAllPrefixes)", anchor.String(), direction.String()))
-			}
-			from := &PartialMove{
-				gameState: state,
-				rack:      rack,
-				startPos:  startPos,
-				endPos:    anchor,
-				direction: direction,
-				state:     state.game.dawg.initialState,
-				tiles:     make(Tiles, 0),
-				score:     0,
-			}
-			state.GeneratePrefixes(out, from, prefixLength)
-		}
-		close(out)
-	}()
 	return out
 }
 
-func (state *GameState) GeneratePrefixes(out chan *PartialMove, from *PartialMove, length Coordinate) {
-	if length < 1 {
-		return
-	}
+func (state *GameState) GeneratePrefixes(from *PartialMove, length Coordinate) PartialMoves {
+	out := make(PartialMoves, 0, 100)
 	options := state.game.options
+	if length < 1 {
+		if options.debug > 0 {
+			prefixLength := from.startPos.Distance(from.endPos, from.direction)
+			fmt.Printf("GeneratePrefixes emit prefix length: %v\n", prefixLength)
+			printPartialMove(from)
+		}
+		out = append(out, from)
+		return out
+	}
 	dawg := state.game.dawg
-	dawgState := from.state
-	for rackTile := range state.GenerateAllRackTiles(from.rack) {
-		dawgState = dawg.Transition(dawgState, rackTile.tile.letter)
+	rackTiles := state.GenerateAllRackTiles(from.rack)
+	for _, rackTile := range rackTiles {
+		if !state.ValidCrossLetter(from.endPos, from.direction.Orientation(), rackTile.tile.letter) {
+			continue
+		}
+		dawgState := dawg.Transition(from.state, rackTile.tile.letter)
 		if dawgState.startNode != nil {
-			v := dawgState.LastVertex()
 			_, endPos := state.AdjacentPosition(from.endPos, from.direction)
 			to := &PartialMove{
+				id:        state.NextMoveId(),
 				gameState: state,
 				rack:      rackTile.rack,
 				startPos:  from.startPos,
 				endPos:    endPos,
 				direction: from.direction,
-				state:     state.game.dawg.initialState,
+				state:     dawgState,
 				tiles:     append(slices.Clone(from.tiles), rackTile.tile),
 				score:     0,
 			}
-			if v.final {
-				to.score = state.CalcScore(to.startPos, to.direction, to.tiles)
-				if options.debug > 0 {
-					fmt.Printf("GeneratePrefixes length: %v\n", length)
-					printPartialMove(os.Stdout, to)
-				}
-				out <- to
-			}
-			state.GeneratePrefixes(out, to, length-1)
+
+			prefixCompletion := state.GeneratePrefixes(to, length-1)
+			out = slices.Concat(out, prefixCompletion)
+
 		}
 	}
+
+	return out
+
 }
 
-func (state *GameState) GenerateAllRackTiles(rack Rack) <-chan *RackTile {
-	out := make(chan *RackTile, 100)
+func (state *GameState) GenerateAllRackTiles(rack Rack) RackTiles {
+	out := make(RackTiles, 0, 10)
 	corpus := state.game.corpus
-	go func() {
-		for i, tile := range rack {
-			if tile.kind == TILE_JOKER {
-				for letter := corpus.firstLetter; letter <= corpus.lastLetter; letter++ {
-					newRack := make(Rack, len(rack)-1)
-					copy(newRack[i:], rack[i+1:])
-					out <- &RackTile{
-						tile: Tile{kind: TILE_JOKER, letter: letter},
-						rack: newRack,
-					}
-				}
-			} else {
-				newRack := make(Rack, len(rack)-1)
-				copy(newRack, rack[:i])
-				copy(newRack[i:], rack[i+1:])
-				out <- &RackTile{
-					tile: Tile{kind: TILE_LETTER, letter: tile.letter},
-					rack: newRack,
-				}
-			}
+	for i, tile := range rack {
+		if slices.ContainsFunc(rack[:i], func(t Tile) bool { return t.equal(tile) }) {
+			continue
 		}
-		close(out)
-	}()
+		if tile.kind == TILE_JOKER {
+			for letter := corpus.firstLetter; letter <= corpus.lastLetter; letter++ {
+				newRack := make(Rack, len(rack)-1)
+				copy(newRack[i:], rack[i+1:])
+				out = append(out, RackTile{
+					tile: Tile{kind: TILE_JOKER, letter: letter},
+					rack: newRack,
+				})
+			}
+		} else {
+			newRack := make(Rack, len(rack)-1)
+			copy(newRack, rack[:i])
+			copy(newRack[i:], rack[i+1:])
+			out = append(out, RackTile{
+				tile: Tile{kind: TILE_LETTER, letter: tile.letter},
+				rack: newRack,
+			})
+		}
+	}
 	return out
 }
 
-func (state *GameState) GenerateAllSuffixMoves(out chan *PartialMove, from *PartialMove) {
+func (state *GameState) GenerateAllSuffixMoves(from *PartialMove) PartialMoves {
 	options := state.game.options
+	out := make(PartialMoves, 0, 100)
 	dawg := state.game.dawg
-	rack := from.rack
 	pos := from.endPos
-	for len(rack) > 0 {
-		if state.IsTileEmpty(pos) {
-			for rackTile := range state.GenerateAllRackTiles(from.rack) {
-				toState := dawg.Transition(from.state, rackTile.tile.letter)
-				if toState.startNode != nil {
-					_, endPos := state.AdjacentPosition(pos, from.direction)
-					v := toState.LastVertex()
-					to := &PartialMove{
-						gameState: state,
-						rack:      rackTile.rack,
-						startPos:  from.startPos,
-						endPos:    endPos,
-						direction: from.direction,
-						state:     toState,
-						tiles:     append(slices.Clone(from.tiles), rackTile.tile),
-						score:     0,
-					}
-					if v.final {
-						to.score = state.CalcScore(to.startPos, to.direction, to.tiles)
-						if options.debug > 0 {
-							fmt.Printf("GenerateAllSuffixMoves\n")
-							printPartialMove(os.Stdout, to)
-						}
-						out <- to
-					}
-					state.GenerateAllSuffixMoves(out, to)
+
+	if options.debug > 0 {
+		fmt.Print("GenerateAllSuffixMoves from:\n")
+		printPartialMove(from)
+	}
+
+	if state.IsTileEmpty(pos) {
+		rackTiles := state.GenerateAllRackTiles(from.rack)
+		for _, rackTile := range rackTiles {
+			toState := dawg.Transition(from.state, rackTile.tile.letter)
+			if toState.startNode != nil {
+				_, endPos := state.AdjacentPosition(pos, from.direction)
+				v := toState.LastVertex()
+				to := &PartialMove{
+					id:        state.NextMoveId(),
+					gameState: state,
+					rack:      rackTile.rack,
+					startPos:  from.startPos,
+					endPos:    endPos,
+					direction: from.direction,
+					state:     toState,
+					tiles:     append(slices.Clone(from.tiles), rackTile.tile),
+					score:     0,
 				}
+				if v.final {
+					to.score = state.CalcScore(to.startPos, to.direction, to.tiles)
+					if options.debug > 0 {
+						fmt.Printf("GenerateAllSuffixMoves emit\n")
+						printPartialMove(to)
+					}
+					out = append(out, to)
+				}
+				suffixMoves := state.GenerateAllSuffixMoves(to)
+				out = slices.Concat(out, suffixMoves)
 			}
 		}
+
 	}
+	return out
 }
 
-func (state *GameState) FilterBestMove(allMoves <-chan *PartialMove) <-chan *PartialMove {
+func (state *GameState) FilterBestMove(allMoves PartialMoves) PartialMoves {
 	options := state.game.options
-	out := make(chan *PartialMove, 100)
-	go func() {
-		var bestMove *PartialMove = nil
-		for move := range allMoves {
-			if move != nil {
-				if bestMove == nil || move.score > bestMove.score {
-					if options.debug > 0 {
-						fmt.Printf("\n\n################# FilterBestMove #################\n")
-						printPartialMove(os.Stdout, move)
-						fmt.Printf("\n\n")
-					}
-					bestMove = move
-				}
+	out := make(PartialMoves, 0, 1)
+	var bestMove *PartialMove = nil
+	for _, move := range allMoves {
+		if bestMove == nil || move.score > bestMove.score {
+			if options.debug > 0 {
+				fmt.Printf("\n\n################# FilterBestMove #################\n")
+				printPartialMove(move)
+				fmt.Printf("\n\n")
 			}
-		}
-		if options.debug > 0 {
-			fmt.Printf("\n\nEND FilterBestMove\n")
+			bestMove = move
 		}
 
-		close(out)
-	}()
+	}
+	if options.debug > 0 {
+		fmt.Printf("\n\nEND FilterBestMove\n")
+	}
 	return out
 }
 
@@ -678,23 +532,5 @@ func (rackTile *RackTile) String(corpus *Corpus) string {
 	sb.WriteString(rackTile.tile.String(corpus))
 	sb.WriteString(" Rack: ")
 	sb.WriteString(rackTile.rack.String(corpus))
-	return sb.String()
-}
-
-func (tile *Tile) String(corpus *Corpus) string {
-	return fmt.Sprintf("'%s':%v:%s", tile.letter.String(corpus), tile.letter, tile.kind.String())
-
-}
-
-func (tiles Tiles) String(corpus *Corpus) string {
-	var sb strings.Builder
-	sb.WriteString("[ ")
-	for i, tile := range tiles {
-		if i > 0 {
-			sb.WriteString(" ,")
-		}
-		sb.WriteString(tile.String(corpus))
-	}
-	sb.WriteString(" ]")
 	return sb.String()
 }
