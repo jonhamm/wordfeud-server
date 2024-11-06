@@ -8,8 +8,8 @@ import (
 
 type LanguageTile struct {
 	character rune
-	value     Score
 	count     byte
+	value     Score
 }
 
 type LanguageTiles []LanguageTile

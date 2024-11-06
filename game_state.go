@@ -86,7 +86,6 @@ type Rack Tiles
 
 type PlayerState struct {
 	player *Player
-	no     PlayerNo
 	score  Score
 	rack   Rack
 }
@@ -111,7 +110,6 @@ func InitialGameState(game *Game) *GameState {
 	for i := 0; i < len(state.playerStates); i++ {
 		state.playerStates[i] = PlayerState{
 			player: game.players[i],
-			no:     PlayerNo(i),
 			score:  0,
 			rack:   Rack{},
 		}
@@ -321,7 +319,7 @@ func (directionSet *DirectionSet) String(corpus *Corpus) string {
 
 func (player *PlayerState) String(corpus *Corpus) string {
 	return fmt.Sprintf("%v : %s score: %v rack: %v",
-		player.no, player.player.name, player.score, player.rack.String(corpus))
+		player.player.id, player.player.name, player.score, player.rack.String(corpus))
 }
 
 func (lhs Tile) equal(rhs Tile) bool {

@@ -58,15 +58,15 @@ func fprintBoard(f io.Writer, board *Board, args ...string) {
 	for c := Coordinate(0); c < w; c++ {
 		p.Fprintf(f, "%2d ", c)
 	}
-	p.Fprintf(f, "\n%s", indent)
+	p.Fprintf(f, "\n")
 	for r := Coordinate(0); r < h; r++ {
-		p.Fprintf(f, "   ")
+		p.Fprintf(f, "%s   ", indent)
 		for c := Coordinate(0); c < w; c++ {
 			p.Fprintf(f, "+--")
 		}
-		p.Fprintf(f, "+\n%s", indent)
+		p.Fprintf(f, "+\n")
 
-		p.Fprintf(f, "%2d ", r)
+		p.Fprintf(f, "%s%2d ", indent, r)
 
 		for c := Coordinate(0); c < w; c++ {
 			s := squares[r][c]
@@ -115,9 +115,9 @@ func fprintState(f io.Writer, state *GameState, args ...string) {
 	for c := Coordinate(0); c < w; c++ {
 		p.Fprintf(f, " %2d   ", c)
 	}
-	p.Fprintf(f, "\n%s", indent)
+	p.Fprintf(f, "\n")
 	for r := Coordinate(0); r < h; r++ {
-		p.Fprintf(f, "   ")
+		p.Fprintf(f, "%s   ", indent)
 		for c := Coordinate(0); c < w; c++ {
 			p.Fprintf(f, "+-----")
 		}
@@ -126,6 +126,7 @@ func fprintState(f io.Writer, state *GameState, args ...string) {
 		p.Fprintf(f, "%s   ", indent)
 
 		for c := Coordinate(0); c < w; c++ {
+			letterScore := board.game.GetTileScore(tiles[r][c].Tile)
 			s := squares[r][c]
 			k := "  "
 			switch s {
@@ -140,7 +141,12 @@ func fprintState(f io.Writer, state *GameState, args ...string) {
 			case CE:
 				k = "CE"
 			}
-			p.Fprintf(f, "|%s   ", k)
+			switch tiles[r][c].kind {
+			case TILE_JOKER, TILE_LETTER:
+				p.Fprintf(f, "|%s%3v", k, letterScore)
+			default:
+				p.Fprintf(f, "|%s   ", k)
+			}
 		}
 		p.Fprintf(f, "|\n")
 
@@ -149,10 +155,9 @@ func fprintState(f io.Writer, state *GameState, args ...string) {
 			t := tiles[r][c]
 			l := ' '
 			switch t.kind {
-			case TILE_LETTER:
-			case TILE_JOKER:
+			case TILE_LETTER, TILE_JOKER:
 				if t.letter != 0 {
-					l = unicode.ToUpper(corpus.letterRune[l])
+					l = unicode.ToUpper(corpus.letterRune[t.letter])
 				}
 
 			}
@@ -227,7 +232,10 @@ func fprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 	p.Fprintf(f, "%s   rack:      %s\n", indent, pm.rack.String(corpus))
 	p.Fprintf(f, "%s   tiles:     %s\n", indent, pm.tiles.String(corpus))
 	p.Fprintf(f, "%s   word:      \"%s\"\n", indent, pm.gameState.TilesToString(pm.tiles))
-	p.Fprintf(f, "%s   score:     %v\n", indent, pm.score)
+	if pm.score != nil {
+		p.Fprintf(f, "%s   score:     \n", indent)
+		fprintTilesScore(f, pm.score, corpus, indent+"            ")
+	}
 	p.Fprintf(f, "%s   state:     \n", indent)
 	pm.gameState.game.dawg.fprintState(f, pm.state, indent+"            ")
 }
@@ -270,8 +278,39 @@ func fprintMove(f io.Writer, move *Move, args ...string) {
 	p.Fprintf(f, "%s   tiles:     %s\n", indent, move.tiles.String(corpus))
 	p.Fprintf(f, "%s   word:      \"%s\"\n", indent, move.state.TilesToString(move.tiles))
 	p.Fprintf(f, "%s   player:    %s\n", indent, move.playerState.String(corpus))
-	p.Fprintf(f, "%s   score:     %v\n", indent, move.score)
-	p.Fprintf(f, "%s   state:     \n")
-	fprintState(f, move.state, indent+"            ")
+	if move.score != nil {
+		p.Fprintf(f, "%s   score:    %s\n", indent, move.playerState.String(corpus))
+		fprintTilesScore(f, move.score, corpus, indent+"              ")
+	}
+	p.Fprintf(f, "%s   state:     \n", indent)
+	fprintState(f, move.state, indent+"             ")
 
+}
+
+func printTilesScore(ts *TilesScore, corpus *Corpus, args ...string) {
+	fprintTilesScore(os.Stdout, ts, corpus, args...)
+}
+
+func fprintTilesScore(f io.Writer, ts *TilesScore, corpus *Corpus, args ...string) {
+	indent := ""
+	if len(args) > 0 {
+		indent = args[0]
+	}
+
+	fmt.Fprintf(f, "%sTileScore: score: %v word multiplier: %v\n", indent, ts.score, ts.multiplier)
+	for _, s := range ts.tileScores {
+		fprintTileScore(f, &s, corpus, indent+"  ")
+	}
+}
+
+func printTileScore(ts *TileScore, corpus *Corpus, args ...string) {
+	fprintTileScore(os.Stdout, ts, corpus, args...)
+}
+
+func fprintTileScore(f io.Writer, ts *TileScore, corpus *Corpus, args ...string) {
+	indent := ""
+	if len(args) > 0 {
+		indent = args[0]
+	}
+	fmt.Fprintf(f, "%sTilesScore: %10s letterScore: %v multiplier: %v score %v\n", indent, ts.tile.String(corpus), ts.letterScore, ts.multiplier, ts.score)
 }

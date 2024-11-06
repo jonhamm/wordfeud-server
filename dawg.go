@@ -467,9 +467,9 @@ func (dawg *Dawg) fprintfNode(f io.Writer, node *Node) {
 	}
 	fmt.Fprintf(f, "node#%v  crc:%v registered:%v vertexLetters:%s\n", node.id, node.crc, node.registered, node.vertexLetters.String(dawg.corpus))
 	for i, v := range node.vertices {
-		dest := "!! nil destination !!"
+		dest := "<nil>"
 		if v.destination != nil {
-			dest = fmt.Sprintf("node#%v", v.destination.id)
+			dest = fmt.Sprintf("node#%v %s", v.destination.id, v.destination.vertexLetters.String(dawg.corpus))
 		}
 		fmt.Fprintf(f, "  +-- [%v] vertex#%v  letter:'%c' final:%v destination:%s \n", i, v.id, dawg.corpus.letterRune[v.letter], v.final, dest)
 	}
@@ -497,7 +497,7 @@ func (dawg *Dawg) fprintState(f io.Writer, state DawgState, args ...string) {
 	for i, v := range state.vertices {
 		dest := "!! nil destination !!"
 		if v.destination != nil {
-			dest = fmt.Sprintf("node#%v", v.destination.id)
+			dest = fmt.Sprintf("node#%v %s", v.destination.id, v.destination.vertexLetters.String(dawg.corpus))
 		}
 		fmt.Fprintf(f, "%s  +-- [%v] vertex#%v  letter:'%c' final:%v destination:%s \n", indent, i, v.id, dawg.corpus.letterRune[v.letter], v.final, dest)
 	}

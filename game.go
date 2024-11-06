@@ -167,7 +167,7 @@ func (game *Game) FillRack(rack Rack) Rack {
 		corpus := game.corpus
 		switch fillRackCount {
 		case 1:
-			return game.WordToRack(corpus.MakeWord("czvanse"))
+			return game.WordToRack(corpus.MakeWord("czanse"))
 		case 2:
 			return game.WordToRack(corpus.MakeWord("perangs"))
 		}

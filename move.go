@@ -2,6 +2,19 @@ package main
 
 import "fmt"
 
+type TileScore struct {
+	tile        Tile
+	letterScore Score
+	multiplier  Score
+	score       Score
+}
+
+type TileScores []TileScore
+type TilesScore struct {
+	tileScores TileScores
+	multiplier Score
+	score      Score
+}
 type Move struct {
 	id          uint
 	state       *GameState
@@ -9,47 +22,60 @@ type Move struct {
 	position    Position
 	direction   Direction
 	tiles       Tiles
-	score       Score
+	score       *TilesScore
 }
 
-func (state *GameState) MakeMove(postion Position, direction Direction, tiles Tiles, playerState PlayerState) *Move {
-	move := &Move{state.NextMoveId(), state, playerState, postion, direction, tiles, 0}
-	move.score = state.CalcScore(postion, direction, tiles)
+func (state *GameState) MakeMove(postion Position, direction Direction, tiles Tiles, tilesScore *TilesScore, playerState PlayerState) *Move {
+	move := &Move{state.NextMoveId(), state, playerState, postion, direction, tiles, nil}
+	move.score = tilesScore
+	if move.score == nil {
+		move.score = state.CalcScore(postion, direction, tiles)
+	}
 	return move
 }
 
-func (state *GameState) CalcScore(anchor Position, dir Direction, tiles Tiles) Score {
-	score := Score(0)
-	multiplyer := Score(1)
+func (state *GameState) CalcScore(anchor Position, dir Direction, tiles Tiles) *TilesScore {
+	tilesScore := TilesScore{
+		tileScores: make(TileScores, len(tiles)),
+		multiplier: 1,
+		score:      0,
+	}
 	squares := state.game.board.squares
 	pos := anchor
 	boardTile := state.tiles[pos.row][pos.column]
-	for _, t := range tiles {
+	for i, t := range tiles {
 		var nextPos Position
-		letterScore := state.game.GetTileScore(t)
+		tileScore := &tilesScore.tileScores[i]
+		tileScore.tile = t
+		tileScore.multiplier = 1
+		tileScore.letterScore = state.game.GetTileScore(t)
 		if boardTile.kind == TILE_EMPTY {
 			// this tile was placed in this move
 			// use the square modifiers DL, TL, DW, TW
 			switch squares[pos.row][pos.column] {
 			case DL:
-				letterScore *= 2
+				tileScore.multiplier *= 2
 			case TL:
-				letterScore *= 3
+				tileScore.multiplier *= 3
 			case DW:
-				multiplyer *= 2
+				tilesScore.multiplier *= 2
 			case TW:
-				multiplyer *= 3
+				tilesScore.multiplier *= 2
 			}
 		}
-		score += letterScore
-		boardTile, nextPos = state.AdjacentTile(pos, dir)
-		if boardTile.kind == TILE_NONE {
-			panic(fmt.Sprintf("invalid next position after %s in direction %s (GameState.CalcScore)", pos.String(), dir.String()))
+		tileScore.score += tileScore.multiplier * tileScore.letterScore
+		tilesScore.score += tileScore.score
+
+		if i+1 < len(tiles) {
+			boardTile, nextPos = state.AdjacentTile(pos, dir)
+			if boardTile.kind == TILE_NONE {
+				panic(fmt.Sprintf("invalid next position after %s in direction %s (GameState.CalcScore)", pos.String(), dir.String()))
+			}
+			pos = nextPos
 		}
-		pos = nextPos
 	}
 
-	score *= multiplyer
+	tilesScore.score *= tilesScore.multiplier
 
-	return score
+	return &tilesScore
 }

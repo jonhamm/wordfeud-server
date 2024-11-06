@@ -22,7 +22,7 @@ type PartialMove struct {
 	direction Direction
 	state     DawgState
 	tiles     Tiles
-	score     Score
+	score     *TilesScore
 }
 
 type PartialMoves []*PartialMove
@@ -31,9 +31,9 @@ func (game *Game) play() bool {
 	state := game.state
 	playerNo := state.nextPlayer()
 	playerState := state.playerStates[playerNo]
-	newState := state.Move(playerState)
-	if newState != nil {
-		game.state = newState
+	move := state.Move(playerState)
+	if move != nil {
+		game.state = move.state
 		return true
 	}
 	return false
@@ -55,11 +55,11 @@ func (state *GameState) nextPlayer() PlayerNo {
 	return 0
 }
 
-func (state *GameState) Move(playerState PlayerState) *GameState {
+func (state *GameState) Move(playerState PlayerState) *Move {
 	fmt := state.game.fmt
 	options := state.game.options
 	if options.verbose {
-		fmt.Fprintf(options.out, "\n\nMove for player %v : %s\n", playerState.no, playerState.player.name)
+		fmt.Fprintf(options.out, "\n\nMove for player %v : %s\n", playerState.player.id, playerState.player.name)
 		fprintState(options.out, state)
 	}
 	state.PrepareMove()
@@ -70,14 +70,14 @@ func (state *GameState) Move(playerState PlayerState) *GameState {
 		return nil
 	}
 
-	newState := state.AddMove(filteredPartialMoves[0], playerState)
-	return newState
+	move := state.AddMove(filteredPartialMoves[0], playerState)
+	return move
 }
 
-func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *GameState {
+func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *Move {
 	options := state.game.options
 	playerState.rack = partial.rack
-	move := state.MakeMove(partial.startPos, partial.direction, partial.tiles, playerState)
+	move := state.MakeMove(partial.startPos, partial.direction, partial.tiles, partial.score, playerState)
 	newState := &GameState{
 		game:         state.game,
 		fromState:    state,
@@ -99,7 +99,7 @@ func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *
 	dir := partial.direction
 	var ok bool
 	var nextPos Position
-	for _, tile := range partial.tiles {
+	for i, tile := range partial.tiles {
 		boardTile := newState.tiles[pos.row][pos.column]
 		switch boardTile.kind {
 		case TILE_EMPTY:
@@ -119,18 +119,22 @@ func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *
 		case HORIZONTAL:
 		case VERTICAL:
 		}
-		ok, nextPos = state.AdjacentPosition(pos, dir)
-		if !ok {
-			panic(fmt.Sprintf("move generation will add new tile at non-existing next position after %s direction %s (GameState.AddMove)", nextPos.String(), dir.String()))
+		if i+1 < len(partial.tiles) {
+			ok, nextPos = state.AdjacentPosition(pos, dir)
+			if !ok {
+				panic(fmt.Sprintf("move generation will add new tile at non-existing next position after %s direction %s (GameState.AddMove)", nextPos.String(), dir.String()))
+			}
+			pos = nextPos
 		}
-		pos = nextPos
+
 	}
+	move.state = newState
 	if options.debug > 0 {
 		printState(state)
 		fmt.Printf("AddMove :")
 		printMove(move)
 	}
-	return newState
+	return move
 }
 
 func (state *GameState) GetAnchors(coordinate Coordinate, orientation Orientation) Positions {
@@ -259,7 +263,7 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState PlayerState, ancho
 					direction: suffixDirection,
 					state:     prefix.state,
 					tiles:     prefix.tiles,
-					score:     0,
+					score:     nil,
 				})
 				out = slices.Concat(out, suffixMoves)
 			}
@@ -284,7 +288,7 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState PlayerState, ancho
 				direction: suffixDirection,
 				state:     dawgState,
 				tiles:     prefix,
-				score:     0,
+				score:     nil,
 			})
 			out = slices.Concat(out, suffixMoves)
 
@@ -302,7 +306,7 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState PlayerState, ancho
 			direction: suffixDirection,
 			state:     game.dawg.initialState,
 			tiles:     Tiles{},
-			score:     0,
+			score:     nil,
 		})
 		out = slices.Concat(out, suffixMoves)
 	}
@@ -323,7 +327,7 @@ func (state *GameState) GenerateAllPrefixes(anchor Position, direction Direction
 		direction: direction,
 		state:     state.game.dawg.initialState,
 		tiles:     make(Tiles, 0),
-		score:     0,
+		score:     nil,
 	}
 	if options.debug > 0 {
 		fmt.Printf("GenerateAllPrefixes emit empty prefix   anchor: %s direction: %s rack: %s maxLen: %v\n",
@@ -350,7 +354,7 @@ func (state *GameState) GenerateAllPrefixes(anchor Position, direction Direction
 			direction: direction.Reverse(),
 			state:     state.game.dawg.initialState,
 			tiles:     make(Tiles, 0),
-			score:     0,
+			score:     nil,
 		}
 		if options.debug > 0 {
 			fmt.Printf("GenerateAllPrefixes extend prefix to %v max length: %v anchor: %s direction: %s rack: %s\n",
@@ -398,7 +402,7 @@ func (state *GameState) GeneratePrefixes(from *PartialMove, length Coordinate) P
 				direction: from.direction,
 				state:     dawgState,
 				tiles:     append(slices.Clone(from.tiles), rackTile.tile),
-				score:     0,
+				score:     nil,
 			}
 
 			prefixCompletion := state.GeneratePrefixes(to, length-1)
@@ -467,10 +471,9 @@ func (state *GameState) GenerateAllSuffixMoves(from *PartialMove) PartialMoves {
 					direction: from.direction,
 					state:     toState,
 					tiles:     append(slices.Clone(from.tiles), rackTile.tile),
-					score:     0,
+					score:     nil,
 				}
 				if v.final {
-					to.score = state.CalcScore(to.startPos, to.direction, to.tiles)
 					if options.debug > 0 {
 						fmt.Printf("GenerateAllSuffixMoves emit\n")
 						printPartialMove(to)
@@ -490,10 +493,19 @@ func (state *GameState) FilterBestMove(allMoves PartialMoves) PartialMoves {
 	options := state.game.options
 	out := make(PartialMoves, 0, 1)
 	var bestMove *PartialMove = nil
+
 	for _, move := range allMoves {
-		if bestMove == nil || move.score > bestMove.score {
+		if move.score == nil {
+			move.score = state.CalcScore(move.startPos, move.direction, move.tiles)
+		}
+		if bestMove == nil || move.score.score > bestMove.score.score {
 			if options.debug > 0 {
 				fmt.Printf("\n\n################# FilterBestMove #################\n")
+				curScore := Score(0)
+				if bestMove != nil {
+					curScore = bestMove.score.score
+				}
+				fmt.Printf("score %v -> %v\n", curScore, move.score.score)
 				printPartialMove(move)
 				fmt.Printf("\n\n")
 			}
@@ -503,6 +515,14 @@ func (state *GameState) FilterBestMove(allMoves PartialMoves) PartialMoves {
 	}
 	if options.debug > 0 {
 		fmt.Printf("\n\nEND FilterBestMove\n")
+		if bestMove != nil {
+			printPartialMove(bestMove, "")
+		} else {
+			fmt.Print("NO moves found")
+		}
+	}
+	if bestMove != nil {
+		out = append(out, bestMove)
 	}
 	return out
 }
