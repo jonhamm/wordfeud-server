@@ -34,6 +34,10 @@ func (game *Game) play() bool {
 	move := state.Move(playerState)
 	if move != nil {
 		game.state = move.state
+		playerState.score += move.score.score
+		if game.options.debug > 0 {
+			game.fmt.Printf("game play completed move : %s\n", playerState.String(game.corpus))
+		}
 		return true
 	}
 	return false

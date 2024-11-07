@@ -18,7 +18,7 @@ func gameCmd(options *GameOptions, args []string) *GameResult {
 		fmt.Fprintf(out, "options: %+v\n", options)
 	}
 
-	game, err := NewGame(options, Players{BotPlayer(1), BotPlayer(2)})
+	game, err := NewGame(options, 1, Players{BotPlayer(1), BotPlayer(2)})
 	if err != nil {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()

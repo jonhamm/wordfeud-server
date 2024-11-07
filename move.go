@@ -17,6 +17,7 @@ type TilesScore struct {
 }
 type Move struct {
 	id          uint
+	seqNo       uint
 	state       *GameState
 	playerState PlayerState
 	position    Position
@@ -26,7 +27,7 @@ type Move struct {
 }
 
 func (state *GameState) MakeMove(postion Position, direction Direction, tiles Tiles, tilesScore *TilesScore, playerState PlayerState) *Move {
-	move := &Move{state.NextMoveId(), state, playerState, postion, direction, tiles, nil}
+	move := &Move{state.NextMoveId(), state.game.NextMoveSeqNo(), state, playerState, postion, direction, tiles, nil}
 	move.score = tilesScore
 	if move.score == nil {
 		move.score = state.CalcScore(postion, direction, tiles)
@@ -119,6 +120,7 @@ func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *
 		fmt.Printf("AddMove :\n")
 		printPartialMove(partial)
 		printPlayer(state.game, &playerState)
+		fmt.Printf("\n")
 	}
 
 	playerState.rack = partial.rack
@@ -186,7 +188,8 @@ func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *
 	move.state = newState
 	if options.debug > 0 {
 		fmt.Printf("AddMove complete :\n")
-		printState(state)
+		printMove(move)
+		fmt.Printf("\n")
 	}
 	return move
 }

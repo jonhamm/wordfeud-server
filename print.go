@@ -272,7 +272,7 @@ func fprintMove(f io.Writer, move *Move, args ...string) {
 	}
 	p := move.state.game.fmt
 	corpus := move.state.game.corpus
-	p.Fprintf(f, "%sMove: %d\n", indent, move.id)
+	p.Fprintf(f, "%sMove: %d number %d\n", indent, move.id, move.seqNo)
 	p.Fprintf(f, "%s   position:  %s\n", indent, move.position.String())
 	p.Fprintf(f, "%s   direction: %s\n", indent, move.direction.String())
 	p.Fprintf(f, "%s   tiles:     %s\n", indent, move.tiles.String(corpus))

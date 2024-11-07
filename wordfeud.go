@@ -27,6 +27,8 @@ type GameOptions struct {
 	verbose  bool
 	debug    int
 	randSeed uint64
+	count    int
+	name     string
 	out      io.Writer
 	language language.Tag
 	rand     *rand.Rand
@@ -54,11 +56,18 @@ const usage = `
 		-debug=dd			show debug output when dd > 0 (the larger dd is the more output)
 		-rand=nn			seed random number generator with nn 
 							0 or default will seed with timestamp
+		-count=nn	        repeat count for autoplay - default is 1
+		-name=xxxxx			autoplay game files will be named xxxxx-nn where nn is 1..count
+							xxxxx default is "scrabble"
+
 
 	abbreviated options:
 		-h		-help
 		-v		-verbose
 		-d		-debug
+		-r 		-rand
+		-c		-count
+		-n		-name
 `
 
 const httpUsage = `
@@ -68,6 +77,9 @@ const httpUsage = `
 		?d=dd				show debug output when dd > 0 (the larger dd is the more output)
 		?r=nn			    seed random number generator with nn (!= 0)
 							0 or default will seed with timestamp
+		?c=nn	        	repeat count for autoplay - default is 1
+		?n=xxxxx			autoplay game files will be named xxxxx-nn where nn is 1..count
+							xxxxx default is "scrabble"
 `
 
 func main() {
@@ -79,8 +91,10 @@ func main() {
 	BoolVarFlag(flag.CommandLine, &options.verbose, []string{"verbose", "v"}, false, "show more output")
 	BoolVarFlag(flag.CommandLine, &options.help, []string{"help", "h"}, false, "print usage information")
 	IntVarFlag(flag.CommandLine, &options.debug, []string{"debug", "d"}, 0, "increase above 0 to get debug info - more than verbose")
+	IntVarFlag(flag.CommandLine, &options.count, []string{"count", "c"}, 0, "increase above 0 to get debug info - more than verbose")
 	Uint64VarFlag(flag.CommandLine, &options.randSeed, []string{"rand", "r"}, 0, "seed for random number generator - 0 will seed with timestamp")
 	StringVarFlag(flag.CommandLine, &languageSpec, []string{"language", "l"}, "", "the requested corpus language")
+	StringVarFlag(flag.CommandLine, &options.name, []string{"name", "n"}, "", "the requested corpus language")
 
 	flag.Parse()
 	args := flag.Args()
@@ -101,6 +115,16 @@ func main() {
 		}
 		options.language = tag
 	}
+	if options.randSeed == 0 {
+		options.randSeed = uint64(time.Now().UnixNano())
+	}
+	if options.count < 1 {
+		options.count = 1
+	}
+
+	if len(options.name) == 0 {
+		options.name = "scrabble"
+	}
 
 	cmd, args := args[0], args[1:]
 	if options.debug > 0 {
@@ -111,9 +135,6 @@ func main() {
 		DAWG_TRACE = true
 	}
 
-	if options.randSeed == 0 {
-		options.randSeed = uint64(time.Now().UnixNano())
-	}
 	options.rand = rand.New(rand.NewSource(int64(options.randSeed)))
 
 	switch cmd {

@@ -17,20 +17,21 @@ func autoplayCmd(options *GameOptions, args []string) *GameResult {
 		options.verbose = true
 		fmt.Fprintf(out, "options: %+v\n", options)
 	}
+	for seqno := 1; seqno <= options.count; seqno++ {
+		game, err := NewGame(options, seqno, Players{BotPlayer(1), BotPlayer(2)})
+		if err != nil {
+			fmt.Println(result.errors(), err.Error())
+			return result.result()
+		}
+		result.Width = int(game.width)
+		result.Height = int(game.height)
+		result.LetterScores = game.letterScores
+		result.Board = game.board
 
-	game, err := NewGame(options, Players{BotPlayer(1), BotPlayer(2)})
-	if err != nil {
-		fmt.Println(result.errors(), err.Error())
-		return result.result()
-	}
-	result.Width = int(game.width)
-	result.Height = int(game.height)
-	result.LetterScores = game.letterScores
-	result.Board = game.board
-
-	for n := 0; n < 100; n++ {
-		if !game.play() {
-			break
+		for n := 0; n < 1000; n++ {
+			if !game.play() {
+				break
+			}
 		}
 	}
 	return result.result()

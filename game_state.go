@@ -77,7 +77,6 @@ type GameState struct {
 	move         *Move
 	tiles        TileBoard
 	playerStates PlayerStates
-	nextMoveId   uint
 }
 
 const RackSize = 7
@@ -119,9 +118,7 @@ func InitialGameState(game *Game) *GameState {
 }
 
 func (state *GameState) NextMoveId() uint {
-	id := state.nextMoveId
-	state.nextMoveId++
-	return id
+	return state.game.NextMoveId()
 }
 
 func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orientation) LetterSet {

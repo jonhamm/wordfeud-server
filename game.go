@@ -15,22 +15,25 @@ type Score uint
 type LetterScores [] /*Letter*/ Score
 
 type Game struct {
-	options      *GameOptions
-	randSeed     uint64
-	rand         *rand.Rand
-	fmt          *message.Printer
-	width        Coordinate
-	height       Coordinate
-	corpus       *Corpus
-	dawg         *Dawg
-	board        *Board
-	letterScores LetterScores
-	tiles        Tiles
-	players      []*Player
-	state        *GameState
+	options       *GameOptions
+	seqno         int
+	randSeed      uint64
+	rand          *rand.Rand
+	fmt           *message.Printer
+	width         Coordinate
+	height        Coordinate
+	corpus        *Corpus
+	dawg          *Dawg
+	board         *Board
+	letterScores  LetterScores
+	tiles         Tiles
+	players       []*Player
+	state         *GameState
+	nextMoveSeqNo uint
+	nextMoveId    uint
 }
 
-func NewGame(options *GameOptions, players Players, dimensions ...Coordinate) (*Game, error) {
+func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coordinate) (*Game, error) {
 	var width Coordinate
 	var height Coordinate
 	printer := message.NewPrinter(options.language)
@@ -56,25 +59,28 @@ func NewGame(options *GameOptions, players Players, dimensions ...Coordinate) (*
 		return nil, err
 	}
 	game := Game{
-		options:      options,
-		randSeed:     options.rand.Uint64(),
-		width:        width,
-		height:       height,
-		corpus:       corpus,
-		fmt:          printer,
-		dawg:         dawg,
-		board:        nil,
-		letterScores: make(LetterScores, corpus.letterMax),
-		tiles:        Tiles{},
-		players:      players,
-		state:        nil,
+		options:       options,
+		seqno:         seqno,
+		randSeed:      options.rand.Uint64(),
+		width:         width,
+		height:        height,
+		corpus:        corpus,
+		fmt:           printer,
+		dawg:          dawg,
+		board:         nil,
+		letterScores:  make(LetterScores, corpus.letterMax),
+		tiles:         Tiles{},
+		players:       players,
+		state:         nil,
+		nextMoveSeqNo: 1,
+		nextMoveId:    1,
 	}
 
 	game.rand = rand.New(rand.NewSource(int64(game.randSeed)))
 	game.board = NewBoard(&game)
 
 	if options.debug > 0 {
-		printer.Printf("****** New Game ******  randSeed: %v\n", game.randSeed)
+		printer.Printf("****** New Game %s-%d ******  randSeed: %v\n", game.options.name, seqno, game.randSeed)
 	}
 
 	for _, tile := range GetLanguageTiles(options.language) {
@@ -190,4 +196,15 @@ func (game *Game) FillRack(rack Rack) Rack {
 		rack = append(rack, t)
 	}
 	return rack
+}
+func (game *Game) NextMoveId() uint {
+	id := game.nextMoveId
+	game.nextMoveId++
+	return id
+}
+
+func (game *Game) NextMoveSeqNo() uint {
+	seqNo := game.nextMoveSeqNo
+	game.nextMoveSeqNo++
+	return seqNo
 }

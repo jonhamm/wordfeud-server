@@ -42,7 +42,8 @@
             "name": "debug autoplay",
             "args": [
                 "-debug=1",
-                "-rand=1234""autoplay",
+                "-rand=1234",
+                "autoplay",
             ],
             "type": "go",
             "request": "launch",
