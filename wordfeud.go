@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -32,6 +33,10 @@ type GameOptions struct {
 	out      io.Writer
 	language language.Tag
 	rand     *rand.Rand
+	htmlFile string
+	htmlDir  string
+	cmd      string
+	args     []string
 }
 
 const usage = `
@@ -47,7 +52,7 @@ const usage = `
 	wordfeud {options} game 
     	return game information
 
-	wordfeud {options} game 
+	wordfeud {options} autoplay 
     	play game automatically 
 
 	options:	
@@ -57,8 +62,15 @@ const usage = `
 		-rand=nn			seed random number generator with nn 
 							0 or default will seed with timestamp
 		-count=nn	        repeat count for autoplay - default is 1
-		-name=xxxxx			autoplay game files will be named xxxxx-nn where nn is 1..count
+		-name=xxxxx			autoplay game files will be named "xxxxx-nn" where nn is 1..count
 							xxxxx default is "scrabble"
+		-file=file-or-dir	the name of the html file to hold game result
+							if -count is specified > 1 the file will be "file-or-dir-nn.html" where nn is 1..count
+							if not specified no html file will be produced
+							if file-or-dir is the name of a directory the 
+							html file will be "file-or-dir/xxxxx-nn.html" where xxxxx and nn 
+							are as explained in the -name option
+						
 
 
 	abbreviated options:
@@ -68,6 +80,7 @@ const usage = `
 		-r 		-rand
 		-c		-count
 		-n		-name
+		-f		-file
 `
 
 const httpUsage = `
@@ -95,6 +108,7 @@ func main() {
 	Uint64VarFlag(flag.CommandLine, &options.randSeed, []string{"rand", "r"}, 0, "seed for random number generator - 0 will seed with timestamp")
 	StringVarFlag(flag.CommandLine, &languageSpec, []string{"language", "l"}, "", "the requested corpus language")
 	StringVarFlag(flag.CommandLine, &options.name, []string{"name", "n"}, "", "the requested corpus language")
+	StringVarFlag(flag.CommandLine, &options.htmlFile, []string{"file", "f"}, "", "the requested corpus language")
 
 	flag.Parse()
 	args := flag.Args()
@@ -126,10 +140,24 @@ func main() {
 		options.name = "scrabble"
 	}
 
+	if len(options.htmlFile) > 0 {
+		info, err := os.Stat(options.htmlFile)
+		if err == nil {
+			if info.IsDir() {
+				options.htmlDir = options.htmlFile
+				options.htmlFile = options.name
+			}
+		} else {
+			options.htmlDir, options.htmlFile = path.Split(options.htmlFile)
+		}
+	}
+
 	cmd, args := args[0], args[1:]
+	options.cmd = cmd
+	options.args = args
 	if options.debug > 0 {
 		options.verbose = true
-		fmt.Fprintf(options.out, "cmd: %v\noptions: %+v\n", cmd, options)
+		fprintOptions(options.out, &options)
 	}
 	if options.debug > 2 {
 		DAWG_TRACE = true
