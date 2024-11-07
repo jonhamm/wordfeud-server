@@ -178,15 +178,6 @@ var fillRackCount = 0
 
 func (game *Game) FillRack(rack Rack) Rack {
 	fillRackCount++
-	if game.options.debug > 0 {
-		corpus := game.corpus
-		switch fillRackCount {
-		case 1:
-			return game.WordToRack(corpus.MakeWord("czanse"))
-		case 2:
-			return game.WordToRack(corpus.MakeWord("perangs"))
-		}
-	}
 
 	for n := len(rack); n < int(RackSize); n++ {
 		t := game.TakeTile()

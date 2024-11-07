@@ -122,6 +122,7 @@ func WriteGameFileText(f io.Writer, game *Game) error {
 	states := game.CollectStates()
 	for _, state := range states {
 		fmt.Fprint(f, "\n\n------------------------------------------------------------------------\n\n")
+		fprintMove(f, state.move)
 		fprintState(f, state)
 	}
 
