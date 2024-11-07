@@ -79,3 +79,114 @@ func (state *GameState) CalcScore(anchor Position, dir Direction, tiles Tiles) *
 
 	return &tilesScore
 }
+
+func (state *GameState) Move(playerState PlayerState) *Move {
+	fmt := state.game.fmt
+	options := state.game.options
+	if options.verbose {
+		fmt.Fprintf(options.out, "\n\nMove for player %v : %s\n", playerState.player.id, playerState.player.name)
+		fprintState(options.out, state)
+	}
+	state.PrepareMove()
+
+	filteredPartialMoves := state.FilterBestMove(state.GenerateAllMoves(playerState))
+
+	if len(filteredPartialMoves) == 0 {
+		return nil
+	}
+
+	move := state.AddMove(filteredPartialMoves[0], playerState)
+	return move
+}
+
+func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *Move {
+	options := state.game.options
+	corpus := state.game.corpus
+	fmt := state.game.fmt
+	move := state.MakeMove(partial.startPos, partial.direction, partial.tiles, partial.score, playerState)
+	newState := &GameState{
+		game:         state.game,
+		fromState:    state,
+		move:         move,
+		playerStates: state.playerStates,
+	}
+	height := state.game.height
+	width := state.game.width
+	newState.tiles = make([][]BoardTile, height)
+
+	if options.debug > 0 {
+		printState(state)
+		fmt.Printf("AddMove :\n")
+		printPartialMove(partial)
+		printPlayer(state.game, &playerState)
+	}
+
+	playerState.rack = partial.rack
+
+	for r := Coordinate(0); r < height; r++ {
+		newState.tiles[r] = make([]BoardTile, width)
+	}
+	for r := Coordinate(0); r < height; r++ {
+		for c := Coordinate(0); c < width; c++ {
+			newState.tiles[r][c] = state.tiles[r][c]
+		}
+	}
+	pos := partial.startPos
+	dir := partial.direction
+	var ok bool
+	var nextPos Position
+	for i, tile := range partial.tiles {
+		boardTile := newState.tiles[pos.row][pos.column]
+		switch boardTile.kind {
+		case TILE_EMPTY:
+		case TILE_JOKER, TILE_LETTER:
+			if !boardTile.Tile.equal(tile) {
+				panic(fmt.Sprintf("move generation will add new tile %v at %s which is not empty and differs %v (GameState.AddMove)", tile, pos.String(), boardTile.Tile))
+			}
+			// this is a tile from a previous move -- skip
+			continue
+		case TILE_NONE:
+			panic(fmt.Sprintf("move generation will add new tile at non-existing next position after %s direction %s (GameState.AddMove)", nextPos.String(), dir.String()))
+		default:
+			panic(fmt.Sprintf("move generation will add new tile of unknown kind %v (GameState.AddMove)", tile.kind))
+		}
+		newState.tiles[pos.row][pos.column] = BoardTile{Tile: tile, validCrossLetters: NullValidCrossLetters}
+		if options.debug > 0 {
+			t := &newState.tiles[pos.row][pos.column]
+			fmt.Printf("   set tile %s = %s\n", pos.String(), t.String(corpus))
+		}
+		orientation := dir.Orientation()
+		perpendicularOrientation := orientation.Perpendicular()
+		if ok, firstPrefixAnchor := newState.FindFirstAnchorAfter(pos, perpendicularOrientation.PrefixDirection()); ok {
+			t := &newState.tiles[firstPrefixAnchor.row][firstPrefixAnchor.column]
+			if options.debug > 0 {
+				fmt.Printf("   invalidate %s prefix validCrossLetters %s : %s\n",
+					perpendicularOrientation.String(), firstPrefixAnchor.String(),
+					t.validCrossLetters[perpendicularOrientation].String(corpus))
+			}
+			t.validCrossLetters[dir.Orientation()] = NullValidCrossLetters[dir.Orientation()]
+		}
+		if ok, firstSuffixAnchor := newState.FindFirstAnchorAfter(pos, perpendicularOrientation.SuffixDirection()); ok {
+			t := newState.tiles[firstSuffixAnchor.row][firstSuffixAnchor.column]
+			if options.debug > 0 {
+				fmt.Printf("   invalidate %s suffix validCrossLetters %s : %s\n",
+					perpendicularOrientation.String(), firstSuffixAnchor.String(),
+					t.validCrossLetters[perpendicularOrientation].String(corpus))
+			}
+			t.validCrossLetters[dir.Orientation()] = NullValidCrossLetters[dir.Orientation()]
+		}
+		if i+1 < len(partial.tiles) {
+			ok, nextPos = state.AdjacentPosition(pos, dir)
+			if !ok {
+				panic(fmt.Sprintf("move generation will add new tile at non-existing next position after %s direction %s (GameState.AddMove)", nextPos.String(), dir.String()))
+			}
+			pos = nextPos
+		}
+	}
+	move.state = newState
+	if options.debug > 0 {
+		fmt.Printf("AddMove complete :\n")
+		printState(state)
+	}
+	return move
+}

@@ -211,7 +211,7 @@ func fprintPlayer(f io.Writer, game *Game, player *PlayerState, args ...string) 
 		indent = args[0]
 	}
 	p := game.fmt
-	p.Fprintf(f, "%sPlayer %%s\n", indent, player.String(game.corpus))
+	p.Fprintf(f, "%sPlayer %s\n", indent, player.String(game.corpus))
 }
 
 func printPartialMove(pm *PartialMove, args ...string) {

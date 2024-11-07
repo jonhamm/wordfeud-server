@@ -510,3 +510,13 @@ func (state *GameState) TilesToString(tiles Tiles) string {
 	}
 	return sb.String()
 }
+
+func (vcl *ValidCrossLetters) String(corpus *Corpus) string {
+	return fmt.Sprintf("{%v %s}", vcl.ok, vcl.letters.String(corpus))
+}
+
+func (bt *BoardTile) String(corpus *Corpus) string {
+	return fmt.Sprintf("%s validCrossLetters %s: %s %s: %s", bt.Tile.String(corpus),
+		HORIZONTAL.String(), bt.validCrossLetters[HORIZONTAL].String(corpus),
+		VERTICAL.String(), bt.validCrossLetters[VERTICAL].String(corpus))
+}
