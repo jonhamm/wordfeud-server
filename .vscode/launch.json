@@ -43,6 +43,8 @@
             "args": [
                 "-debug=1",
                 "-rand=1234",
+                "-out=/tmp",
+                "-format=text",
                 "autoplay",
             ],
             "type": "go",

@@ -17,16 +17,18 @@ func fprintOptions(f io.Writer, options *GameOptions, args ...string) {
 		indent = args[0]
 	}
 	fmt.Fprintf(f, "%sGameOptions:\n", indent)
-	fmt.Fprintf(f, "%s   cmd:       %s\n", indent, options.cmd)
-	fmt.Fprintf(f, "%s   args:      %v\n", indent, options.args)
-	fmt.Fprintf(f, "%s   help:      %v\n", indent, options.help)
-	fmt.Fprintf(f, "%s   debug:     %v\n", indent, options.debug)
-	fmt.Fprintf(f, "%s   ranSeed:   %v\n", indent, options.randSeed)
-	fmt.Fprintf(f, "%s   count:     %v\n", indent, options.count)
-	fmt.Fprintf(f, "%s   name:      %s\n", indent, options.name)
-	fmt.Fprintf(f, "%s   language:  %s\n", indent, options.language.String())
-	fmt.Fprintf(f, "%s   htmlDir:   %s\n", indent, options.htmlDir)
-	fmt.Fprintf(f, "%s   htmlFile:  %s\n", indent, options.htmlFile)
+	fmt.Fprintf(f, "%s   cmd:         %s\n", indent, options.cmd)
+	fmt.Fprintf(f, "%s   args:        %v\n", indent, options.args)
+	fmt.Fprintf(f, "%s   help:        %v\n", indent, options.help)
+	fmt.Fprintf(f, "%s   debug:       %v\n", indent, options.debug)
+	fmt.Fprintf(f, "%s   ranSeed:     %v\n", indent, options.randSeed)
+	fmt.Fprintf(f, "%s   count:       %v\n", indent, options.count)
+	fmt.Fprintf(f, "%s   name:        %s\n", indent, options.name)
+	fmt.Fprintf(f, "%s   language:    %s\n", indent, options.language.String())
+	fmt.Fprintf(f, "%s   writeFile:   %v\n", indent, options.writeFile)
+	fmt.Fprintf(f, "%s   directory:   %s\n", indent, options.directory)
+	fmt.Fprintf(f, "%s   file:        %s\n", indent, options.file)
+	fmt.Fprintf(f, "%s   fileFormat:  %s\n", indent, options.fileFormat.String())
 }
 
 func printBoard(board *Board, args ...string) {
@@ -294,7 +296,7 @@ func fprintMove(f io.Writer, move *Move, args ...string) {
 	}
 	p := move.state.game.fmt
 	corpus := move.state.game.corpus
-	p.Fprintf(f, "%sMove: %d number %d\n", indent, move.id, move.seqNo)
+	p.Fprintf(f, "%sMove: %d number %d\n", indent, move.id, move.seqno)
 	p.Fprintf(f, "%s   position:  %s\n", indent, move.position.String())
 	p.Fprintf(f, "%s   direction: %s\n", indent, move.direction.String())
 	p.Fprintf(f, "%s   tiles:     %s\n", indent, move.tiles.String(corpus))

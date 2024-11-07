@@ -79,6 +79,8 @@ type GameState struct {
 	playerStates PlayerStates
 }
 
+type GameStates []*GameState
+
 const RackSize = 7
 
 type Rack Tiles

@@ -24,19 +24,21 @@ import (
 */
 
 type GameOptions struct {
-	help     bool
-	verbose  bool
-	debug    int
-	randSeed uint64
-	count    int
-	name     string
-	out      io.Writer
-	language language.Tag
-	rand     *rand.Rand
-	htmlFile string
-	htmlDir  string
-	cmd      string
-	args     []string
+	help       bool
+	verbose    bool
+	debug      int
+	randSeed   uint64
+	count      int
+	name       string
+	out        io.Writer
+	language   language.Tag
+	rand       *rand.Rand
+	writeFile  bool
+	file       string
+	directory  string
+	fileFormat FileFormat
+	cmd        string
+	args       []string
 }
 
 const usage = `
@@ -64,14 +66,17 @@ const usage = `
 		-count=nn	        repeat count for autoplay - default is 1
 		-name=xxxxx			autoplay game files will be named "xxxxx-nn" where nn is 1..count
 							xxxxx default is "scrabble"
-		-file=file-or-dir	the name of the html file to hold game result
-							if -count is specified > 1 the file will be "file-or-dir-nn.html" where nn is 1..count
-							if not specified no html file will be produced
+		-out=file-or-dir	the name of the file or directory to hold game result
+							if -count is specified > 1 the file will be "file-or-dir-nn" where nn is 1..count
+							if not specified no file will be produced
 							if file-or-dir is the name of a directory the 
-							html file will be "file-or-dir/xxxxx-nn.html" where xxxxx and nn 
+							html file will be "file-or-dir/xxxxx-nn" where xxxxx and nn 
 							are as explained in the -name option
+		-format=zzzz		the format of output file if one is produced (see -out)
+							valid formats are:
+								"txt": simple text file
+								"json": json file
 						
-
 
 	abbreviated options:
 		-h		-help
@@ -80,7 +85,8 @@ const usage = `
 		-r 		-rand
 		-c		-count
 		-n		-name
-		-f		-file
+		-o		-out
+		-f		-format
 `
 
 const httpUsage = `
@@ -98,6 +104,7 @@ const httpUsage = `
 func main() {
 	var options GameOptions
 	var languageSpec string
+	var fileFormatSpec string
 	options.out = os.Stdout
 	options.language = language.Danish
 	flag.Usage = func() { fmt.Fprint(options.out, usage) }
@@ -107,8 +114,9 @@ func main() {
 	IntVarFlag(flag.CommandLine, &options.count, []string{"count", "c"}, 0, "increase above 0 to get debug info - more than verbose")
 	Uint64VarFlag(flag.CommandLine, &options.randSeed, []string{"rand", "r"}, 0, "seed for random number generator - 0 will seed with timestamp")
 	StringVarFlag(flag.CommandLine, &languageSpec, []string{"language", "l"}, "", "the requested corpus language")
-	StringVarFlag(flag.CommandLine, &options.name, []string{"name", "n"}, "", "the requested corpus language")
-	StringVarFlag(flag.CommandLine, &options.htmlFile, []string{"file", "f"}, "", "the requested corpus language")
+	StringVarFlag(flag.CommandLine, &options.name, []string{"name", "n"}, "", "name of game files ")
+	StringVarFlag(flag.CommandLine, &options.file, []string{"out", "o"}, "", "the name of the file or directory to hold game result")
+	StringVarFlag(flag.CommandLine, &fileFormatSpec, []string{"format", "f"}, "", "the format of output file")
 
 	flag.Parse()
 	args := flag.Args()
@@ -140,16 +148,21 @@ func main() {
 		options.name = "scrabble"
 	}
 
-	if len(options.htmlFile) > 0 {
-		info, err := os.Stat(options.htmlFile)
+	if len(options.file) > 0 {
+		info, err := os.Stat(options.file)
 		if err == nil {
 			if info.IsDir() {
-				options.htmlDir = options.htmlFile
-				options.htmlFile = options.name
+				options.directory = options.file
+				options.file = options.name
 			}
 		} else {
-			options.htmlDir, options.htmlFile = path.Split(options.htmlFile)
+			options.directory, options.file = path.Split(options.file)
 		}
+		options.fileFormat = ParseFileFormat(fileFormatSpec)
+		if options.fileFormat == FILE_FORMAT_NONE {
+			options.fileFormat = FILE_FORMAT_TEXT
+		}
+		options.writeFile = true
 	}
 
 	cmd, args := args[0], args[1:]

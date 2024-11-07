@@ -204,7 +204,20 @@ func (game *Game) NextMoveId() uint {
 }
 
 func (game *Game) NextMoveSeqNo() uint {
-	seqNo := game.nextMoveSeqNo
+	seqno := game.nextMoveSeqNo
 	game.nextMoveSeqNo++
-	return seqNo
+	return seqno
+}
+
+func (game *Game) CollectStates() GameStates {
+	return game.state.CollectStates()
+}
+
+func (state *GameState) CollectStates() GameStates {
+	if state.fromState == nil {
+		return GameStates{state}
+	} else {
+		initialStates := state.fromState.CollectStates()
+		return slices.Concat(initialStates, GameStates{state})
+	}
 }

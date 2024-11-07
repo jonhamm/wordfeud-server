@@ -17,7 +17,7 @@ type TilesScore struct {
 }
 type Move struct {
 	id          uint
-	seqNo       uint
+	seqno       uint
 	state       *GameState
 	playerState PlayerState
 	position    Position

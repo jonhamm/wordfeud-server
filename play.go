@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 )
@@ -35,8 +36,21 @@ func (game *Game) play() bool {
 	if move != nil {
 		game.state = move.state
 		playerState.score += move.score.score
+		for _, ps := range game.state.playerStates {
+			ps.rack = game.FillRack(ps.rack)
+		}
 		if game.options.debug > 0 {
 			game.fmt.Printf("game play completed move : %s\n", playerState.String(game.corpus))
+		}
+		if game.options.writeFile {
+			gameFileName, err := WriteGameFile(game)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error writing game file \"%s\"\n%v\n", gameFileName, err.Error())
+				return false
+			}
+			if game.options.verbose {
+				fmt.Fprintf(os.Stderr, "wrote game file after move %d \"%s\"\n", game.nextMoveSeqNo-1, gameFileName)
+			}
 		}
 		return true
 	}
