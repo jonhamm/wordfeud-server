@@ -16,6 +16,8 @@ type LetterScores [] /*Letter*/ Score
 
 type Game struct {
 	options      *GameOptions
+	randSeed     uint64
+	rand         *rand.Rand
 	fmt          *message.Printer
 	width        Coordinate
 	height       Coordinate
@@ -55,6 +57,7 @@ func NewGame(options *GameOptions, players Players, dimensions ...Coordinate) (*
 	}
 	game := Game{
 		options:      options,
+		randSeed:     options.rand.Uint64(),
 		width:        width,
 		height:       height,
 		corpus:       corpus,
@@ -66,7 +69,13 @@ func NewGame(options *GameOptions, players Players, dimensions ...Coordinate) (*
 		players:      players,
 		state:        nil,
 	}
+
+	game.rand = rand.New(rand.NewSource(int64(game.randSeed)))
 	game.board = NewBoard(&game)
+
+	if options.debug > 0 {
+		printer.Printf("****** New Game ******  randSeed: %v\n", game.randSeed)
+	}
 
 	for _, tile := range GetLanguageTiles(options.language) {
 		game.letterScores[game.corpus.runeLetter[tile.character]] = tile.value
@@ -125,7 +134,7 @@ func (game *Game) TakeTile() Tile {
 	if n == 0 {
 		return Tile{TILE_EMPTY, 0}
 	}
-	i := rand.Intn(n)
+	i := game.rand.Intn(n)
 	t := game.tiles[i]
 	game.tiles = slices.Delete(game.tiles, i, i+1)
 	return t

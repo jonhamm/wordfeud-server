@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"slices"
 	"strings"
 )
@@ -86,7 +85,7 @@ func (board *Board) fillRandomSpecialFields() {
 	}
 	for _, f := range specialFields {
 		for i := 0; i < f.count; i++ {
-			n := rand.Intn(len(normalSquares))
+			n := board.game.rand.Intn(len(normalSquares))
 			square := normalSquares[n]
 			if board.squares[square.row][square.column] == 0 {
 				board.squares[square.row][square.column] = f.kind

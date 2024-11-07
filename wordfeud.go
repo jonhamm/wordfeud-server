@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"golang.org/x/text/language"
 )
@@ -24,8 +26,10 @@ type GameOptions struct {
 	help     bool
 	verbose  bool
 	debug    int
+	randSeed uint64
 	out      io.Writer
 	language language.Tag
+	rand     *rand.Rand
 }
 
 const usage = `
@@ -48,6 +52,8 @@ const usage = `
 		-help 				show this usage info
 		-verbose			increase output from execution
 		-debug=dd			show debug output when dd > 0 (the larger dd is the more output)
+		-rand=nn			seed random number generator with nn 
+							0 or default will seed with timestamp
 
 	abbreviated options:
 		-h		-help
@@ -60,6 +66,8 @@ const httpUsage = `
 		?h=1 				show this usage info
 		?v=1				increase output from execution
 		?d=dd				show debug output when dd > 0 (the larger dd is the more output)
+		?r=nn			    seed random number generator with nn (!= 0)
+							0 or default will seed with timestamp
 `
 
 func main() {
@@ -71,6 +79,7 @@ func main() {
 	BoolVarFlag(flag.CommandLine, &options.verbose, []string{"verbose", "v"}, false, "show more output")
 	BoolVarFlag(flag.CommandLine, &options.help, []string{"help", "h"}, false, "print usage information")
 	IntVarFlag(flag.CommandLine, &options.debug, []string{"debug", "d"}, 0, "increase above 0 to get debug info - more than verbose")
+	Uint64VarFlag(flag.CommandLine, &options.randSeed, []string{"rand", "r"}, 0, "seed for random number generator - 0 will seed with timestamp")
 	StringVarFlag(flag.CommandLine, &languageSpec, []string{"language", "l"}, "", "the requested corpus language")
 
 	flag.Parse()
@@ -101,6 +110,11 @@ func main() {
 	if options.debug > 2 {
 		DAWG_TRACE = true
 	}
+
+	if options.randSeed == 0 {
+		options.randSeed = uint64(time.Now().UnixNano())
+	}
+	options.rand = rand.New(rand.NewSource(int64(options.randSeed)))
 
 	switch cmd {
 	case "serve":
@@ -153,6 +167,10 @@ func StringVarFlag(f *flag.FlagSet, p *string, names []string, value string, usa
 	}
 }
 
-func (options GameOptions) copy() *GameOptions {
-	return &options
+// IntVarFlag defines an int flag with specified names, default value, and usage string.
+// The argument p points to an int variable in which to store the value of the flag.
+func Uint64VarFlag(f *flag.FlagSet, p *uint64, names []string, value uint64, usage string) {
+	for _, name := range names {
+		f.Uint64Var(p, name, value, usage)
+	}
 }
