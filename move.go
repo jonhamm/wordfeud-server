@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 type TileScore struct {
 	tile        Tile
@@ -109,7 +112,7 @@ func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *
 		game:         state.game,
 		fromState:    state,
 		move:         move,
-		playerStates: state.playerStates,
+		playerStates: slices.Clone(state.playerStates),
 	}
 	height := state.game.height
 	width := state.game.width
@@ -123,7 +126,9 @@ func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *
 		fmt.Printf("\n")
 	}
 
+	playerState.score += move.score.score
 	playerState.rack = partial.rack
+	newState.playerStates[playerState.player.id] = playerState
 
 	for r := Coordinate(0); r < height; r++ {
 		newState.tiles[r] = make([]BoardTile, width)

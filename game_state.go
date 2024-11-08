@@ -136,7 +136,7 @@ func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orienta
 		suffixWord := state.GetWord(p, crossSufixDirection)
 		if len(suffixWord) > 0 {
 			for _, v := range prefixEndNode.vertices {
-				suffix := dawg.Transitions(DawgState{startNode: v.destination, vertices: Vertices{}, word: Word{}}, suffixWord)
+				suffix := dawg.Transitions(DawgState{startNode: v.destination, vertices: Vertices{}}, suffixWord)
 				if suffix.startNode != nil {
 					if suffix.LastVertex().final {
 						validLetters.set(v.letter)
@@ -152,7 +152,7 @@ func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orienta
 
 		}
 	} else { // no suffix
-		if len(prefix.word) == 0 {
+		if prefix.WordLength() == 0 {
 			//neither suffix nor prefix
 			return state.game.corpus.allLetters
 		}

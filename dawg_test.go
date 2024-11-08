@@ -117,9 +117,9 @@ func verifyMatchesInCorpusRecurse(t *testing.T, dawg *Dawg, state DawgState) int
 	vertex := state.LastVertex()
 	if vertex != nil {
 		if vertex.final {
-			_, found := corpus.FindWord(state.word)
+			_, found := corpus.FindWord(state.Word())
 			if !found {
-				t.Errorf("dawg genrated word \"%s\" not found in corpus", state.word.String(corpus))
+				t.Errorf("dawg genrated word \"%s\" not found in corpus", state.Word().String(corpus))
 				return count
 			}
 			count++

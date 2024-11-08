@@ -35,7 +35,8 @@ func (game *Game) play() bool {
 	move := state.Move(playerState)
 	if move != nil {
 		game.state = move.state
-		playerState.score += move.score.score
+		state := game.state
+		playerState := state.playerStates[playerNo]
 		for _, ps := range game.state.playerStates {
 			ps.rack = game.FillRack(ps.rack)
 		}
@@ -179,8 +180,9 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState PlayerState, ancho
 	suffixDirection := orientation.SuffixDirection()
 	ok, preceedingnPosition := state.AdjacentPosition(anchor, prefixDirection)
 	if options.debug > 0 {
-		fmt.Printf("GenerateAllMovesForAnchor anchor: %s orientation: %s player: %s\n",
-			anchor.String(), orientation.String(), playerState.String(corpus))
+		fmt.Printf("GenerateAllMovesForAnchor anchor: %s orientation: %s \nplayer: %s\nanchor tile: %s\n",
+			anchor.String(), orientation.String(), playerState.String(corpus),
+			boardTiles[anchor.row][anchor.column].String(corpus))
 	}
 	if ok {
 		preceedingTile := boardTiles[preceedingnPosition.row][preceedingnPosition.column]
@@ -219,7 +221,7 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState PlayerState, ancho
 			prefix := state.GetNonEmptyBoardTiles(preceedingnPosition, prefixDirection)
 			prefixWord := game.TilesToWord(prefix)
 			dawgState := game.dawg.FindPrefix(prefixWord)
-			if !prefixWord.equal(dawgState.word) {
+			if !prefixWord.equal(dawgState.Word()) {
 				panic(fmt.Sprintf("word on board not matched by dawg?? \"%s\" (GameState.GenerateAllMovesForAnchor)", prefixWord.String(game.corpus)))
 			}
 			ok, prefixPos := state.RelativePosition(anchor, prefixDirection, Coordinate(len(prefix)))
@@ -282,6 +284,8 @@ func (state *GameState) GenerateAllPrefixes(anchor Position, direction Direction
 			direction.String(),
 			rack.String(corpus),
 			maxLength)
+		fmt.Printf("anchor tile: %s\n", state.tiles[anchor.row][anchor.column].String(corpus))
+
 		printPartialMove(pm)
 	}
 	out = append(out, pm)

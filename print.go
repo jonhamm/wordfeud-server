@@ -249,10 +249,11 @@ func fprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 	}
 	p := pm.gameState.game.fmt
 	corpus := pm.gameState.game.corpus
+	tiles := pm.gameState.tiles
 	p.Fprintf(f, "%sPartialMove: %v\n", indent, pm.id)
-	p.Fprintf(f, "%s   startPos:  %s\n", indent, pm.startPos.String())
+	p.Fprintf(f, "%s   startPos:  %s   %s\n", indent, pm.startPos.String(), tiles[pm.startPos.row][pm.startPos.column].String(corpus))
 	p.Fprintf(f, "%s   direction: %s\n", indent, pm.direction.String())
-	p.Fprintf(f, "%s   endPos:    %s\n", indent, pm.endPos.String())
+	p.Fprintf(f, "%s   endPos:  %s   %s\n", indent, pm.endPos.String(), tiles[pm.endPos.row][pm.endPos.column].String(corpus))
 	p.Fprintf(f, "%s   rack:      %s\n", indent, pm.rack.String(corpus))
 	p.Fprintf(f, "%s   tiles:     %s\n", indent, pm.tiles.String(corpus))
 	p.Fprintf(f, "%s   word:      \"%s\"\n", indent, pm.gameState.TilesToString(pm.tiles))
@@ -296,8 +297,9 @@ func fprintMove(f io.Writer, move *Move, args ...string) {
 	}
 	p := move.state.game.fmt
 	corpus := move.state.game.corpus
+	tiles := move.state.tiles
 	p.Fprintf(f, "%sMove: %d number %d\n", indent, move.id, move.seqno)
-	p.Fprintf(f, "%s   position:  %s\n", indent, move.position.String())
+	p.Fprintf(f, "%s   position:  %s   %s\n", indent, move.position.String(), tiles[move.position.row][move.position.column].String(corpus))
 	p.Fprintf(f, "%s   direction: %s\n", indent, move.direction.String())
 	p.Fprintf(f, "%s   tiles:     %s\n", indent, move.tiles.String(corpus))
 	p.Fprintf(f, "%s   word:      \"%s\"\n", indent, move.state.TilesToString(move.tiles))

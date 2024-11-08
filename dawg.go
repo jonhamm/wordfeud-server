@@ -37,7 +37,6 @@ type Nodes []*Node
 type DawgState struct {
 	startNode *Node
 	vertices  Vertices
-	word      Word
 }
 
 var NullState = DawgState{}
@@ -58,6 +57,18 @@ func (dawg *Dawg) trace(format string, a ...any) {
 	if DAWG_TRACE {
 		fmt.Printf(format, a...)
 	}
+}
+
+func (state *DawgState) Word() Word {
+	word := make(Word, len(state.vertices))
+	for i, v := range state.vertices {
+		word[i] = v.letter
+	}
+	return word
+}
+
+func (state *DawgState) WordLength() int {
+	return len(state.vertices)
 }
 
 func (node *Node) CRC() CRC {
@@ -193,7 +204,7 @@ func MakeDawg(corpus *Corpus) (*Dawg, error) {
 	dawg.rootNode = dawg.MakeNode()
 	dawg.finalNode = dawg.MakeNode()
 	dawg.Register(dawg.finalNode)
-	dawg.initialState = DawgState{startNode: dawg.rootNode, vertices: Vertices{}, word: Word{}}
+	dawg.initialState = DawgState{startNode: dawg.rootNode, vertices: Vertices{}}
 	err := dawg.AddCorpus(corpus)
 	if err != nil {
 		return nil, err
@@ -306,11 +317,11 @@ func (dawg *Dawg) Transition(state DawgState, letter Letter) DawgState {
 		return NullState
 	}
 
-	transitionState := DawgState{startNode: state.startNode, vertices: append(state.vertices, v), word: append(state.word, letter)}
+	transitionState := DawgState{startNode: state.startNode, vertices: append(state.vertices, v)}
 
 	if DAWG_TRACE {
 		fmt.Printf("Transition '%c' in node#%v  => vertex#%v node#%v final:%v word:\"%s\"\n",
-			dawg.corpus.letterRune[letter], node.id, v.id, v.destination.id, v.final, transitionState.word.String(dawg.corpus))
+			dawg.corpus.letterRune[letter], node.id, v.id, v.destination.id, v.final, transitionState.Word().String(dawg.corpus))
 		dawg.printState(transitionState)
 	}
 
@@ -330,7 +341,7 @@ func (dawg *Dawg) Match(word Word) bool {
 	if state.startNode == nil {
 		return false
 	}
-	if len(word) > len(state.word) {
+	if len(word) > len(state.Word()) {
 		return false
 	}
 	v := state.LastVertex()
@@ -432,7 +443,7 @@ func (dawg *Dawg) AddWord(word Word) error {
 	if prefixNode.HasVertices() {
 		dawg.ReplaceOrRegister(prefixNode)
 	}
-	suffix := word[len(prefixState.word):]
+	suffix := word[prefixState.WordLength():]
 	if len(suffix) > 0 {
 		if prefixNode == dawg.finalNode {
 			prefixNode = dawg.MakeNode()
@@ -493,7 +504,7 @@ func (dawg *Dawg) fprintState(f io.Writer, state DawgState, args ...string) {
 		lastNode = fmt.Sprintf("node#%v", state.LastNode().id)
 	}
 
-	fmt.Fprintf(f, "%sstate startNode:%s  word:\"%s\"  lastNode:%s\n", indent, startNode, state.word.String(dawg.corpus), lastNode)
+	fmt.Fprintf(f, "%sstate startNode:%s  word:\"%s\"  lastNode:%s\n", indent, startNode, state.Word().String(dawg.corpus), lastNode)
 	for i, v := range state.vertices {
 		dest := "!! nil destination !!"
 		if v.destination != nil {

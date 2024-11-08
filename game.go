@@ -174,11 +174,10 @@ func (game *Game) WordToRack(word Word) Rack {
 	return rack
 }
 
-var fillRackCount = 0
-
 func (game *Game) FillRack(rack Rack) Rack {
-	fillRackCount++
-
+	if game.options.debug > 0 {
+		game.fmt.Printf("FillRack %s\n", rack.String(game.corpus))
+	}
 	for n := len(rack); n < int(RackSize); n++ {
 		t := game.TakeTile()
 		if t.kind == TILE_EMPTY {
@@ -186,8 +185,12 @@ func (game *Game) FillRack(rack Rack) Rack {
 		}
 		rack = append(rack, t)
 	}
+	if game.options.debug > 0 {
+		game.fmt.Printf("  => %s\n", rack.String(game.corpus))
+	}
 	return rack
 }
+
 func (game *Game) NextMoveId() uint {
 	id := game.nextMoveId
 	game.nextMoveId++
