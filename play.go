@@ -455,17 +455,49 @@ func (state *GameState) GenerateAllSuffixMoves(from *PartialMove) PartialMoves {
 					score:     nil,
 				}
 				if v.final {
+					if !state.game.IsValidPos(to.endPos) || state.IsTileEmpty(to.endPos) {
+						if options.debug > 0 {
+							fmt.Printf("GenerateAllSuffixMoves emit\n")
+							printPartialMove(to)
+						}
+						out = append(out, to)
+					}
+				}
+				suffixMoves := state.GenerateAllSuffixMoves(to)
+				out = slices.Concat(out, suffixMoves)
+			}
+		}
+	} else {
+		// non-empty next tile
+		// proceed with the tile on the board in suffix generation
+		tile := state.tiles[pos.row][pos.column].Tile
+		toState := dawg.Transition(from.state, tile.letter)
+		if toState.startNode != nil {
+			_, endPos := state.AdjacentPosition(pos, from.direction)
+			v := toState.LastVertex()
+			to := &PartialMove{
+				id:        state.NextMoveId(),
+				gameState: state,
+				rack:      from.rack,
+				startPos:  from.startPos,
+				endPos:    endPos,
+				direction: from.direction,
+				state:     toState,
+				tiles:     append(slices.Clone(from.tiles), tile),
+				score:     nil,
+			}
+			if v.final {
+				if !state.game.IsValidPos(to.endPos) || state.IsTileEmpty(to.endPos) {
 					if options.debug > 0 {
 						fmt.Printf("GenerateAllSuffixMoves emit\n")
 						printPartialMove(to)
 					}
 					out = append(out, to)
 				}
-				suffixMoves := state.GenerateAllSuffixMoves(to)
-				out = slices.Concat(out, suffixMoves)
 			}
+			suffixMoves := state.GenerateAllSuffixMoves(to)
+			out = slices.Concat(out, suffixMoves)
 		}
-
 	}
 	return out
 }
