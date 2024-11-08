@@ -262,5 +262,8 @@ func (letterSet *LetterSet) String(corpus *Corpus) string {
 }
 
 func (letter Letter) String(corpus *Corpus) string {
+	if letter == 0 {
+		return ""
+	}
 	return string(corpus.letterRune[letter])
 }

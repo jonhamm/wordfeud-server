@@ -59,6 +59,10 @@ var NullValidCrossLetters = [PlaneMax]ValidCrossLetters{
 	{ok: false, letters: 0},
 	{ok: false, letters: 0},
 }
+var NoValidCrossLetters = [PlaneMax]ValidCrossLetters{
+	{ok: true, letters: 0},
+	{ok: true, letters: 0},
+}
 
 type BoardTile struct {
 	Tile
@@ -124,6 +128,18 @@ func (state *GameState) NextMoveId() uint {
 }
 
 func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orientation) LetterSet {
+	options := state.game.options
+	fmt := state.game.fmt
+	if options.debug > 0 {
+		fmt.Printf("CalcValidCrossLetters %s %s tile: %s\n",
+			pos.String(), orienttation.String(), state.tiles[pos.row][pos.column].String(state.game.corpus))
+	}
+	if !state.IsTileEmpty(pos) {
+		if options.debug > 0 {
+			fmt.Printf("CalcValidCrossLetters... non-empty tile => %s\n", state.game.corpus.allLetters.String(state.game.corpus))
+		}
+		return NullLetterSet
+	}
 	dawg := state.game.dawg
 	validLetters := NullLetterSet
 	crossDirection := orienttation.Perpendicular()
@@ -131,10 +147,18 @@ func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orienta
 	crossSufixDirection := crossDirection.SuffixDirection()
 	prefix := state.FindPrefix(pos, crossPrefixDirection)
 	prefixEndNode := prefix.LastNode()
+	if options.debug > 0 {
+		fmt.Printf("   prefix: %s\n", prefix.Word().String(state.game.corpus))
+	}
+
 	ok, p := state.AdjacentPosition(pos, crossSufixDirection)
 	if ok {
 		suffixWord := state.GetWord(p, crossSufixDirection)
 		if len(suffixWord) > 0 {
+			if options.debug > 0 {
+				fmt.Printf("   suffix: %s\n", suffixWord.String(state.game.corpus))
+			}
+
 			for _, v := range prefixEndNode.vertices {
 				suffix := dawg.Transitions(DawgState{startNode: v.destination, vertices: Vertices{}}, suffixWord)
 				if suffix.startNode != nil {
@@ -154,6 +178,9 @@ func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orienta
 	} else { // no suffix
 		if prefix.WordLength() == 0 {
 			//neither suffix nor prefix
+			if options.debug > 0 {
+				fmt.Printf("CalcValidCrossLetters... isolated tilel => %s\n", state.game.corpus.allLetters.String(state.game.corpus))
+			}
 			return state.game.corpus.allLetters
 		}
 		for _, v := range prefixEndNode.vertices {
@@ -161,6 +188,9 @@ func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orienta
 				validLetters.set(v.letter)
 			}
 		}
+	}
+	if options.debug > 0 {
+		fmt.Printf("CalcValidCrossLetters...  => %s\n", validLetters.String(state.game.corpus))
 	}
 	return validLetters
 }

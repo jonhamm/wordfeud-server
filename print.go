@@ -119,6 +119,10 @@ func fprintBoard(f io.Writer, board *Board, args ...string) {
 
 }
 
+func debugState(state *GameState) {
+	printState(state)
+}
+
 func printState(state *GameState, args ...string) {
 	fprintState(os.Stdout, state, args...)
 }
@@ -207,6 +211,10 @@ func fprintState(f io.Writer, state *GameState, args ...string) {
 
 }
 
+func debugPlayers(game *Game, players PlayerStates) {
+	printPlayers(game, players)
+}
+
 func printPlayers(game *Game, players PlayerStates, args ...string) {
 	fprintPlayers(os.Stdout, game, players, args...)
 }
@@ -229,6 +237,10 @@ func printPlayer(game *Game, player *PlayerState, args ...string) {
 	fprintPlayer(os.Stdout, game, player, args...)
 }
 
+func debugPlayer(game *Game, player *PlayerState) {
+	printPlayer(game, player)
+}
+
 func fprintPlayer(f io.Writer, game *Game, player *PlayerState, args ...string) {
 	indent := ""
 	if len(args) > 0 {
@@ -238,6 +250,9 @@ func fprintPlayer(f io.Writer, game *Game, player *PlayerState, args ...string) 
 	p.Fprintf(f, "%sPlayer %s\n", indent, player.String(game.corpus))
 }
 
+func debugPartialMove(pm *PartialMove) {
+	printPartialMove(pm)
+}
 func printPartialMove(pm *PartialMove, args ...string) {
 	fprintPartialMove(os.Stdout, pm, args...)
 }
@@ -275,6 +290,11 @@ func fprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 	pm.gameState.game.dawg.fprintState(f, pm.state, indent+"            ")
 }
 
+func debugPartialMoves(pms PartialMoves) {
+	printPartialMoves(pms)
+
+}
+
 func printPartialMoves(pms PartialMoves, args ...string) {
 	fprintPartialMoves(os.Stdout, pms, args...)
 
@@ -294,6 +314,10 @@ func fprintPartialMoves(f io.Writer, pms PartialMoves, args ...string) {
 	for _, pm := range pms {
 		fprintPartialMove(f, pm, indent)
 	}
+}
+
+func debugMove(pm *Move) {
+	printMove(pm)
 }
 
 func printMove(pm *Move, args ...string) {

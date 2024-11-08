@@ -75,6 +75,7 @@ func (state *GameState) nextPlayer() PlayerNo {
 }
 
 func (state *GameState) GetAnchors(coordinate Coordinate, orientation Orientation) Positions {
+	options := state.game.options
 	anchors := make(Positions, 0)
 	switch orientation {
 	case HORIZONTAL:
@@ -99,6 +100,10 @@ func (state *GameState) GetAnchors(coordinate Coordinate, orientation Orientatio
 			}
 		}
 	}
+	if options.debug > 0 {
+		fmt := state.game.fmt
+		fmt.Printf("GetAnchors %d %s : %s\n", coordinate, orientation.String(), anchors.String())
+	}
 	return anchors
 }
 
@@ -113,18 +118,36 @@ func (state *GameState) FindFirstAnchorAfter(position Position, direction Direct
 	return false, pos
 }
 
+func (state *GameState) FindFirstAnchorFrom(position Position, direction Direction) (bool, Position) {
+	var pos Position
+	var ok bool
+	for ok, pos = state.game.IsValidPos(position), position; ok; ok, pos = state.AdjacentPosition(pos, direction) {
+		if state.IsAnchor(pos) {
+			return true, pos
+		}
+	}
+	return false, pos
+}
+
 func (state *GameState) PrepareMove() {
 	game := state.game
+	tiles := state.tiles
 	h := game.height
 	w := game.width
-	tiles := state.tiles
-	for _, orientation := range AllOrientations {
-		for r := Coordinate(0); r < h; r++ {
-			for c := Coordinate(0); c < w; c++ {
+	for r := Coordinate(0); r < h; r++ {
+		for c := Coordinate(0); c < w; c++ {
+			for _, orientation := range AllOrientations {
 				validCrossLetters := &tiles[r][c].validCrossLetters[orientation]
 				if !validCrossLetters.ok {
-					validCrossLetters.letters = state.CalcValidCrossLetters(Position{r, c}, orientation)
+					validLetters := state.CalcValidCrossLetters(Position{r, c}, orientation)
+					if game.options.debug > 0 {
+						fmt.Printf("validate %s %s validCrossLetters %s\n",
+							Position{r, c}.String(), orientation.String(), validLetters.String(game.corpus))
+					}
+
+					validCrossLetters.letters = validLetters
 					validCrossLetters.ok = true
+
 				}
 			}
 		}
@@ -158,7 +181,7 @@ func (state *GameState) GenerateAllMoves(playerState *PlayerState) PartialMoves 
 		anchors := state.GetAnchors(c, VERTICAL)
 		if options.verbose {
 			if len(anchors) > 0 {
-				fmt.Fprintf(options.out, "Anchors column %dv %s\n", c, anchors.String())
+				fmt.Fprintf(options.out, "Anchors column %d %s\n", c, anchors.String())
 			}
 		}
 		for _, anchor := range anchors {
@@ -413,6 +436,9 @@ func (state *GameState) GenerateAllSuffixMoves(from *PartialMove) PartialMoves {
 	if state.IsTileEmpty(pos) {
 		rackTiles := state.GenerateAllRackTiles(from.rack)
 		for _, rackTile := range rackTiles {
+			if !state.ValidCrossLetter(pos, from.direction.Orientation(), rackTile.tile.letter) {
+				continue
+			}
 			toState := dawg.Transition(from.state, rackTile.tile.letter)
 			if toState.startNode != nil {
 				_, endPos := state.AdjacentPosition(pos, from.direction)

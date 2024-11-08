@@ -145,37 +145,21 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 	}
 	pos := partial.startPos
 	dir := partial.direction
+	perpendicularOrientation := dir.Orientation().Perpendicular()
 	var ok bool
 	var nextPos Position
 	for i, tile := range partial.tiles {
 		boardTile := newState.tiles[pos.row][pos.column]
 		switch boardTile.kind {
 		case TILE_EMPTY:
-			newState.tiles[pos.row][pos.column] = BoardTile{Tile: tile, validCrossLetters: NullValidCrossLetters}
+			newState.tiles[pos.row][pos.column] = BoardTile{Tile: tile, validCrossLetters: NoValidCrossLetters}
 			if options.debug > 0 {
 				t := &newState.tiles[pos.row][pos.column]
 				fmt.Printf("   set tile %s = %s\n", pos.String(), t.String(corpus))
 			}
-			orientation := dir.Orientation()
-			perpendicularOrientation := orientation.Perpendicular()
-			if ok, firstPrefixAnchor := newState.FindFirstAnchorAfter(pos, perpendicularOrientation.PrefixDirection()); ok {
-				t := &newState.tiles[firstPrefixAnchor.row][firstPrefixAnchor.column]
-				if options.debug > 0 {
-					fmt.Printf("   invalidate %s prefix validCrossLetters %s : %s\n",
-						perpendicularOrientation.String(), firstPrefixAnchor.String(),
-						t.validCrossLetters[perpendicularOrientation].String(corpus))
-				}
-				t.validCrossLetters[dir.Orientation()] = NullValidCrossLetters[dir.Orientation()]
-			}
-			if ok, firstSuffixAnchor := newState.FindFirstAnchorAfter(pos, perpendicularOrientation.SuffixDirection()); ok {
-				t := newState.tiles[firstSuffixAnchor.row][firstSuffixAnchor.column]
-				if options.debug > 0 {
-					fmt.Printf("   invalidate %s suffix validCrossLetters %s : %s\n",
-						perpendicularOrientation.String(), firstSuffixAnchor.String(),
-						t.validCrossLetters[perpendicularOrientation].String(corpus))
-				}
-				t.validCrossLetters[dir.Orientation()] = NullValidCrossLetters[dir.Orientation()]
-			}
+			_, suffixPos := state.AdjacentPosition(pos, perpendicularOrientation.SuffixDirection())
+			newState.InvalidateValidCrossLetters(pos, suffixPos, perpendicularOrientation)
+
 		case TILE_JOKER, TILE_LETTER:
 			if !boardTile.Tile.equal(tile) {
 				panic(fmt.Sprintf("move generation will add new tile %s at %s which is not empty and differs %s (GameState.AddMove)",
@@ -196,6 +180,7 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 			pos = nextPos
 		}
 	}
+	newState.InvalidateValidCrossLetters(partial.startPos, partial.endPos, dir.Orientation())
 	move.state = newState
 	if options.debug > 0 {
 		fmt.Printf("AddMove complete :\n")
@@ -203,4 +188,34 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 		fmt.Printf("\n")
 	}
 	return move
+}
+
+func (state *GameState) InvalidateValidCrossLetters(startPos Position, endPos Position, orientation Orientation) {
+	options := state.game.options
+	corpus := state.game.corpus
+	perpendicularOrientation := orientation.Perpendicular()
+	if options.debug > 0 {
+		fmt.Printf("InvalidateValidCrossLetters %s %s %s\n", startPos.String(), endPos.String(), orientation.String())
+	}
+	if ok, firstPrefixAnchor := state.FindFirstAnchorAfter(startPos, orientation.PrefixDirection()); ok {
+		t := &state.tiles[firstPrefixAnchor.row][firstPrefixAnchor.column]
+		if options.debug > 0 {
+			fmt.Printf("   invalidate %s prefix validCrossLetters %s : %s\n",
+				perpendicularOrientation.String(), firstPrefixAnchor.String(),
+				t.validCrossLetters[perpendicularOrientation].String(corpus))
+		}
+		t.validCrossLetters[perpendicularOrientation] = NullValidCrossLetters[perpendicularOrientation]
+	}
+	if state.game.IsValidPos(endPos) {
+		if ok, firstSuffixAnchor := state.FindFirstAnchorFrom(endPos, orientation.SuffixDirection()); ok {
+			t := &state.tiles[firstSuffixAnchor.row][firstSuffixAnchor.column]
+			if options.debug > 0 {
+				fmt.Printf("   invalidate %s suffix validCrossLetters %s : %s\n",
+					perpendicularOrientation.String(), firstSuffixAnchor.String(),
+					t.validCrossLetters[perpendicularOrientation].String(corpus))
+			}
+			t.validCrossLetters[perpendicularOrientation] = NullValidCrossLetters[perpendicularOrientation]
+		}
+	}
+
 }
