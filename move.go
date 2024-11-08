@@ -23,14 +23,14 @@ type Move struct {
 	id          uint
 	seqno       uint
 	state       *GameState
-	playerState PlayerState
+	playerState *PlayerState
 	position    Position
 	direction   Direction
 	tiles       Tiles
 	score       *TilesScore
 }
 
-func (state *GameState) MakeMove(postion Position, direction Direction, tiles Tiles, tilesScore *TilesScore, playerState PlayerState) *Move {
+func (state *GameState) MakeMove(postion Position, direction Direction, tiles Tiles, tilesScore *TilesScore, playerState *PlayerState) *Move {
 	move := &Move{state.NextMoveId(), state.game.NextMoveSeqNo(), state, playerState, postion, direction, tiles, nil}
 	move.score = tilesScore
 	if move.score == nil {
@@ -86,7 +86,7 @@ func (state *GameState) CalcScore(anchor Position, dir Direction, tiles Tiles) *
 	return &tilesScore
 }
 
-func (state *GameState) Move(playerState PlayerState) *Move {
+func (state *GameState) Move(playerState *PlayerState) *Move {
 	fmt := state.game.fmt
 	options := state.game.options
 	if options.verbose {
@@ -105,16 +105,21 @@ func (state *GameState) Move(playerState PlayerState) *Move {
 	return move
 }
 
-func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *Move {
+func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) *Move {
 	options := state.game.options
 	corpus := state.game.corpus
 	fmt := state.game.fmt
-	move := state.MakeMove(partial.startPos, partial.direction, partial.tiles, partial.score, playerState)
+	playerNo := playerState.player.id
+	move := state.MakeMove(partial.startPos, partial.direction, partial.tiles, partial.score, &PlayerState{
+		player: playerState.player,
+		score:  playerState.score + partial.score.score,
+		rack:   partial.rack,
+	})
 	newState := &GameState{
 		game:         state.game,
 		fromState:    state,
 		move:         move,
-		playerStates: slices.Clone(state.playerStates),
+		playerStates: slices.Concat(state.playerStates[:playerNo], PlayerStates{move.playerState}, state.playerStates[playerNo+1:]),
 	}
 	height := state.game.height
 	width := state.game.width
@@ -124,13 +129,11 @@ func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *
 		printState(state)
 		fmt.Printf("AddMove :\n")
 		printPartialMove(partial)
-		printPlayer(state.game, &playerState)
+		printPlayer(newState.game, playerState)
 		fmt.Printf("\n")
 	}
 
-	playerState.score += move.score.score
-	playerState.rack = partial.rack
-	newState.playerStates[playerState.player.id] = playerState
+	newState.playerStates[move.playerState.player.id] = move.playerState
 
 	for r := Coordinate(0); r < height; r++ {
 		newState.tiles[r] = make([]BoardTile, width)

@@ -91,7 +91,7 @@ type PlayerState struct {
 	rack   Rack
 }
 
-type PlayerStates []PlayerState
+type PlayerStates []*PlayerState
 
 func InitialGameState(game *Game) *GameState {
 	state := &GameState{game: game, fromState: nil, move: nil, tiles: make(TileBoard, game.height)}
@@ -109,7 +109,7 @@ func InitialGameState(game *Game) *GameState {
 
 	state.playerStates = make(PlayerStates, len(game.players))
 	for i := 0; i < len(state.playerStates); i++ {
-		state.playerStates[i] = PlayerState{
+		state.playerStates[i] = &PlayerState{
 			player: game.players[i],
 			score:  0,
 			rack:   Rack{},
@@ -518,4 +518,13 @@ func (bt *BoardTile) String(corpus *Corpus) string {
 	return fmt.Sprintf("%s validCrossLetters %s: %s %s: %s", bt.Tile.String(corpus),
 		HORIZONTAL.String(), bt.validCrossLetters[HORIZONTAL].String(corpus),
 		VERTICAL.String(), bt.validCrossLetters[VERTICAL].String(corpus))
+}
+
+func (state *GameState) CollectStates() GameStates {
+	if state.fromState == nil {
+		return GameStates{state}
+	} else {
+		initialStates := state.fromState.CollectStates()
+		return slices.Concat(initialStates, GameStates{state})
+	}
 }

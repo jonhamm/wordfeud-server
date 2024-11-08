@@ -132,7 +132,7 @@ func (state *GameState) PrepareMove() {
 
 }
 
-func (state *GameState) GenerateAllMoves(playerState PlayerState) PartialMoves {
+func (state *GameState) GenerateAllMoves(playerState *PlayerState) PartialMoves {
 	options := state.game.options
 	if options.debug > 0 {
 		fmt.Print("\n\n--------------------------------\n GenrateAllMoves:\n")
@@ -169,7 +169,7 @@ func (state *GameState) GenerateAllMoves(playerState PlayerState) PartialMoves {
 	return out
 }
 
-func (state *GameState) GenerateAllMovesForAnchor(playerState PlayerState, anchor Position, orientation Orientation) PartialMoves {
+func (state *GameState) GenerateAllMovesForAnchor(playerState *PlayerState, anchor Position, orientation Orientation) PartialMoves {
 	out := make(PartialMoves, 0, 100)
 	game := state.game
 	options := game.options
@@ -397,13 +397,17 @@ func (state *GameState) GenerateAllRackTiles(rack Rack) RackTiles {
 
 func (state *GameState) GenerateAllSuffixMoves(from *PartialMove) PartialMoves {
 	options := state.game.options
-	out := make(PartialMoves, 0, 100)
+	out := make(PartialMoves, 0, 10)
 	dawg := state.game.dawg
 	pos := from.endPos
 
 	if options.debug > 0 {
 		fmt.Print("GenerateAllSuffixMoves from:\n")
 		printPartialMove(from)
+	}
+
+	if !state.game.IsValidPos(pos) {
+		return out
 	}
 
 	if state.IsTileEmpty(pos) {

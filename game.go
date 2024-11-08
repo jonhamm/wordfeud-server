@@ -206,11 +206,6 @@ func (game *Game) CollectStates() GameStates {
 	return game.state.CollectStates()
 }
 
-func (state *GameState) CollectStates() GameStates {
-	if state.fromState == nil {
-		return GameStates{state}
-	} else {
-		initialStates := state.fromState.CollectStates()
-		return slices.Concat(initialStates, GameStates{state})
-	}
+func (game *Game) IsValidPos(pos Position) bool {
+	return pos.row < game.height && pos.column < game.width
 }
