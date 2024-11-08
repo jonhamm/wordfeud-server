@@ -147,12 +147,11 @@ func (game *Game) TakeTile() Tile {
 }
 
 func (game *Game) TilesToWord(tiles Tiles) Word {
-	corpus := game.corpus
 	word := make(Word, 0, len(tiles))
 	for _, t := range tiles {
 		switch t.kind {
 		case TILE_LETTER, TILE_JOKER:
-			word = append(word, Letter(corpus.letterRune[t.letter]))
+			word = append(word, t.letter)
 		}
 	}
 	return word
