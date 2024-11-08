@@ -124,8 +124,9 @@ func WriteGameFileText(f io.Writer, game *Game) error {
 		fmt.Fprint(f, "\n\n------------------------------------------------------------------------\n\n")
 		if state.move != nil {
 			fprintMove(f, state.move)
+		} else {
+			fprintState(f, state)
 		}
-		fprintState(f, state)
 	}
 
 	return nil

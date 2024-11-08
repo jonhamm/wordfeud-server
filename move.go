@@ -6,10 +6,11 @@ import (
 )
 
 type TileScore struct {
-	tile        Tile
-	letterScore Score
-	multiplier  Score
-	score       Score
+	tile         Tile
+	placedInMove bool
+	letterScore  Score
+	multiplier   Score
+	score        Score
 }
 
 type TileScores []TileScore
@@ -54,6 +55,7 @@ func (state *GameState) CalcScore(anchor Position, dir Direction, tiles Tiles) *
 		tileScore.multiplier = 1
 		tileScore.letterScore = state.game.GetTileScore(t)
 		if boardTile.kind == TILE_EMPTY {
+			tileScore.placedInMove = true
 			// this tile was placed in this move
 			// use the square modifiers DL, TL, DW, TW
 			switch squares[pos.row][pos.column] {
@@ -146,42 +148,43 @@ func (state *GameState) AddMove(partial *PartialMove, playerState PlayerState) *
 		boardTile := newState.tiles[pos.row][pos.column]
 		switch boardTile.kind {
 		case TILE_EMPTY:
+			newState.tiles[pos.row][pos.column] = BoardTile{Tile: tile, validCrossLetters: NullValidCrossLetters}
+			if options.debug > 0 {
+				t := &newState.tiles[pos.row][pos.column]
+				fmt.Printf("   set tile %s = %s\n", pos.String(), t.String(corpus))
+			}
+			orientation := dir.Orientation()
+			perpendicularOrientation := orientation.Perpendicular()
+			if ok, firstPrefixAnchor := newState.FindFirstAnchorAfter(pos, perpendicularOrientation.PrefixDirection()); ok {
+				t := &newState.tiles[firstPrefixAnchor.row][firstPrefixAnchor.column]
+				if options.debug > 0 {
+					fmt.Printf("   invalidate %s prefix validCrossLetters %s : %s\n",
+						perpendicularOrientation.String(), firstPrefixAnchor.String(),
+						t.validCrossLetters[perpendicularOrientation].String(corpus))
+				}
+				t.validCrossLetters[dir.Orientation()] = NullValidCrossLetters[dir.Orientation()]
+			}
+			if ok, firstSuffixAnchor := newState.FindFirstAnchorAfter(pos, perpendicularOrientation.SuffixDirection()); ok {
+				t := newState.tiles[firstSuffixAnchor.row][firstSuffixAnchor.column]
+				if options.debug > 0 {
+					fmt.Printf("   invalidate %s suffix validCrossLetters %s : %s\n",
+						perpendicularOrientation.String(), firstSuffixAnchor.String(),
+						t.validCrossLetters[perpendicularOrientation].String(corpus))
+				}
+				t.validCrossLetters[dir.Orientation()] = NullValidCrossLetters[dir.Orientation()]
+			}
 		case TILE_JOKER, TILE_LETTER:
 			if !boardTile.Tile.equal(tile) {
-				panic(fmt.Sprintf("move generation will add new tile %v at %s which is not empty and differs %v (GameState.AddMove)", tile, pos.String(), boardTile.Tile))
+				panic(fmt.Sprintf("move generation will add new tile %s at %s which is not empty and differs %s (GameState.AddMove)",
+					tile.String(corpus), pos.String(), boardTile.Tile.String(corpus)))
 			}
 			// this is a tile from a previous move -- skip
-			continue
 		case TILE_NONE:
 			panic(fmt.Sprintf("move generation will add new tile at non-existing next position after %s direction %s (GameState.AddMove)", nextPos.String(), dir.String()))
 		default:
-			panic(fmt.Sprintf("move generation will add new tile of unknown kind %v (GameState.AddMove)", tile.kind))
+			panic(fmt.Sprintf("move generation will add new tile of unknown kind %d (GameState.AddMove)", tile.kind))
 		}
-		newState.tiles[pos.row][pos.column] = BoardTile{Tile: tile, validCrossLetters: NullValidCrossLetters}
-		if options.debug > 0 {
-			t := &newState.tiles[pos.row][pos.column]
-			fmt.Printf("   set tile %s = %s\n", pos.String(), t.String(corpus))
-		}
-		orientation := dir.Orientation()
-		perpendicularOrientation := orientation.Perpendicular()
-		if ok, firstPrefixAnchor := newState.FindFirstAnchorAfter(pos, perpendicularOrientation.PrefixDirection()); ok {
-			t := &newState.tiles[firstPrefixAnchor.row][firstPrefixAnchor.column]
-			if options.debug > 0 {
-				fmt.Printf("   invalidate %s prefix validCrossLetters %s : %s\n",
-					perpendicularOrientation.String(), firstPrefixAnchor.String(),
-					t.validCrossLetters[perpendicularOrientation].String(corpus))
-			}
-			t.validCrossLetters[dir.Orientation()] = NullValidCrossLetters[dir.Orientation()]
-		}
-		if ok, firstSuffixAnchor := newState.FindFirstAnchorAfter(pos, perpendicularOrientation.SuffixDirection()); ok {
-			t := newState.tiles[firstSuffixAnchor.row][firstSuffixAnchor.column]
-			if options.debug > 0 {
-				fmt.Printf("   invalidate %s suffix validCrossLetters %s : %s\n",
-					perpendicularOrientation.String(), firstSuffixAnchor.String(),
-					t.validCrossLetters[perpendicularOrientation].String(corpus))
-			}
-			t.validCrossLetters[dir.Orientation()] = NullValidCrossLetters[dir.Orientation()]
-		}
+
 		if i+1 < len(partial.tiles) {
 			ok, nextPos = state.AdjacentPosition(pos, dir)
 			if !ok {

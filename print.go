@@ -323,7 +323,7 @@ func fprintTilesScore(f io.Writer, ts *TilesScore, corpus *Corpus, args ...strin
 		indent = args[0]
 	}
 
-	fmt.Fprintf(f, "%sTileScore: score: %v word multiplier: %v\n", indent, ts.score, ts.multiplier)
+	fmt.Fprintf(f, "%sTilesScore: score: %v word multiplier: %v\n", indent, ts.score, ts.multiplier)
 	for _, s := range ts.tileScores {
 		fprintTileScore(f, &s, corpus, indent+"  ")
 	}
@@ -338,5 +338,10 @@ func fprintTileScore(f io.Writer, ts *TileScore, corpus *Corpus, args ...string)
 	if len(args) > 0 {
 		indent = args[0]
 	}
-	fmt.Fprintf(f, "%sTilesScore: %10s letterScore: %v multiplier: %v score %v\n", indent, ts.tile.String(corpus), ts.letterScore, ts.multiplier, ts.score)
+	placedInMove := ""
+	if ts.placedInMove {
+		placedInMove = "placed in move"
+	}
+	fmt.Fprintf(f, "%sTileScore: %10s letterScore: %v multiplier: %v score: %4d   %s\n",
+		indent, ts.tile.String(corpus), ts.letterScore, ts.multiplier, ts.score, placedInMove)
 }
