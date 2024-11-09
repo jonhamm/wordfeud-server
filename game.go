@@ -2,7 +2,6 @@ package main
 
 import (
 	"math/rand"
-	"slices"
 
 	"golang.org/x/text/message"
 )
@@ -26,7 +25,6 @@ type Game struct {
 	dawg          *Dawg
 	board         *Board
 	letterScores  LetterScores
-	tiles         Tiles
 	players       []*Player
 	state         *GameState
 	nextMoveSeqNo uint
@@ -68,7 +66,6 @@ func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coo
 		dawg:          dawg,
 		board:         nil,
 		letterScores:  make(LetterScores, corpus.letterMax),
-		tiles:         Tiles{},
 		players:       make(Players, len(players)+1),
 		state:         nil,
 		nextMoveSeqNo: 1,
@@ -90,17 +87,6 @@ func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coo
 
 	if options.debug > 0 {
 		printer.Printf("****** New Game %s-%d ******  randSeed: %v\n", game.options.name, seqno, game.randSeed)
-	}
-
-	for _, tile := range GetLanguageTiles(options.language) {
-		game.letterScores[game.corpus.runeLetter[tile.character]] = tile.value
-		game.tiles = slices.Grow(game.tiles, len(game.tiles)+int(tile.count))
-		for i := byte(0); i < tile.count; i++ {
-			game.tiles = append(game.tiles, Tile{TILE_LETTER, corpus.runeLetter[tile.character]})
-		}
-	}
-	for i := 0; byte(i) < JOKER_COUNT; i++ {
-		game.tiles = append(game.tiles, Tile{TILE_JOKER, 0})
 	}
 
 	game.state = InitialGameState(&game)
@@ -144,17 +130,6 @@ func (game *Game) CalcTileScore(position Position, tile Tile) Score {
 	return multiplier * tileScore
 }
 
-func (game *Game) TakeTile() Tile {
-	n := len(game.tiles)
-	if n == 0 {
-		return Tile{TILE_EMPTY, 0}
-	}
-	i := game.rand.Intn(n)
-	t := game.tiles[i]
-	game.tiles = slices.Delete(game.tiles, i, i+1)
-	return t
-}
-
 func (game *Game) TilesToWord(tiles Tiles) Word {
 	word := make(Word, 0, len(tiles))
 	for _, t := range tiles {
@@ -180,28 +155,6 @@ func (game *Game) WordToRack(word Word) Rack {
 		rack = append(rack, Tile{kind: TILE_LETTER, letter: letter})
 	}
 	return rack
-}
-
-func (game *Game) FillRack(playerState *PlayerState) {
-	if game.options.debug > 0 {
-		game.fmt.Printf("FillRack %s\n", playerState.String(game.corpus))
-	}
-	if playerState.playerNo == NoPlayer {
-		return
-	}
-	rack := make(Rack, 0, RackSize)
-	copy(rack, playerState.rack)
-	for len(rack) < int(RackSize) {
-		t := game.TakeTile()
-		if t.kind == TILE_EMPTY {
-			break
-		}
-		rack = append(rack, t)
-	}
-	if game.options.debug > 0 {
-		game.fmt.Printf("  => %s\n", rack.String(game.corpus))
-	}
-	playerState.rack = rack
 }
 
 func (game *Game) NextMoveId() uint {

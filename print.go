@@ -140,7 +140,7 @@ func fprintState(f io.Writer, state *GameState, args ...string) {
 	squares := board.squares
 	w := board.game.Width()
 	h := board.game.Height()
-	tiles := state.tiles
+	tiles := state.tileBoard
 	p.Fprintf(f, "\n\n%s    ", indent)
 	for c := Coordinate(0); c < w; c++ {
 		p.Fprintf(f, " %2d   ", c)
@@ -210,7 +210,14 @@ func fprintState(f io.Writer, state *GameState, args ...string) {
 	}
 	p.Fprintf(f, "+\n")
 	fprintPlayers(f, state.game, state.playerStates, indent)
-	p.Printf("current player : [%d]\n", state.playerNo)
+	p.Fprintf(f, "current player : [%d]\n", state.playerNo)
+	numberOfFreeTiles := len(state.freeTiles)
+	numberOfRackTiles := state.NumberOfRackTiles()
+	filledPositions := len(state.FilledPositions())
+	p.Fprintf(f, "number of free tiles: %d\n", numberOfFreeTiles)
+	p.Fprintf(f, "number of rack tiles: %d\n", numberOfRackTiles)
+	p.Fprintf(f, "number of filled squares: %d\n", filledPositions)
+	p.Fprintf(f, "total number of tiles: %d\n", filledPositions+numberOfFreeTiles+numberOfRackTiles)
 }
 
 func debugPlayers(game *Game, players PlayerStates) {
@@ -274,7 +281,7 @@ func fprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 	game := state.game
 	p := game.fmt
 	corpus := game.corpus
-	tiles := state.tiles
+	tiles := state.tileBoard
 	p.Fprintf(f, "%sPartialMove: %v\n", indent, pm.id)
 	if game.IsValidPos(pm.startPos) {
 		p.Fprintf(f, "%s   startPos:  %s   %s\n", indent, pm.startPos.String(), tiles[pm.startPos.row][pm.startPos.column].String(corpus))
@@ -345,7 +352,7 @@ func fprintMove(f io.Writer, move *Move, args ...string) {
 	game := state.game
 	p := state.game.fmt
 	corpus := state.game.corpus
-	tiles := state.tiles
+	tiles := state.tileBoard
 	p.Fprintf(f, "%sMove: %d number %d\n", indent, move.id, move.seqno)
 	if game.IsValidPos(move.position) {
 		p.Fprintf(f, "%s   position:  %s   %s\n", indent, move.position.String(), tiles[move.position.row][move.position.column].String(corpus))

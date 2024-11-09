@@ -29,6 +29,7 @@ type PartialMove struct {
 type PartialMoves []*PartialMove
 
 func (game *Game) Play() bool {
+	options := game.options
 	state := game.state
 	playerNo := state.NextPlayer()
 	playerState := state.playerStates[playerNo]
@@ -38,18 +39,18 @@ func (game *Game) Play() bool {
 		state := game.state
 		playerState := state.playerStates[playerNo]
 		for _, ps := range game.state.playerStates {
-			game.FillRack(ps)
+			state.FillRack(ps)
 		}
-		if game.options.debug > 0 {
+		if options.debug > 0 {
 			game.fmt.Printf("game play completed move : %s\n", playerState.String(game.corpus))
 		}
-		if game.options.writeFile {
+		if options.writeFile {
 			gameFileName, err := WriteGameFile(game)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "error writing game file \"%s\"\n%v\n", gameFileName, err.Error())
 				return false
 			}
-			if game.options.verbose {
+			if options.verbose {
 				fmt.Fprintf(os.Stdout, "wrote game file after move %d \"%s\"\n", game.nextMoveSeqNo-1, gameFileName)
 			}
 		}
@@ -75,7 +76,7 @@ func (state *GameState) GetAnchors(coordinate Coordinate, orientation Orientatio
 	switch orientation {
 	case HORIZONTAL:
 		for c := Coordinate(0); c < state.game.width; c++ {
-			switch state.tiles[coordinate][c].kind {
+			switch state.tileBoard[coordinate][c].kind {
 			case TILE_EMPTY:
 				pos := Position{row: coordinate, column: c}
 				if state.IsAnchor(pos) {
@@ -86,7 +87,7 @@ func (state *GameState) GetAnchors(coordinate Coordinate, orientation Orientatio
 
 	case VERTICAL:
 		for r := Coordinate(0); r < state.game.height; r++ {
-			switch state.tiles[r][coordinate].kind {
+			switch state.tileBoard[r][coordinate].kind {
 			case TILE_EMPTY:
 				pos := Position{row: r, column: coordinate}
 				if state.IsAnchor(pos) {
@@ -126,7 +127,7 @@ func (state *GameState) FindFirstAnchorFrom(position Position, direction Directi
 
 func (state *GameState) PrepareMove() {
 	game := state.game
-	tiles := state.tiles
+	tiles := state.tileBoard
 	h := game.height
 	w := game.width
 	for r := Coordinate(0); r < h; r++ {
@@ -194,7 +195,7 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState *PlayerState, anch
 	options := game.options
 	corpus := game.corpus
 	fmt := game.fmt
-	boardTiles := state.tiles
+	boardTiles := state.tileBoard
 	prefixDirection := orientation.PrefixDirection()
 	suffixDirection := orientation.SuffixDirection()
 	ok, preceedingnPosition := state.AdjacentPosition(anchor, prefixDirection)
@@ -303,7 +304,7 @@ func (state *GameState) GenerateAllPrefixes(anchor Position, direction Direction
 			direction.String(),
 			rack.String(corpus),
 			maxLength)
-		fmt.Printf("anchor tile: %s\n", state.tiles[anchor.row][anchor.column].String(corpus))
+		fmt.Printf("anchor tile: %s\n", state.tileBoard[anchor.row][anchor.column].String(corpus))
 
 		printPartialMove(pm)
 	}
@@ -466,7 +467,7 @@ func (state *GameState) GenerateAllSuffixMoves(from *PartialMove) PartialMoves {
 	} else {
 		// non-empty next tile
 		// proceed with the tile on the board in suffix generation
-		tile := state.tiles[pos.row][pos.column].Tile
+		tile := state.tileBoard[pos.row][pos.column].Tile
 		toState := dawg.Transition(from.state, tile.letter)
 		if toState.startNode != nil {
 			_, endPos := state.AdjacentPosition(pos, from.direction)

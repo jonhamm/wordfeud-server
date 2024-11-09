@@ -47,7 +47,7 @@ func (state *GameState) CalcScore(anchor Position, dir Direction, tiles Tiles) *
 	}
 	squares := state.game.board.squares
 	pos := anchor
-	boardTile := state.tiles[pos.row][pos.column]
+	boardTile := state.tileBoard[pos.row][pos.column]
 	for i, t := range tiles {
 		var nextPos Position
 		tileScore := &tilesScore.tileScores[i]
@@ -122,11 +122,11 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 		move:         move,
 		playerStates: slices.Concat(state.playerStates[:playerNo], PlayerStates{move.playerState}, state.playerStates[playerNo+1:]),
 		playerNo:     move.playerState.playerNo,
+		freeTiles:    slices.Clone(state.freeTiles),
 	}
 	height := state.game.height
 	width := state.game.width
-	newState.tiles = make([][]BoardTile, height)
-
+	newState.tileBoard = make([][]BoardTile, height)
 	if options.debug > 0 {
 		printState(state)
 		fmt.Printf("AddMove :\n")
@@ -136,11 +136,11 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 	}
 
 	for r := Coordinate(0); r < height; r++ {
-		newState.tiles[r] = make([]BoardTile, width)
+		newState.tileBoard[r] = make([]BoardTile, width)
 	}
 	for r := Coordinate(0); r < height; r++ {
 		for c := Coordinate(0); c < width; c++ {
-			newState.tiles[r][c] = state.tiles[r][c]
+			newState.tileBoard[r][c] = state.tileBoard[r][c]
 		}
 	}
 	pos := partial.startPos
@@ -149,12 +149,12 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 	var ok bool
 	var nextPos Position
 	for i, tile := range partial.tiles {
-		boardTile := newState.tiles[pos.row][pos.column]
+		boardTile := newState.tileBoard[pos.row][pos.column]
 		switch boardTile.kind {
 		case TILE_EMPTY:
-			newState.tiles[pos.row][pos.column] = BoardTile{Tile: tile, validCrossLetters: NoValidCrossLetters}
+			newState.tileBoard[pos.row][pos.column] = BoardTile{Tile: tile, validCrossLetters: NoValidCrossLetters}
 			if options.debug > 0 {
-				t := &newState.tiles[pos.row][pos.column]
+				t := &newState.tileBoard[pos.row][pos.column]
 				fmt.Printf("   set tile %s = %s\n", pos.String(), t.String(corpus))
 			}
 			_, suffixPos := state.AdjacentPosition(pos, perpendicularOrientation.SuffixDirection())
@@ -198,7 +198,7 @@ func (state *GameState) InvalidateValidCrossLetters(startPos Position, endPos Po
 		fmt.Printf("InvalidateValidCrossLetters %s %s %s\n", startPos.String(), endPos.String(), orientation.String())
 	}
 	if ok, firstPrefixAnchor := state.FindFirstAnchorAfter(startPos, orientation.PrefixDirection()); ok {
-		t := &state.tiles[firstPrefixAnchor.row][firstPrefixAnchor.column]
+		t := &state.tileBoard[firstPrefixAnchor.row][firstPrefixAnchor.column]
 		if options.debug > 0 {
 			fmt.Printf("   invalidate %s prefix validCrossLetters %s : %s\n",
 				perpendicularOrientation.String(), firstPrefixAnchor.String(),
@@ -208,7 +208,7 @@ func (state *GameState) InvalidateValidCrossLetters(startPos Position, endPos Po
 	}
 	if state.game.IsValidPos(endPos) {
 		if ok, firstSuffixAnchor := state.FindFirstAnchorFrom(endPos, orientation.SuffixDirection()); ok {
-			t := &state.tiles[firstSuffixAnchor.row][firstSuffixAnchor.column]
+			t := &state.tileBoard[firstSuffixAnchor.row][firstSuffixAnchor.column]
 			if options.debug > 0 {
 				fmt.Printf("   invalidate %s suffix validCrossLetters %s : %s\n",
 					perpendicularOrientation.String(), firstSuffixAnchor.String(),

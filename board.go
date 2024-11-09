@@ -134,7 +134,8 @@ func (pos Positions) String() string {
 
 func (rack Rack) String(corpus *Corpus) string {
 	var sb strings.Builder
-	sb.WriteRune('[')
+	sb.WriteRune('(')
+	sb.WriteString(fmt.Sprintf("(%d) [", len(rack)))
 	for i, t := range rack {
 		if i > 0 {
 			sb.WriteString(", ")

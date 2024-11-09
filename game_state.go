@@ -79,9 +79,10 @@ type GameState struct {
 	game         *Game
 	fromState    *GameState
 	move         *Move
-	tiles        TileBoard
+	tileBoard    TileBoard
 	playerStates PlayerStates
 	playerNo     PlayerNo
+	freeTiles    Tiles
 }
 
 type GameStates []*GameState
@@ -100,17 +101,35 @@ type PlayerState struct {
 type PlayerStates []*PlayerState
 
 func InitialGameState(game *Game) *GameState {
-	state := &GameState{game: game, fromState: nil, move: nil, tiles: make(TileBoard, game.height)}
+	options := game.options
+	corpus := game.corpus
+	state := &GameState{game: game, fromState: nil, move: nil, tileBoard: make(TileBoard, game.height)}
 	allLetters := game.corpus.allLetters
+
+	for _, tile := range GetLanguageTiles(options.language) {
+		game.letterScores[game.corpus.runeLetter[tile.character]] = tile.value
+		state.freeTiles = slices.Grow(state.freeTiles, len(state.freeTiles)+int(tile.count))
+		for i := byte(0); i < tile.count; i++ {
+			state.freeTiles = append(state.freeTiles, Tile{TILE_LETTER, corpus.runeLetter[tile.character]})
+		}
+	}
+	for i := 0; byte(i) < JOKER_COUNT; i++ {
+		state.freeTiles = append(state.freeTiles, Tile{TILE_JOKER, 0})
+	}
+
 	for r := Coordinate(0); r < game.height; r++ {
-		state.tiles[r] = make([]BoardTile, game.width)
+		state.tileBoard[r] = make([]BoardTile, game.width)
 		for c := Coordinate(0); c < game.width; c++ {
 			for p := range AllOrientations {
-				validCrossLetters := &state.tiles[r][c].validCrossLetters[p]
+				validCrossLetters := &state.tileBoard[r][c].validCrossLetters[p]
 				validCrossLetters.ok = true
 				validCrossLetters.letters = allLetters
 			}
 		}
+	}
+
+	if options.debug > 0 {
+		game.fmt.Printf("initial free tiles: (%d) %s\n", len(state.freeTiles), state.freeTiles.String(corpus))
 	}
 
 	state.playerStates = make(PlayerStates, len(game.players))
@@ -121,9 +140,46 @@ func InitialGameState(game *Game) *GameState {
 			score:    0,
 			rack:     Rack{},
 		}
-		game.FillRack(state.playerStates[i])
+		state.FillRack(state.playerStates[i])
 	}
 	return state
+}
+
+func (state *GameState) TakeTile() Tile {
+	n := len(state.freeTiles)
+	if n == 0 {
+		return Tile{TILE_EMPTY, 0}
+	}
+	i := state.game.rand.Intn(n)
+	t := state.freeTiles[i]
+	state.freeTiles = slices.Delete(state.freeTiles, i, i+1)
+	return t
+}
+
+func (state *GameState) FillRack(playerState *PlayerState) {
+	game := state.game
+	options := game.options
+	fmt := game.fmt
+	if options.debug > 0 {
+		fmt.Printf("FillRack %s\n", playerState.String(game.corpus))
+	}
+	if playerState.playerNo == NoPlayer {
+		return
+	}
+	rack := slices.Clone(playerState.rack)
+	rack = slices.Grow(rack, RackSize)
+	for i := len(rack); i < int(RackSize); i++ {
+		t := state.TakeTile()
+		if t.kind == TILE_EMPTY {
+			break
+		}
+		rack = append(rack, t)
+	}
+	if options.debug > 0 {
+		fmt.Printf("  => %s\n", rack.String(game.corpus))
+		fmt.Printf("freeTiles (%d) %s\n", len(state.freeTiles), state.freeTiles.String(game.corpus))
+	}
+	playerState.rack = rack
 }
 
 func (state *GameState) NextMoveId() uint {
@@ -135,7 +191,7 @@ func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orienta
 	fmt := state.game.fmt
 	if options.debug > 0 {
 		fmt.Printf("CalcValidCrossLetters %s %s tile: %s\n",
-			pos.String(), orienttation.String(), state.tiles[pos.row][pos.column].String(state.game.corpus))
+			pos.String(), orienttation.String(), state.tileBoard[pos.row][pos.column].String(state.game.corpus))
 	}
 	if !state.IsTileEmpty(pos) {
 		if options.debug > 0 {
@@ -199,12 +255,39 @@ func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orienta
 }
 
 func (state *GameState) ValidCrossLetter(pos Position, orientation Orientation, letter Letter) bool {
-	validCrossLetters := &state.tiles[pos.row][pos.column].validCrossLetters[orientation]
+	validCrossLetters := &state.tileBoard[pos.row][pos.column].validCrossLetters[orientation]
 	if !validCrossLetters.ok {
 		validCrossLetters.letters = state.CalcValidCrossLetters(pos, orientation)
 		validCrossLetters.ok = true
 	}
 	return validCrossLetters.letters.test(letter)
+}
+
+func (state *GameState) FilledPositions() Positions {
+	height := state.game.height
+	width := state.game.width
+	filled := make(Positions, 0)
+	for r := Coordinate(0); r < height; r++ {
+		for c := Coordinate(0); c < width; c++ {
+			p := Position{r, c}
+			if !state.IsTileEmpty(p) {
+				filled = append(filled, p)
+			}
+		}
+	}
+	return filled
+}
+
+func (state *GameState) NumberOfRackTiles() int {
+	n := 0
+	for _, p := range state.playerStates {
+		n += p.NumberOfRackTiles()
+	}
+	return n
+}
+
+func (playerState *PlayerState) NumberOfRackTiles() int {
+	return len(playerState.rack)
 }
 
 func (d Direction) Reverse() Direction {
@@ -395,7 +478,7 @@ func (state *GameState) AdjacentTile(pos Position, d Direction) (BoardTile, Posi
 	ok, adjacentPos := state.AdjacentPosition(pos, d)
 
 	if ok {
-		return state.tiles[adjacentPos.row][adjacentPos.column], adjacentPos
+		return state.tileBoard[adjacentPos.row][adjacentPos.column], adjacentPos
 	}
 
 	return NullBoardTile, Position{state.game.height + 1, state.game.width + 1}
@@ -410,7 +493,7 @@ func (state *GameState) RelativeTile(pos Position, dir Direction, n Coordinate) 
 	ok, relativePos := state.RelativePosition(pos, dir, n)
 
 	if ok {
-		return state.tiles[relativePos.row][relativePos.column], relativePos
+		return state.tileBoard[relativePos.row][relativePos.column], relativePos
 	}
 
 	return NullBoardTile, Position{state.game.height + 1, state.game.width + 1}
@@ -443,7 +526,7 @@ func (state *GameState) RelativePosition(pos Position, dir Direction, n Coordina
 
 func (state *GameState) FindPrefix(pos Position, dir Direction) DawgState {
 	dawg := state.game.dawg
-	tiles := state.tiles
+	tiles := state.tileBoard
 	prefixPos := pos
 	prefix := Word{}
 	for {
@@ -472,7 +555,7 @@ func (state *GameState) GetNonEmptyBoardTiles(pos Position, dir Direction) Tiles
 	tiles := Tiles{}
 	for {
 		var ok bool
-		tile := state.tiles[pos.row][pos.column].Tile
+		tile := state.tileBoard[pos.row][pos.column].Tile
 		if state.IsTileEmpty(pos) {
 			break
 		}
@@ -493,7 +576,7 @@ func (state *GameState) GetEmptyNonAnchorTiles(pos Position, dir Direction, maxL
 	tiles := Tiles{}
 	for {
 		var ok bool
-		tile := state.tiles[pos.row][pos.column].Tile
+		tile := state.tileBoard[pos.row][pos.column].Tile
 		if !state.IsTileEmpty(pos) {
 			break
 		}
@@ -513,7 +596,7 @@ func (state *GameState) GetEmptyNonAnchorTiles(pos Position, dir Direction, maxL
 }
 
 func (state *GameState) IsTileEmpty(pos Position) bool {
-	tile := &state.tiles[pos.row][pos.column]
+	tile := &state.tileBoard[pos.row][pos.column]
 	switch tile.kind {
 	case TILE_EMPTY:
 		return true

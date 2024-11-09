@@ -116,6 +116,7 @@ func WriteGameFileText(f io.Writer, game *Game) error {
 		return err
 	}
 	fprintPlayers(f, game, game.state.playerStates)
+	fmt.Fprintf(f, "free tiles: (%d) %s\n", len(game.state.freeTiles), game.state.freeTiles.String(game.corpus))
 
 	fprintBoard(f, game.board)
 
