@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"slices"
 )
 
 type TileScore struct {
@@ -102,6 +101,44 @@ func (state *GameState) Move(playerState *PlayerState) *Move {
 	}
 
 	move := state.AddMove(filteredPartialMoves[0], playerState)
+	if move == nil {
+
+		// could not move ... pass
+
+	}
+	return move
+}
+
+func (state *GameState) AddPass(playerState *PlayerState) *Move {
+	game := state.game
+	options := game.options
+	fmt := game.fmt
+	state.consequtivePasses++
+	move := state.NewMove(
+		Position{game.height + 1, game.width + 1},
+		EAST,
+		Tiles{},
+		&TilesScore{
+			tileScores: TileScores{},
+			multiplier: 0,
+			score:      0,
+		},
+		&PlayerState{
+			player:   playerState.player,
+			playerNo: playerState.playerNo,
+			score:    playerState.score,
+			rack:     playerState.rack,
+		})
+	state.playerStates[move.playerState.playerNo] = move.playerState
+	move.state = state
+	state.move = move
+
+	if options.debug > 0 {
+		printState(state)
+		fmt.Printf("AddPass :\n")
+		printPlayer(state.game, playerState)
+		fmt.Printf("\n")
+	}
 	return move
 }
 
@@ -109,56 +146,41 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 	options := state.game.options
 	corpus := state.game.corpus
 	fmt := state.game.fmt
-	playerNo := playerState.playerNo
+	state.consequtivePasses = 0
 	move := state.NewMove(partial.startPos, partial.direction, partial.tiles, partial.score, &PlayerState{
 		player:   playerState.player,
 		playerNo: playerState.playerNo,
 		score:    playerState.score + partial.score.score,
 		rack:     partial.rack,
 	})
-	newState := &GameState{
-		game:         state.game,
-		fromState:    state,
-		move:         move,
-		playerStates: slices.Concat(state.playerStates[:playerNo], PlayerStates{move.playerState}, state.playerStates[playerNo+1:]),
-		playerNo:     move.playerState.playerNo,
-		freeTiles:    slices.Clone(state.freeTiles),
-	}
-	height := state.game.height
-	width := state.game.width
-	newState.tileBoard = make([][]BoardTile, height)
+	state.playerStates[move.playerState.playerNo] = move.playerState
+	move.state = state
+	state.move = move
+
 	if options.debug > 0 {
 		printState(state)
 		fmt.Printf("AddMove :\n")
 		printPartialMove(partial)
-		printPlayer(newState.game, playerState)
+		printPlayer(state.game, playerState)
 		fmt.Printf("\n")
 	}
 
-	for r := Coordinate(0); r < height; r++ {
-		newState.tileBoard[r] = make([]BoardTile, width)
-	}
-	for r := Coordinate(0); r < height; r++ {
-		for c := Coordinate(0); c < width; c++ {
-			newState.tileBoard[r][c] = state.tileBoard[r][c]
-		}
-	}
 	pos := partial.startPos
 	dir := partial.direction
 	perpendicularOrientation := dir.Orientation().Perpendicular()
 	var ok bool
 	var nextPos Position
 	for i, tile := range partial.tiles {
-		boardTile := newState.tileBoard[pos.row][pos.column]
+		boardTile := state.tileBoard[pos.row][pos.column]
 		switch boardTile.kind {
 		case TILE_EMPTY:
-			newState.tileBoard[pos.row][pos.column] = BoardTile{Tile: tile, validCrossLetters: NoValidCrossLetters}
+			state.tileBoard[pos.row][pos.column] = BoardTile{Tile: tile, validCrossLetters: NoValidCrossLetters}
 			if options.debug > 0 {
-				t := &newState.tileBoard[pos.row][pos.column]
+				t := &state.tileBoard[pos.row][pos.column]
 				fmt.Printf("   set tile %s = %s\n", pos.String(), t.String(corpus))
 			}
 			_, suffixPos := state.AdjacentPosition(pos, perpendicularOrientation.SuffixDirection())
-			newState.InvalidateValidCrossLetters(pos, suffixPos, perpendicularOrientation)
+			state.InvalidateValidCrossLetters(pos, suffixPos, perpendicularOrientation)
 
 		case TILE_JOKER, TILE_LETTER:
 			if !boardTile.Tile.equal(tile) {
@@ -180,8 +202,8 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 			pos = nextPos
 		}
 	}
-	newState.InvalidateValidCrossLetters(partial.startPos, partial.endPos, dir.Orientation())
-	move.state = newState
+	state.InvalidateValidCrossLetters(partial.startPos, partial.endPos, dir.Orientation())
+
 	if options.debug > 0 {
 		fmt.Printf("AddMove complete :\n")
 		printMove(move)
@@ -217,5 +239,4 @@ func (state *GameState) InvalidateValidCrossLetters(startPos Position, endPos Po
 			t.validCrossLetters[perpendicularOrientation] = NullValidCrossLetters[perpendicularOrientation]
 		}
 	}
-
 }

@@ -30,20 +30,52 @@ type PartialMoves []*PartialMove
 
 func (game *Game) Play() bool {
 	options := game.options
-	state := game.state
-	playerNo := state.NextPlayer()
-	playerState := state.playerStates[playerNo]
+	curState := game.state
+	playerNo := curState.NextPlayer()
+	curPlayerStates := curState.playerStates
+	curPlayerState := curPlayerStates[playerNo]
+	playerState := &PlayerState{
+		player:   curPlayerState.player,
+		playerNo: playerNo,
+		score:    curPlayerState.score,
+		rack:     slices.Clone(curPlayerState.rack),
+	}
+	state := &GameState{
+		game:              game,
+		fromState:         curState,
+		tileBoard:         curState.tileBoard.Clone(),
+		move:              nil,
+		playerStates:      slices.Concat(curPlayerStates[:playerNo], PlayerStates{playerState}, curPlayerStates[playerNo+1:]),
+		playerNo:          playerNo,
+		freeTiles:         slices.Clone(curState.freeTiles),
+		consequtivePasses: curState.consequtivePasses,
+	}
 	move := state.Move(playerState)
 	if move != nil {
-		game.state = move.state
-		state := game.state
-		playerState := state.playerStates[playerNo]
+		state.move = move
+		game.state = state // == move.state
+
 		for _, ps := range game.state.playerStates {
 			state.FillRack(ps)
 		}
 		if options.debug > 0 {
 			game.fmt.Printf("game play completed move : %s\n", playerState.String(game.corpus))
 		}
+		for _, ps := range game.state.playerStates {
+			if ps.playerNo != NoPlayer && ps.NumberOfRackTiles() == 0 {
+				if options.verbose {
+					fmt.Printf("Player %d %s has no more tiles in rack - game completed\n", ps.player.id, ps.player.name)
+				}
+				return false
+			}
+		}
+		if state.consequtivePasses >= MaxConsequtivePasses {
+			if options.verbose {
+				fmt.Printf("There has been %d conequtive passes - game completed\n", state.consequtivePasses)
+			}
+			return false
+		}
+
 		if options.writeFile {
 			gameFileName, err := WriteGameFile(game)
 			if err != nil {
@@ -51,7 +83,7 @@ func (game *Game) Play() bool {
 				return false
 			}
 			if options.verbose {
-				fmt.Fprintf(os.Stdout, "wrote game file after move %d \"%s\"\n", game.nextMoveSeqNo-1, gameFileName)
+				fmt.Printf("wrote game file after move %d \"%s\"\n", game.nextMoveSeqNo-1, gameFileName)
 			}
 		}
 		return true
@@ -158,6 +190,7 @@ func (state *GameState) GenerateAllMoves(playerState *PlayerState) PartialMoves 
 		fmt.Printf("\n\n--------------------------------\n GenrateAllMoves: player: %s\n", playerState.String(corpus))
 		printState(state)
 	}
+	playerState.rack.Verify(corpus)
 	out := make(PartialMoves, 0, 100)
 	fmt := state.game.fmt
 	width := state.game.width
@@ -194,6 +227,7 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState *PlayerState, anch
 	game := state.game
 	options := game.options
 	corpus := game.corpus
+	playerState.rack.Verify(corpus)
 	fmt := game.fmt
 	boardTiles := state.tileBoard
 	prefixDirection := orientation.PrefixDirection()
@@ -286,6 +320,7 @@ func (state *GameState) GenerateAllPrefixes(anchor Position, direction Direction
 	options := state.game.options
 	corpus := state.game.corpus
 	out := make(PartialMoves, 0, 100)
+	rack.Verify(corpus)
 	// first emit the zero length prefix
 	pm := &PartialMove{
 		id:        state.NextMoveId(),
@@ -396,21 +431,29 @@ func (state *GameState) GenerateAllRackTiles(rack Rack) RackTiles {
 		if tile.kind == TILE_JOKER {
 			for letter := corpus.firstLetter; letter <= corpus.lastLetter; letter++ {
 				newRack := make(Rack, len(rack)-1)
+				copy(newRack, rack[:i])
 				copy(newRack[i:], rack[i+1:])
-				out = append(out, RackTile{
+				r := RackTile{
 					tile: Tile{kind: TILE_JOKER, letter: letter},
 					rack: newRack,
-				})
+				}
+				r.rack.Verify(corpus)
+				out = append(out, r)
 			}
 		} else {
 			newRack := make(Rack, len(rack)-1)
 			copy(newRack, rack[:i])
 			copy(newRack[i:], rack[i+1:])
-			out = append(out, RackTile{
+			r := RackTile{
 				tile: Tile{kind: TILE_LETTER, letter: tile.letter},
 				rack: newRack,
-			})
+			}
+			r.rack.Verify(corpus)
+			out = append(out, r)
 		}
+	}
+	for _, r := range out {
+		r.rack.Verify(corpus)
 	}
 	return out
 }

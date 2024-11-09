@@ -10,6 +10,8 @@ const JOKER_COUNT = 2
 const WIDTH = 15
 const HEIGHT = 15
 
+const MaxConsequtivePasses = 3
+
 type Score uint
 type LetterScores [] /*Letter*/ Score
 

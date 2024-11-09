@@ -134,6 +134,7 @@ func (pos Positions) String() string {
 
 func (rack Rack) String(corpus *Corpus) string {
 	var sb strings.Builder
+	rack.Verify(corpus)
 	sb.WriteRune('(')
 	sb.WriteString(fmt.Sprintf("(%d) [", len(rack)))
 	for i, t := range rack {
@@ -144,4 +145,14 @@ func (rack Rack) String(corpus *Corpus) string {
 	}
 	sb.WriteRune(']')
 	return sb.String()
+}
+
+func (rack Rack) Verify(corpus *Corpus) {
+	for _, t := range rack {
+		switch t.kind {
+		case TILE_EMPTY, TILE_NONE:
+			panic(fmt.Sprintf("invalid rack tile %s", t.String(corpus)))
+		case TILE_JOKER, TILE_LETTER:
+		}
+	}
 }

@@ -76,13 +76,14 @@ var NullBoardTile = BoardTile{
 
 type TileBoard [][]BoardTile
 type GameState struct {
-	game         *Game
-	fromState    *GameState
-	move         *Move
-	tileBoard    TileBoard
-	playerStates PlayerStates
-	playerNo     PlayerNo
-	freeTiles    Tiles
+	game              *Game
+	fromState         *GameState
+	move              *Move
+	tileBoard         TileBoard
+	playerStates      PlayerStates
+	playerNo          PlayerNo
+	freeTiles         Tiles
+	consequtivePasses int
 }
 
 type GameStates []*GameState
@@ -178,6 +179,13 @@ func (state *GameState) FillRack(playerState *PlayerState) {
 	if options.debug > 0 {
 		fmt.Printf("  => %s\n", rack.String(game.corpus))
 		fmt.Printf("freeTiles (%d) %s\n", len(state.freeTiles), state.freeTiles.String(game.corpus))
+	}
+	for _, t := range rack {
+		switch t.kind {
+		case TILE_EMPTY, TILE_NONE:
+			panic(fmt.Sprintf("invalid rack tile %s", t.String(state.game.corpus)))
+		case TILE_JOKER, TILE_LETTER:
+		}
 	}
 	playerState.rack = rack
 }
@@ -276,6 +284,14 @@ func (state *GameState) FilledPositions() Positions {
 		}
 	}
 	return filled
+}
+
+func (tileBoard TileBoard) Clone() TileBoard {
+	clone := make([][]BoardTile, len(tileBoard))
+	for i, r := range tileBoard {
+		clone[i] = slices.Clone(r)
+	}
+	return clone
 }
 
 func (state *GameState) NumberOfRackTiles() int {
