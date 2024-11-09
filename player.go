@@ -4,28 +4,33 @@ import (
 	"fmt"
 )
 
-type PlayerNo uint
+type PlayerNo uint8
+type PlayerId uint
 
 type Player struct {
-	id   PlayerNo
+	id   PlayerId
 	name string
 }
 
 type Players []*Player
 
-var SystemPlayer = Player{id: 0, name: "__SYSTEM__"}
+const MaxBotPlayers PlayerNo = PlayerNo(10)
+const NoPlayer = PlayerNo(0)
+const SystemPlayerId = PlayerId(0)
 
-const MaxBotPlayers PlayerNo = 10
+var nextPlayerId = 1000
+
+var SystemPlayer = &Player{id: SystemPlayerId, name: "__SYSTEM__"}
 
 var botPlayers Players = make(Players, MaxBotPlayers)
 
 func BotPlayer(no PlayerNo) *Player {
-	if no < 1 || no >= MaxBotPlayers {
+	if no == NoPlayer || no >= MaxBotPlayers {
 		return nil
 	}
 	if botPlayers[no] == nil {
 		name := fmt.Sprintf("__BOT:%v__", no)
-		botPlayers[no] = &Player{id: no, name: name}
+		botPlayers[no] = &Player{id: PlayerId(no + 100), name: name}
 	}
 	return botPlayers[no]
 }

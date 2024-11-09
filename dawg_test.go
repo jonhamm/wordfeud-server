@@ -34,13 +34,13 @@ func Test_DawgCompleteDK(t *testing.T) {
 	testDawgLanguage(t, language.Danish)
 }
 
-func MakeTestCorpusFromContent(language language.Tag, content []string) (*Corpus, error) {
+func NewTestCorpusFromContent(language language.Tag, content []string) (*Corpus, error) {
 	data := strings.Join(content, "\n")
 	return NewCorpus(strings.NewReader(data), GetLanguageAlphabet(language))
 }
 
 func testDawgContent(t *testing.T, language language.Tag, corpusContent []string) {
-	corpus, err := MakeTestCorpusFromContent(language, corpusContent)
+	corpus, err := NewTestCorpusFromContent(language, corpusContent)
 	if err != nil {
 		t.Errorf("testDawgContent() failed to create corpus : %v", err)
 		return
@@ -62,7 +62,7 @@ func testDawgLanguageFile(t *testing.T, language language.Tag, fileName string) 
 }
 
 func testDawgCorpus(t *testing.T, corpus *Corpus) {
-	dawg, err := MakeDawg(corpus)
+	dawg, err := NewDawg(corpus)
 	if err != nil {
 		t.Errorf("testDawgContent() failed to create dawg : %v", err)
 		return

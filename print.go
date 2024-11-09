@@ -120,7 +120,9 @@ func fprintBoard(f io.Writer, board *Board, args ...string) {
 }
 
 func debugState(state *GameState) {
-	printState(state)
+	if state != nil {
+		printState(state)
+	}
 }
 
 func printState(state *GameState, args ...string) {
@@ -208,11 +210,13 @@ func fprintState(f io.Writer, state *GameState, args ...string) {
 	}
 	p.Fprintf(f, "+\n")
 	fprintPlayers(f, state.game, state.playerStates, indent)
-
+	p.Printf("current player : [%d]\n", state.playerNo)
 }
 
 func debugPlayers(game *Game, players PlayerStates) {
-	printPlayers(game, players)
+	if game != nil {
+		printPlayers(game, players)
+	}
 }
 
 func printPlayers(game *Game, players PlayerStates, args ...string) {
@@ -238,7 +242,9 @@ func printPlayer(game *Game, player *PlayerState, args ...string) {
 }
 
 func debugPlayer(game *Game, player *PlayerState) {
-	printPlayer(game, player)
+	if game != nil && player != nil {
+		printPlayer(game, player)
+	}
 }
 
 func fprintPlayer(f io.Writer, game *Game, player *PlayerState, args ...string) {
@@ -251,7 +257,9 @@ func fprintPlayer(f io.Writer, game *Game, player *PlayerState, args ...string) 
 }
 
 func debugPartialMove(pm *PartialMove) {
-	printPartialMove(pm)
+	if pm != nil {
+		printPartialMove(pm)
+	}
 }
 func printPartialMove(pm *PartialMove, args ...string) {
 	fprintPartialMove(os.Stdout, pm, args...)
@@ -291,7 +299,9 @@ func fprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 }
 
 func debugPartialMoves(pms PartialMoves) {
-	printPartialMoves(pms)
+	if pms != nil {
+		printPartialMoves(pms)
+	}
 
 }
 
@@ -317,7 +327,9 @@ func fprintPartialMoves(f io.Writer, pms PartialMoves, args ...string) {
 }
 
 func debugMove(pm *Move) {
-	printMove(pm)
+	if pm != nil {
+		printMove(pm)
+	}
 }
 
 func printMove(pm *Move, args ...string) {

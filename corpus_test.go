@@ -53,7 +53,7 @@ func Test_scanWordsDK(t *testing.T) {
 	}
 	result_letters := make([]Word, 0)
 	for _, s := range result {
-		w := corpus.MakeWord(s)
+		w := corpus.StringToWord(s)
 		result_letters = append(result_letters, w)
 	}
 

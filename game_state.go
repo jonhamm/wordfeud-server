@@ -81,6 +81,7 @@ type GameState struct {
 	move         *Move
 	tiles        TileBoard
 	playerStates PlayerStates
+	playerNo     PlayerNo
 }
 
 type GameStates []*GameState
@@ -90,9 +91,10 @@ const RackSize = 7
 type Rack Tiles
 
 type PlayerState struct {
-	player *Player
-	score  Score
-	rack   Rack
+	player   *Player
+	playerNo PlayerNo
+	score    Score
+	rack     Rack
 }
 
 type PlayerStates []*PlayerState
@@ -112,13 +114,14 @@ func InitialGameState(game *Game) *GameState {
 	}
 
 	state.playerStates = make(PlayerStates, len(game.players))
-	for i := 0; i < len(state.playerStates); i++ {
+	for i, player := range game.players {
 		state.playerStates[i] = &PlayerState{
-			player: game.players[i],
-			score:  0,
-			rack:   Rack{},
+			player:   player,
+			playerNo: PlayerNo(i),
+			score:    0,
+			rack:     Rack{},
 		}
-		state.playerStates[i].rack = game.FillRack(state.playerStates[i].rack)
+		game.FillRack(state.playerStates[i])
 	}
 	return state
 }
@@ -347,8 +350,8 @@ func (directionSet *DirectionSet) String(corpus *Corpus) string {
 }
 
 func (player *PlayerState) String(corpus *Corpus) string {
-	return fmt.Sprintf("%v : %s score: %v rack: %v",
-		player.player.id, player.player.name, player.score, player.rack.String(corpus))
+	return fmt.Sprintf("[%d] id: %v : %s score: %v rack: %v",
+		player.playerNo, player.player.id, player.player.name, player.score, player.rack.String(corpus))
 }
 
 func (lhs Tile) equal(rhs Tile) bool {

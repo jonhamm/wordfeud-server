@@ -29,7 +29,7 @@ func autoplayCmd(options *GameOptions, args []string) *GameResult {
 		result.Board = game.board
 
 		for n := 0; n < 1000; n++ {
-			if !game.play() {
+			if !game.Play() {
 				break
 			}
 		}

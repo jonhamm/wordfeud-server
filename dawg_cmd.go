@@ -32,7 +32,7 @@ func dawgCmd(options *GameOptions, args []string) *DawgResult {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()
 	}
-	dawg, err = MakeDawg(corpus)
+	dawg, err = NewDawg(corpus)
 	if err != nil {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()

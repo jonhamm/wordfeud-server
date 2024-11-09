@@ -144,7 +144,7 @@ func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
 		if !r.MatchString(line) {
 			continue
 		}
-		word := corpus.MakeWord(line)
+		word := corpus.StringToWord(line)
 		if len(word) >= corpus.minWordLength {
 			words = append(words, word)
 			wordLength := len(word)
@@ -198,7 +198,7 @@ func (lhs Word) equal(rhs Word) bool {
 	return slices.Compare(lhs, rhs) == 0
 }
 
-func (corpus *Corpus) MakeWord(str string) Word {
+func (corpus *Corpus) StringToWord(str string) Word {
 	var word Word = make(Word, 0, len(str))
 	for _, r := range str {
 		l, ok := corpus.runeLetter[r]

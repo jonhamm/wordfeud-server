@@ -30,7 +30,7 @@ type Move struct {
 	score       *TilesScore
 }
 
-func (state *GameState) MakeMove(postion Position, direction Direction, tiles Tiles, tilesScore *TilesScore, playerState *PlayerState) *Move {
+func (state *GameState) NewMove(postion Position, direction Direction, tiles Tiles, tilesScore *TilesScore, playerState *PlayerState) *Move {
 	move := &Move{state.NextMoveId(), state.game.NextMoveSeqNo(), state, playerState, postion, direction, tiles, nil}
 	move.score = tilesScore
 	if move.score == nil {
@@ -109,17 +109,19 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 	options := state.game.options
 	corpus := state.game.corpus
 	fmt := state.game.fmt
-	playerNo := playerState.player.id
-	move := state.MakeMove(partial.startPos, partial.direction, partial.tiles, partial.score, &PlayerState{
-		player: playerState.player,
-		score:  playerState.score + partial.score.score,
-		rack:   partial.rack,
+	playerNo := playerState.playerNo
+	move := state.NewMove(partial.startPos, partial.direction, partial.tiles, partial.score, &PlayerState{
+		player:   playerState.player,
+		playerNo: playerState.playerNo,
+		score:    playerState.score + partial.score.score,
+		rack:     partial.rack,
 	})
 	newState := &GameState{
 		game:         state.game,
 		fromState:    state,
 		move:         move,
 		playerStates: slices.Concat(state.playerStates[:playerNo], PlayerStates{move.playerState}, state.playerStates[playerNo+1:]),
+		playerNo:     move.playerState.playerNo,
 	}
 	height := state.game.height
 	width := state.game.width
@@ -132,8 +134,6 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 		printPlayer(newState.game, playerState)
 		fmt.Printf("\n")
 	}
-
-	newState.playerStates[move.playerState.player.id] = move.playerState
 
 	for r := Coordinate(0); r < height; r++ {
 		newState.tiles[r] = make([]BoardTile, width)

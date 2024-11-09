@@ -54,14 +54,13 @@ func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coo
 	if err != nil {
 		return nil, err
 	}
-	dawg, err := MakeDawg(corpus)
+	dawg, err := NewDawg(corpus)
 	if err != nil {
 		return nil, err
 	}
 	game := Game{
 		options:       options,
 		seqno:         seqno,
-		randSeed:      options.rand.Uint64(),
 		width:         width,
 		height:        height,
 		corpus:        corpus,
@@ -70,13 +69,23 @@ func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coo
 		board:         nil,
 		letterScores:  make(LetterScores, corpus.letterMax),
 		tiles:         Tiles{},
-		players:       players,
+		players:       make(Players, len(players)+1),
 		state:         nil,
 		nextMoveSeqNo: 1,
 		nextMoveId:    1,
 	}
 
-	game.rand = rand.New(rand.NewSource(int64(game.randSeed)))
+	if options.debug > 0 && options.count <= 1 {
+		game.randSeed = options.randSeed
+		game.rand = options.rand
+	} else {
+		game.randSeed = options.rand.Uint64()
+		game.rand = rand.New(rand.NewSource(int64(game.randSeed)))
+	}
+
+	game.players[0] = SystemPlayer
+	copy(game.players[1:], players)
+
 	game.board = NewBoard(&game)
 
 	if options.debug > 0 {
@@ -173,11 +182,16 @@ func (game *Game) WordToRack(word Word) Rack {
 	return rack
 }
 
-func (game *Game) FillRack(rack Rack) Rack {
+func (game *Game) FillRack(playerState *PlayerState) {
 	if game.options.debug > 0 {
-		game.fmt.Printf("FillRack %s\n", rack.String(game.corpus))
+		game.fmt.Printf("FillRack %s\n", playerState.String(game.corpus))
 	}
-	for n := len(rack); n < int(RackSize); n++ {
+	if playerState.playerNo == NoPlayer {
+		return
+	}
+	rack := make(Rack, 0, RackSize)
+	copy(rack, playerState.rack)
+	for len(rack) < int(RackSize) {
 		t := game.TakeTile()
 		if t.kind == TILE_EMPTY {
 			break
@@ -187,7 +201,7 @@ func (game *Game) FillRack(rack Rack) Rack {
 	if game.options.debug > 0 {
 		game.fmt.Printf("  => %s\n", rack.String(game.corpus))
 	}
-	return rack
+	playerState.rack = rack
 }
 
 func (game *Game) NextMoveId() uint {

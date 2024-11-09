@@ -193,6 +193,14 @@ func main() {
 	case "autoplay":
 		result := autoplayCmd(&options, args)
 		fmt.Fprint(options.out, strings.Join(result.Log, "\n"))
+	case "keepdebugfunction":
+		debugState(nil)
+		debugPlayers(nil, PlayerStates{})
+		debugPlayer(nil, nil)
+		debugPartialMove(nil)
+		debugPartialMoves(nil)
+		debugMove(nil)
+
 	default:
 		fmt.Fprintf(options.out, "unknown subcommand '%q'.  (-help for more info)\n", cmd)
 	}

@@ -192,7 +192,7 @@ func (state *DawgState) LastNode() *Node {
 	return lastVertex.destination
 }
 
-func MakeDawg(corpus *Corpus) (*Dawg, error) {
+func NewDawg(corpus *Corpus) (*Dawg, error) {
 
 	dawg := &Dawg{
 		corpus:       corpus,
@@ -201,8 +201,8 @@ func MakeDawg(corpus *Corpus) (*Dawg, error) {
 		nextVertexId: 1,
 	}
 
-	dawg.rootNode = dawg.MakeNode()
-	dawg.finalNode = dawg.MakeNode()
+	dawg.rootNode = dawg.NewNode()
+	dawg.finalNode = dawg.NewNode()
 	dawg.Register(dawg.finalNode)
 	dawg.initialState = DawgState{startNode: dawg.rootNode, vertices: Vertices{}}
 	err := dawg.AddCorpus(corpus)
@@ -212,7 +212,7 @@ func MakeDawg(corpus *Corpus) (*Dawg, error) {
 	return dawg, nil
 }
 
-func (dawg *Dawg) MakeNode() *Node {
+func (dawg *Dawg) NewNode() *Node {
 	node := &Node{
 		id:            dawg.nextNodeId,
 		registered:    false,
@@ -223,7 +223,7 @@ func (dawg *Dawg) MakeNode() *Node {
 	return node
 }
 
-func (dawg *Dawg) MakeVertex(letter Letter, destination *Node, final bool) *Vertex {
+func (dawg *Dawg) NewVertex(letter Letter, destination *Node, final bool) *Vertex {
 	vertex := &Vertex{
 		id:          dawg.nextVertexId,
 		letter:      letter,
@@ -245,7 +245,7 @@ func (dawg *Dawg) AddVertex(node *Node, letter Letter, destination *Node, final 
 	if node.registered {
 		panic(fmt.Sprintf("Node:%v trying to add vertex with letter ('%c') to registered node (Node.AddVertex)", node.id, dawg.corpus.letterRune[letter]))
 	}
-	vertex := dawg.MakeVertex(letter, destination, final)
+	vertex := dawg.NewVertex(letter, destination, final)
 	node.vertices = append(node.vertices, vertex)
 	node.vertexLetters.set(vertex.letter)
 	node.crc = 0 // invalidate crc
@@ -446,7 +446,7 @@ func (dawg *Dawg) AddWord(word Word) error {
 	suffix := word[prefixState.WordLength():]
 	if len(suffix) > 0 {
 		if prefixNode == dawg.finalNode {
-			prefixNode = dawg.MakeNode()
+			prefixNode = dawg.NewNode()
 			prefixState.LastVertex().destination = prefixNode
 		}
 	}
@@ -465,7 +465,7 @@ func (dawg *Dawg) AddSuffix(node *Node, suffix Word) {
 	suffix = suffix[1:]
 	suffixNode := dawg.finalNode
 	if len(suffix) > 0 {
-		suffixNode = dawg.MakeNode()
+		suffixNode = dawg.NewNode()
 		dawg.AddSuffix(suffixNode, suffix)
 	}
 	dawg.AddVertex(node, letter, suffixNode, suffixNode == dawg.finalNode)

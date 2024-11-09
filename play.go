@@ -28,9 +28,9 @@ type PartialMove struct {
 
 type PartialMoves []*PartialMove
 
-func (game *Game) play() bool {
+func (game *Game) Play() bool {
 	state := game.state
-	playerNo := state.nextPlayer()
+	playerNo := state.NextPlayer()
 	playerState := state.playerStates[playerNo]
 	move := state.Move(playerState)
 	if move != nil {
@@ -38,7 +38,7 @@ func (game *Game) play() bool {
 		state := game.state
 		playerState := state.playerStates[playerNo]
 		for _, ps := range game.state.playerStates {
-			ps.rack = game.FillRack(ps.rack)
+			game.FillRack(ps)
 		}
 		if game.options.debug > 0 {
 			game.fmt.Printf("game play completed move : %s\n", playerState.String(game.corpus))
@@ -50,7 +50,7 @@ func (game *Game) play() bool {
 				return false
 			}
 			if game.options.verbose {
-				fmt.Fprintf(os.Stderr, "wrote game file after move %d \"%s\"\n", game.nextMoveSeqNo-1, gameFileName)
+				fmt.Fprintf(os.Stdout, "wrote game file after move %d \"%s\"\n", game.nextMoveSeqNo-1, gameFileName)
 			}
 		}
 		return true
@@ -58,20 +58,15 @@ func (game *Game) play() bool {
 	return false
 }
 
-func (state *GameState) nextPlayer() PlayerNo {
+func (state *GameState) NextPlayer() PlayerNo {
 	if state.move == nil {
-		return 0
+		return 1
 	}
-	for i, p := range state.game.players {
-		if state.move.playerState.player == p {
-			n := i + 1
-			if n > len(state.game.players) {
-				return 0
-			}
-			return PlayerNo(n)
-		}
+	n := state.playerNo + 1
+	if int(n) >= len(state.playerStates) {
+		return 1
 	}
-	return 0
+	return n
 }
 
 func (state *GameState) GetAnchors(coordinate Coordinate, orientation Orientation) Positions {
@@ -157,8 +152,9 @@ func (state *GameState) PrepareMove() {
 
 func (state *GameState) GenerateAllMoves(playerState *PlayerState) PartialMoves {
 	options := state.game.options
+	corpus := state.game.corpus
 	if options.debug > 0 {
-		fmt.Print("\n\n--------------------------------\n GenrateAllMoves:\n")
+		fmt.Printf("\n\n--------------------------------\n GenrateAllMoves: player: %s\n", playerState.String(corpus))
 		printState(state)
 	}
 	out := make(PartialMoves, 0, 100)
