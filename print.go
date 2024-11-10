@@ -141,6 +141,35 @@ func fprintState(f io.Writer, state *GameState, args ...string) {
 	w := board.game.Width()
 	h := board.game.Height()
 	tiles := state.tileBoard
+	placedMinRow := int(h)
+	placedMaxRow := -1
+	placedMinColumn := int(w)
+	placedMaxColumn := -1
+
+	if state.move != nil {
+
+		for _, t := range state.move.tiles {
+			p := t.pos
+			if t.placedInMove {
+				if int(p.row) > placedMaxRow {
+					placedMaxRow = int(p.row)
+				}
+				if int(p.row) < placedMinRow {
+					placedMinRow = int(p.row)
+				}
+			}
+			if t.placedInMove {
+				if int(p.column) > placedMaxColumn {
+					placedMaxColumn = int(p.column)
+				}
+				if int(p.column) < placedMinColumn {
+					placedMinColumn = int(p.column)
+				}
+			}
+		}
+
+	}
+
 	p.Fprintf(f, "\n\n%s    ", indent)
 	for c := Coordinate(0); c < w; c++ {
 		p.Fprintf(f, " %2d   ", c)
@@ -199,7 +228,20 @@ func fprintState(f io.Writer, state *GameState, args ...string) {
 		p.Fprintf(f, "%s   ", indent)
 
 		for c := Coordinate(0); c < w; c++ {
-			p.Fprintf(f, "|     ")
+			placedInMove := false
+			if int(r) >= placedMinRow && int(r) <= placedMaxRow && int(c) >= placedMinColumn && int(c) <= placedMaxColumn {
+				for _, t := range state.move.tiles {
+					if t.pos.equal(Position{r, c}) {
+						placedInMove = true
+						break
+					}
+				}
+			}
+			if placedInMove {
+				p.Fprintf(f, "|*   *")
+			} else {
+				p.Fprintf(f, "|     ")
+			}
 		}
 		p.Fprintf(f, "|\n")
 	}
