@@ -282,7 +282,8 @@ func fprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 	p := game.fmt
 	corpus := game.corpus
 	tiles := state.tileBoard
-	p.Fprintf(f, "%sPartialMove: %v\n", indent, pm.id)
+	word := pm.gameState.TilesToString(pm.tiles)
+	p.Fprintf(f, "%sPartialMove: %d  %s..%s \"%s\"\n", indent, pm.id, pm.startPos, pm.endPos, word)
 	if game.IsValidPos(pm.startPos) {
 		p.Fprintf(f, "%s   startPos:  %s   %s\n", indent, pm.startPos.String(), tiles[pm.startPos.row][pm.startPos.column].String(corpus))
 	} else {
@@ -296,7 +297,7 @@ func fprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 	}
 	p.Fprintf(f, "%s   rack:      %s\n", indent, pm.rack.String(corpus))
 	p.Fprintf(f, "%s   tiles:     %s\n", indent, pm.tiles.String(corpus))
-	p.Fprintf(f, "%s   word:      \"%s\"\n", indent, pm.gameState.TilesToString(pm.tiles))
+	p.Fprintf(f, "%s   word:      \"%s\"\n", indent, word)
 	if pm.score != nil {
 		p.Fprintf(f, "%s   score:     \n", indent)
 		fprintTilesScore(f, pm.score, corpus, indent+"            ")
@@ -353,7 +354,14 @@ func fprintMove(f io.Writer, move *Move, args ...string) {
 	p := state.game.fmt
 	corpus := state.game.corpus
 	tiles := state.tileBoard
-	p.Fprintf(f, "%sMove: %d number %d\n", indent, move.id, move.seqno)
+	word := move.state.TilesToString(move.tiles)
+	startPos := move.position
+	endPos := startPos
+	if game.IsValidPos(startPos) {
+		_, endPos = state.AdjacentPosition(startPos, move.direction)
+	}
+	p.Fprintf(f, "%sMove: %d number %d  %s..%s \"%s\"\n",
+		indent, move.id, move.seqno, startPos.String(), endPos.String(), word)
 	if game.IsValidPos(move.position) {
 		p.Fprintf(f, "%s   position:  %s   %s\n", indent, move.position.String(), tiles[move.position.row][move.position.column].String(corpus))
 	} else {
@@ -361,7 +369,7 @@ func fprintMove(f io.Writer, move *Move, args ...string) {
 	}
 	p.Fprintf(f, "%s   direction: %s\n", indent, move.direction.String())
 	p.Fprintf(f, "%s   tiles:     %s\n", indent, move.tiles.String(corpus))
-	p.Fprintf(f, "%s   word:      \"%s\"\n", indent, move.state.TilesToString(move.tiles))
+	p.Fprintf(f, "%s   word:      \"%s\"\n", indent, word)
 	p.Fprintf(f, "%s   player:    %s\n", indent, move.playerState.String(corpus))
 	if move.score != nil {
 		p.Fprintf(f, "%s   score:    %s\n", indent, move.playerState.String(corpus))

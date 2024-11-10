@@ -276,7 +276,9 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState *PlayerState, anch
 			prefixWord := game.TilesToWord(prefix)
 			dawgState := game.dawg.FindPrefix(prefixWord)
 			if !prefixWord.equal(dawgState.Word()) {
-				panic(fmt.Sprintf("word on board not matched by dawg?? \"%s\" (GameState.GenerateAllMovesForAnchor)", prefixWord.String(game.corpus)))
+				msg := fmt.Sprintf("word on board %s %s not matched by dawg?? \"%s\" (GameState.GenerateAllMovesForAnchor)",
+					preceedingnPosition.String(), prefixDirection.String(), prefixWord.String(game.corpus))
+				panic(msg)
 			}
 			ok, prefixPos := state.RelativePosition(anchor, prefixDirection, Coordinate(len(prefix)))
 			if !ok {

@@ -159,7 +159,7 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 
 	if options.debug > 0 {
 		printState(state)
-		fmt.Printf("AddMove :\n")
+		fmt.Printf("AddMove %d : %s..%s \"%s\"\n", move.seqno, partial.startPos, partial.endPos, state.TilesToString(partial.tiles))
 		printPartialMove(partial)
 		printPlayer(state.game, playerState)
 		fmt.Printf("\n")

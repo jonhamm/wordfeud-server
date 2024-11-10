@@ -161,7 +161,7 @@ func (state *GameState) FillRack(playerState *PlayerState) {
 	game := state.game
 	options := game.options
 	fmt := game.fmt
-	if options.debug > 0 {
+	if options.debug > 1 {
 		fmt.Printf("FillRack %s\n", playerState.String(game.corpus))
 	}
 	if playerState.playerNo == NoPlayer {
@@ -176,7 +176,7 @@ func (state *GameState) FillRack(playerState *PlayerState) {
 		}
 		rack = append(rack, t)
 	}
-	if options.debug > 0 {
+	if options.debug > 1 {
 		fmt.Printf("  => %s\n", rack.String(game.corpus))
 		fmt.Printf("freeTiles (%d) %s\n", len(state.freeTiles), state.freeTiles.String(game.corpus))
 	}
@@ -550,7 +550,7 @@ func (state *GameState) FindPrefix(pos Position, dir Direction) DawgState {
 		if !ok {
 			break
 		}
-		tile := &tiles[pos.row][pos.column]
+		tile := &tiles[p.row][p.column]
 		if tile.kind == TILE_EMPTY {
 			break
 		}
