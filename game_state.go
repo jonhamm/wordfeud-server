@@ -660,3 +660,11 @@ func (state *GameState) CollectStates() GameStates {
 		return slices.Concat(initialStates, GameStates{state})
 	}
 }
+
+func (ws *WordScore) Word() Word {
+	word := make(Word, len(ws.tileScores))
+	for i, t := range ws.tileScores {
+		word[i] = t.tile.letter
+	}
+	return word
+}

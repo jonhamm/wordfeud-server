@@ -22,8 +22,8 @@ type PartialMove struct {
 	endPos    Position
 	direction Direction
 	state     DawgState
-	tiles     Tiles
-	score     *TilesScore
+	tiles     MoveTiles
+	score     *MoveScore
 }
 
 type PartialMoves []*PartialMove
@@ -257,7 +257,7 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState *PlayerState, anch
 				if !prefix.endPos.equal(anchor) {
 					panic("endpos of generated prefix should be the anchor (GameState.GenerateAllMovesForAnchor)")
 				}
-				suffixMoves := state.GenerateAllSuffixMoves(&PartialMove{
+				from := PartialMove{
 					id:        state.NextMoveId(),
 					gameState: state,
 					rack:      prefix.rack,
@@ -267,7 +267,8 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState *PlayerState, anch
 					state:     prefix.state,
 					tiles:     prefix.tiles,
 					score:     nil,
-				})
+				}
+				suffixMoves := state.GenerateAllSuffixMoves(&from)
 				out = slices.Concat(out, suffixMoves)
 			}
 
@@ -284,7 +285,7 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState *PlayerState, anch
 			if !ok {
 				panic(fmt.Sprintf("prefix \"%s\" from anchor %s has no valid start position (GameState.GenerateAllMovesForAnchor)", prefixWord.String(game.corpus), anchor))
 			}
-			suffixMoves := state.GenerateAllSuffixMoves(&PartialMove{
+			from := PartialMove{
 				id:        state.NextMoveId(),
 				gameState: state,
 				rack:      playerState.rack,
@@ -292,9 +293,18 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState *PlayerState, anch
 				endPos:    anchor,
 				direction: suffixDirection,
 				state:     dawgState,
-				tiles:     prefix,
+				tiles:     make(MoveTiles, len(prefix)),
 				score:     nil,
-			})
+			}
+			ok, p := state.RelativePosition(anchor, prefixDirection, Coordinate(len(prefix)))
+			for i, t := range prefix {
+				if !ok {
+					panic("could not get move position (GenerateAllMovesForAnchor)")
+				}
+				from.tiles[i] = MoveTile{Tile: t, pos: p, placedInMove: false}
+				ok, p = state.RelativePosition(p, suffixDirection, 1)
+			}
+			suffixMoves := state.GenerateAllSuffixMoves(&from)
 			out = slices.Concat(out, suffixMoves)
 
 		}
@@ -310,7 +320,7 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState *PlayerState, anch
 			endPos:    anchor,
 			direction: suffixDirection,
 			state:     game.dawg.initialState,
-			tiles:     Tiles{},
+			tiles:     MoveTiles{},
 			score:     nil,
 		})
 		out = slices.Concat(out, suffixMoves)
@@ -332,7 +342,7 @@ func (state *GameState) GenerateAllPrefixes(anchor Position, direction Direction
 		endPos:    anchor,
 		direction: direction,
 		state:     state.game.dawg.initialState,
-		tiles:     make(Tiles, 0),
+		tiles:     make(MoveTiles, 0),
 		score:     nil,
 	}
 	if options.debug > 0 {
@@ -361,7 +371,7 @@ func (state *GameState) GenerateAllPrefixes(anchor Position, direction Direction
 			endPos:    startPos,
 			direction: direction.Reverse(),
 			state:     state.game.dawg.initialState,
-			tiles:     make(Tiles, 0),
+			tiles:     make(MoveTiles, 0),
 			score:     nil,
 		}
 		if options.debug > 0 {
@@ -409,13 +419,17 @@ func (state *GameState) GeneratePrefixes(from *PartialMove, length Coordinate) P
 				endPos:    endPos,
 				direction: from.direction,
 				state:     dawgState,
-				tiles:     append(slices.Clone(from.tiles), rackTile.tile),
+				tiles:     make(MoveTiles, len(from.tiles)+1),
 				score:     nil,
 			}
+			copy(to.tiles, from.tiles)
+			if !state.fromState.game.IsValidPos(from.endPos) {
+				panic(fmt.Sprintf("expected valid from.endPos %s (GeneratePrefixes)", from.endPos.String()))
+			}
+			to.tiles[len(from.tiles)] = MoveTile{Tile: rackTile.tile, pos: from.endPos, placedInMove: true}
 
 			prefixCompletion := state.GeneratePrefixes(to, length-1)
 			out = slices.Concat(out, prefixCompletion)
-
 		}
 	}
 
@@ -493,9 +507,11 @@ func (state *GameState) GenerateAllSuffixMoves(from *PartialMove) PartialMoves {
 					endPos:    endPos,
 					direction: from.direction,
 					state:     toState,
-					tiles:     append(slices.Clone(from.tiles), rackTile.tile),
+					tiles:     make(MoveTiles, len(from.tiles)+1),
 					score:     nil,
 				}
+				copy(to.tiles, from.tiles)
+				to.tiles[len(from.tiles)] = MoveTile{Tile: rackTile.tile, pos: from.endPos, placedInMove: true}
 				if v.final {
 					if !state.game.IsValidPos(to.endPos) || state.IsTileEmpty(to.endPos) {
 						if options.debug > 0 {
@@ -525,9 +541,11 @@ func (state *GameState) GenerateAllSuffixMoves(from *PartialMove) PartialMoves {
 				endPos:    endPos,
 				direction: from.direction,
 				state:     toState,
-				tiles:     append(slices.Clone(from.tiles), tile),
+				tiles:     make(MoveTiles, len(from.tiles)+1),
 				score:     nil,
 			}
+			copy(to.tiles, from.tiles)
+			to.tiles[len(from.tiles)] = MoveTile{Tile: tile, pos: pos, placedInMove: false}
 			if v.final {
 				if !state.game.IsValidPos(to.endPos) || state.IsTileEmpty(to.endPos) {
 					if options.debug > 0 {
@@ -551,7 +569,7 @@ func (state *GameState) FilterBestMove(allMoves PartialMoves) PartialMoves {
 
 	for _, move := range allMoves {
 		if move.score == nil {
-			move.score = state.CalcScore(move.startPos, move.direction, move.tiles)
+			move.score = state.CalcScore(move.tiles, move.direction.Orientation())
 		}
 		if bestMove == nil || move.score.score > bestMove.score.score {
 			if options.debug > 0 {

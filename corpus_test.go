@@ -63,7 +63,7 @@ func Test_scanWordsDK(t *testing.T) {
 		if !w.equal(result_letters[i]) {
 			wants := runesToString(result_letters)
 			got := runesToString(words)
-			t.Errorf("scanWordsDK(,5) :\nwants:\n%v\ngot:\n%v\nwants[%d]: %s  got[%d]: %s", wants, got, i, corpus.wordToString(result_letters[i]), i, corpus.wordToString(words[i]))
+			t.Errorf("scanWordsDK(,5) :\nwants:\n%v\ngot:\n%v\nwants[%d]: %s  got[%d]: %s", wants, got, i, corpus.WordToString(result_letters[i]), i, corpus.WordToString(words[i]))
 			return
 		}
 	}
@@ -74,15 +74,6 @@ func (corpus *Corpus) letterToString(l Letter) string {
 	var sb strings.Builder
 	sb.WriteString("'")
 	sb.WriteString(string(corpus.letterRune[l]))
-	sb.WriteString("'")
-
-	return sb.String()
-}
-
-func (corpus *Corpus) wordToString(word Word) string {
-	var sb strings.Builder
-	sb.WriteString("'")
-	sb.WriteString(word.String(corpus))
 	sb.WriteString("'")
 
 	return sb.String()

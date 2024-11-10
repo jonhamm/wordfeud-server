@@ -2,22 +2,39 @@ package main
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 )
 
 type TileScore struct {
-	tile         Tile
-	placedInMove bool
-	letterScore  Score
-	multiplier   Score
-	score        Score
+	tile        MoveTile
+	letterScore Score
+	multiplier  Score
+	score       Score
 }
 
 type TileScores []TileScore
-type TilesScore struct {
-	tileScores TileScores
-	multiplier Score
+type WordScore struct {
+	tileScores  TileScores
+	orientation Orientation
+	multiplier  Score
+	score       Score
+}
+
+type WordScores []*WordScore
+
+type MoveScore struct {
+	wordScores WordScores
 	score      Score
 }
+
+type MoveTile struct {
+	Tile
+	pos          Position
+	placedInMove bool
+}
+
+type MoveTiles []MoveTile
 type Move struct {
 	id          uint
 	seqno       uint
@@ -25,36 +42,75 @@ type Move struct {
 	playerState *PlayerState
 	position    Position
 	direction   Direction
-	tiles       Tiles
-	score       *TilesScore
+	tiles       MoveTiles
+	score       *MoveScore
 }
 
-func (state *GameState) NewMove(postion Position, direction Direction, tiles Tiles, tilesScore *TilesScore, playerState *PlayerState) *Move {
-	move := &Move{state.NextMoveId(), state.game.NextMoveSeqNo(), state, playerState, postion, direction, tiles, nil}
-	move.score = tilesScore
-	if move.score == nil {
-		move.score = state.CalcScore(postion, direction, tiles)
+func (state *GameState) NewMove(position Position, direction Direction, tiles MoveTiles, moveScore *MoveScore, playerState *PlayerState) *Move {
+	move := &Move{
+		id:          state.NextMoveId(),
+		seqno:       state.game.NextMoveSeqNo(),
+		state:       state,
+		playerState: playerState,
+		position:    position,
+		direction:   direction,
+		tiles:       tiles,
+		score:       moveScore,
 	}
+
+	if move.score == nil {
+		move.score = state.CalcScore(tiles, direction.Orientation())
+	}
+
 	return move
 }
 
-func (state *GameState) CalcScore(anchor Position, dir Direction, tiles Tiles) *TilesScore {
-	tilesScore := TilesScore{
-		tileScores: make(TileScores, len(tiles)),
-		multiplier: 1,
+func (state *GameState) CalcScore(tiles MoveTiles, orientation Orientation) *MoveScore {
+	moveScore := MoveScore{
+		wordScores: make(WordScores, 0, 1),
 		score:      0,
 	}
+
+	score := state.CalcWordScore(tiles, orientation)
+	if score == nil {
+		panic("CalcWordScore returned nil for main score")
+	}
+
+	moveScore.score += score.score
+	moveScore.wordScores = append(moveScore.wordScores, score)
+
+	perpendicular := orientation.Perpendicular()
+
+	for _, tile := range tiles {
+		if tile.placedInMove {
+			wordTiles := state.GetWordMoveTiles(tile.pos, tile, perpendicular)
+			if len(wordTiles) > 1 {
+				score = state.CalcWordScore(wordTiles, perpendicular)
+				if score == nil {
+					panic("CalcWordScore returned nil")
+				}
+				moveScore.score += score.score
+				moveScore.wordScores = append(moveScore.wordScores, score)
+			}
+		}
+	}
+	return &moveScore
+}
+
+func (state *GameState) CalcWordScore(tiles MoveTiles, orientation Orientation) *WordScore {
+	wordScore := WordScore{
+		tileScores:  make(TileScores, len(tiles)),
+		orientation: orientation,
+		multiplier:  1,
+	}
 	squares := state.game.board.squares
-	pos := anchor
-	boardTile := state.tileBoard[pos.row][pos.column]
-	for i, t := range tiles {
-		var nextPos Position
-		tileScore := &tilesScore.tileScores[i]
-		tileScore.tile = t
+	for i, tile := range tiles {
+		pos := tile.pos
+		tileScore := &wordScore.tileScores[i]
+		tileScore.tile = tile
 		tileScore.multiplier = 1
-		tileScore.letterScore = state.game.GetTileScore(t)
-		if boardTile.kind == TILE_EMPTY {
-			tileScore.placedInMove = true
+		tileScore.letterScore = state.game.GetTileScore(tile.Tile)
+		if tile.placedInMove {
 			// this tile was placed in this move
 			// use the square modifiers DL, TL, DW, TW
 			switch squares[pos.row][pos.column] {
@@ -63,26 +119,63 @@ func (state *GameState) CalcScore(anchor Position, dir Direction, tiles Tiles) *
 			case TL:
 				tileScore.multiplier *= 3
 			case DW:
-				tilesScore.multiplier *= 2
+				wordScore.multiplier *= 2
 			case TW:
-				tilesScore.multiplier *= 2
+				wordScore.multiplier *= 3
 			}
 		}
 		tileScore.score += tileScore.multiplier * tileScore.letterScore
-		tilesScore.score += tileScore.score
-
-		if i+1 < len(tiles) {
-			boardTile, nextPos = state.AdjacentTile(pos, dir)
-			if boardTile.kind == TILE_NONE {
-				panic(fmt.Sprintf("invalid next position after %s in direction %s (GameState.CalcScore)", pos.String(), dir.String()))
-			}
-			pos = nextPos
-		}
+		wordScore.score += tileScore.score
 	}
 
-	tilesScore.score *= tilesScore.multiplier
+	wordScore.score *= wordScore.multiplier
 
-	return &tilesScore
+	return &wordScore
+}
+
+func (state *GameState) GetWordMoveTiles(pos Position, tile MoveTile, orientation Orientation) MoveTiles {
+	wordTiles := make(MoveTiles, 0)
+	tiles := state.tileBoard
+	prefixPos := pos
+	dir := orientation.PrefixDirection()
+	for {
+		ok, p := state.AdjacentPosition(prefixPos, dir)
+		if !ok {
+			break
+		}
+		tile := &tiles[p.row][p.column]
+		if tile.kind == TILE_EMPTY {
+			break
+		}
+		if tile.kind == TILE_NONE {
+			panic(fmt.Sprintf("unexpected TILE_NONE on GameState board[%v,%v] (GameState.FindPrefix)", p.row, p.column))
+		}
+		wordTiles = append(wordTiles, MoveTile{Tile: tile.Tile, pos: p, placedInMove: false})
+		prefixPos = p
+	}
+
+	slices.Reverse(wordTiles)
+
+	dir = dir.Reverse()
+	wordTiles = append(wordTiles, tile)
+
+	suffixPos := pos
+	for {
+		ok, p := state.AdjacentPosition(suffixPos, dir)
+		if !ok {
+			break
+		}
+		tile := &tiles[p.row][p.column]
+		if tile.kind == TILE_EMPTY {
+			break
+		}
+		if tile.kind == TILE_NONE {
+			panic(fmt.Sprintf("unexpected TILE_NONE on GameState board[%v,%v] (GameState.FindPrefix)", p.row, p.column))
+		}
+		wordTiles = append(wordTiles, MoveTile{Tile: tile.Tile, pos: p, placedInMove: false})
+		suffixPos = p
+	}
+	return wordTiles
 }
 
 func (state *GameState) Move(playerState *PlayerState) *Move {
@@ -117,10 +210,9 @@ func (state *GameState) AddPass(playerState *PlayerState) *Move {
 	move := state.NewMove(
 		Position{game.height + 1, game.width + 1},
 		EAST,
-		Tiles{},
-		&TilesScore{
-			tileScores: TileScores{},
-			multiplier: 0,
+		MoveTiles{},
+		&MoveScore{
+			wordScores: WordScores{},
 			score:      0,
 		},
 		&PlayerState{
@@ -159,7 +251,7 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 
 	if options.debug > 0 {
 		printState(state)
-		fmt.Printf("AddMove %d : %s..%s \"%s\"\n", move.seqno, partial.startPos, partial.endPos, state.TilesToString(partial.tiles))
+		fmt.Printf("AddMove %d : %s..%s \"%s\"\n", move.seqno, partial.startPos, partial.endPos, state.TilesToString(partial.tiles.Tiles()))
 		printPartialMove(partial)
 		printPlayer(state.game, playerState)
 		fmt.Printf("\n")
@@ -168,13 +260,16 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 	pos := partial.startPos
 	dir := partial.direction
 	perpendicularOrientation := dir.Orientation().Perpendicular()
-	var ok bool
-	var nextPos Position
-	for i, tile := range partial.tiles {
+	for _, tile := range partial.tiles {
+		pos = tile.pos
 		boardTile := state.tileBoard[pos.row][pos.column]
 		switch boardTile.kind {
-		case TILE_EMPTY:
-			state.tileBoard[pos.row][pos.column] = BoardTile{Tile: tile, validCrossLetters: NoValidCrossLetters}
+		case TILE_EMPTY, TILE_NONE:
+			if !tile.placedInMove {
+				panic(fmt.Sprintf("move generation does not place tile %s at %s which is  empty %s (GameState.AddMove)",
+					tile.String(corpus), pos.String(), boardTile.Tile.String(corpus)))
+			}
+			state.tileBoard[pos.row][pos.column] = BoardTile{Tile: tile.Tile, validCrossLetters: NoValidCrossLetters}
 			if options.debug > 0 {
 				t := &state.tileBoard[pos.row][pos.column]
 				fmt.Printf("   set tile %s = %s\n", pos.String(), t.String(corpus))
@@ -183,23 +278,18 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 			state.InvalidateValidCrossLetters(pos, suffixPos, perpendicularOrientation)
 
 		case TILE_JOKER, TILE_LETTER:
-			if !boardTile.Tile.equal(tile) {
-				panic(fmt.Sprintf("move generation will add new tile %s at %s which is not empty and differs %s (GameState.AddMove)",
-					tile.String(corpus), pos.String(), boardTile.Tile.String(corpus)))
+			if tile.placedInMove {
+				panic(fmt.Sprintf("move generation has tile %s at %s which is not empty (GameState.AddMove)",
+					tile.String(corpus), pos.String()))
+			} else {
+				if !tile.Tile.equal(boardTile.Tile) {
+					panic(fmt.Sprintf("move generation has tile %s at %s which is not empty and differs %s (GameState.AddMove)",
+						tile.String(corpus), pos.String(), boardTile.Tile.String(corpus)))
+				}
 			}
-			// this is a tile from a previous move -- skip
-		case TILE_NONE:
-			panic(fmt.Sprintf("move generation will add new tile at non-existing next position after %s direction %s (GameState.AddMove)", nextPos.String(), dir.String()))
+		// this is a tile from a previous move -- skip
 		default:
 			panic(fmt.Sprintf("move generation will add new tile of unknown kind %d (GameState.AddMove)", tile.kind))
-		}
-
-		if i+1 < len(partial.tiles) {
-			ok, nextPos = state.AdjacentPosition(pos, dir)
-			if !ok {
-				panic(fmt.Sprintf("move generation will add new tile at non-existing next position after %s direction %s (GameState.AddMove)", nextPos.String(), dir.String()))
-			}
-			pos = nextPos
 		}
 	}
 	state.InvalidateValidCrossLetters(partial.startPos, partial.endPos, dir.Orientation())
@@ -239,4 +329,35 @@ func (state *GameState) InvalidateValidCrossLetters(startPos Position, endPos Po
 			t.validCrossLetters[perpendicularOrientation] = NullValidCrossLetters[perpendicularOrientation]
 		}
 	}
+}
+
+func (tile MoveTile) String(corpus *Corpus) string {
+	placedInMove := '-'
+	if tile.placedInMove {
+		placedInMove = '+'
+	}
+	return fmt.Sprintf("%s %c '%s':%v:%s",
+		tile.pos.String(), placedInMove, tile.letter.String(corpus), tile.letter, tile.kind.String())
+
+}
+
+func (tiles MoveTiles) String(corpus *Corpus) string {
+	var sb strings.Builder
+	sb.WriteRune('[')
+	for i, tile := range tiles {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(tile.String(corpus))
+	}
+	sb.WriteRune(']')
+	return sb.String()
+}
+
+func (moveTiles MoveTiles) Tiles() Tiles {
+	tiles := make(Tiles, len(moveTiles))
+	for i, t := range moveTiles {
+		tiles[i] = t.Tile
+	}
+	return tiles
 }

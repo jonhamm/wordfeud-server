@@ -267,3 +267,12 @@ func (letter Letter) String(corpus *Corpus) string {
 	}
 	return string(corpus.letterRune[letter])
 }
+
+func (corpus *Corpus) WordToString(word Word) string {
+	var sb strings.Builder
+	sb.WriteString("'")
+	sb.WriteString(word.String(corpus))
+	sb.WriteString("'")
+
+	return sb.String()
+}

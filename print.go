@@ -282,7 +282,7 @@ func fprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 	p := game.fmt
 	corpus := game.corpus
 	tiles := state.tileBoard
-	word := pm.gameState.TilesToString(pm.tiles)
+	word := pm.gameState.TilesToString(pm.tiles.Tiles())
 	p.Fprintf(f, "%sPartialMove: %d  %s..%s \"%s\"\n", indent, pm.id, pm.startPos, pm.endPos, word)
 	if game.IsValidPos(pm.startPos) {
 		p.Fprintf(f, "%s   startPos:  %s   %s\n", indent, pm.startPos.String(), tiles[pm.startPos.row][pm.startPos.column].String(corpus))
@@ -300,7 +300,7 @@ func fprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 	p.Fprintf(f, "%s   word:      \"%s\"\n", indent, word)
 	if pm.score != nil {
 		p.Fprintf(f, "%s   score:     \n", indent)
-		fprintTilesScore(f, pm.score, corpus, indent+"            ")
+		fprintMoveScore(f, pm.score, corpus, indent+"            ")
 	}
 	p.Fprintf(f, "%s   state:     \n", indent)
 	pm.gameState.game.dawg.fprintState(f, pm.state, indent+"            ")
@@ -354,7 +354,7 @@ func fprintMove(f io.Writer, move *Move, args ...string) {
 	p := state.game.fmt
 	corpus := state.game.corpus
 	tiles := state.tileBoard
-	word := move.state.TilesToString(move.tiles)
+	word := move.state.TilesToString(move.tiles.Tiles())
 	startPos := move.position
 	endPos := startPos
 	if game.IsValidPos(startPos) {
@@ -373,25 +373,60 @@ func fprintMove(f io.Writer, move *Move, args ...string) {
 	p.Fprintf(f, "%s   player:    %s\n", indent, move.playerState.String(corpus))
 	if move.score != nil {
 		p.Fprintf(f, "%s   score:    %s\n", indent, move.playerState.String(corpus))
-		fprintTilesScore(f, move.score, corpus, indent+"              ")
+		fprintMoveScore(f, move.score, corpus, indent+"              ")
 	}
 	p.Fprintf(f, "%s   state:     \n", indent)
 	fprintState(f, move.state, indent+"             ")
 
 }
 
-func printTilesScore(ts *TilesScore, corpus *Corpus, args ...string) {
-	fprintTilesScore(os.Stdout, ts, corpus, args...)
+func printMoveScore(ms *MoveScore, corpus *Corpus, args ...string) {
+	fprintMoveScore(os.Stdout, ms, corpus, args...)
 }
 
-func fprintTilesScore(f io.Writer, ts *TilesScore, corpus *Corpus, args ...string) {
+func fprintMoveScore(f io.Writer, ms *MoveScore, corpus *Corpus, args ...string) {
+	indent := ""
+	if len(args) > 0 {
+		indent = args[0]
+	}
+	fmt.Fprintf(f, "%sMoveScore: score: %d\n", indent, ms.score)
+	fprintWordScores(f, ms.wordScores, corpus, indent+"   ")
+
+}
+
+func printWordScores(ws WordScores, corpus *Corpus, args ...string) {
+	fprintWordScores(os.Stdout, ws, corpus, args...)
+}
+
+func fprintWordScores(f io.Writer, ws WordScores, corpus *Corpus, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
 	}
 
-	fmt.Fprintf(f, "%sTilesScore: score: %v word multiplier: %v\n", indent, ts.score, ts.multiplier)
-	for _, s := range ts.tileScores {
+	for _, s := range ws {
+		fprintWordScore(f, s, corpus, indent)
+	}
+}
+
+func printWordScore(ws *WordScore, corpus *Corpus, args ...string) {
+	fprintWordScore(os.Stdout, ws, corpus, args...)
+}
+
+func fprintWordScore(f io.Writer, ws *WordScore, corpus *Corpus, args ...string) {
+	indent := ""
+	if len(args) > 0 {
+		indent = args[0]
+	}
+
+	pos := ""
+	if len(ws.tileScores) > 0 {
+		pos = ws.tileScores[0].tile.pos.String()
+	}
+
+	fmt.Fprintf(f, "%sTilesScore: %s %s %s score: %v word multiplier: %v\n", indent,
+		corpus.WordToString(ws.Word()), ws.orientation.String(), pos, ws.score, ws.multiplier)
+	for _, s := range ws.tileScores {
 		fprintTileScore(f, &s, corpus, indent+"  ")
 	}
 }
@@ -404,11 +439,7 @@ func fprintTileScore(f io.Writer, ts *TileScore, corpus *Corpus, args ...string)
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
+		fmt.Fprintf(f, "%sTileScore: %10s letterScore: %v multiplier: %v score: %4d \n",
+			indent, ts.tile.String(corpus), ts.letterScore, ts.multiplier, ts.score)
 	}
-	placedInMove := ""
-	if ts.placedInMove {
-		placedInMove = "placed in move"
-	}
-	fmt.Fprintf(f, "%sTileScore: %10s letterScore: %v multiplier: %v score: %4d   %s\n",
-		indent, ts.tile.String(corpus), ts.letterScore, ts.multiplier, ts.score, placedInMove)
 }
