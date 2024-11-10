@@ -476,7 +476,7 @@ func (tiles Tiles) String(corpus *Corpus) string {
 }
 
 func (state *GameState) IsAnchor(pos Position) bool {
-	return state.AnyAdjacentNonEmptyTile(pos) || (state.game.board.squares[pos.row][pos.column] == CE)
+	return state.IsTileEmpty(pos) && (state.AnyAdjacentNonEmptyTile(pos) || (state.game.board.squares[pos.row][pos.column] == CE))
 }
 
 func (state *GameState) AnyAdjacentNonEmptyTile(pos Position) bool {

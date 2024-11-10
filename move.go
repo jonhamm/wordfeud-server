@@ -195,9 +195,8 @@ func (state *GameState) Move(playerState *PlayerState) *Move {
 
 	move := state.AddMove(filteredPartialMoves[0], playerState)
 	if move == nil {
-
 		// could not move ... pass
-
+		state.AddPass(playerState)
 	}
 	return move
 }
