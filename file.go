@@ -52,7 +52,9 @@ func (format FileFormat) String() string {
 
 }
 
-func WriteGameFile(game *Game) (string, error) {
+func WriteGameFile(game *Game, messages []string) (string, error) {
+	Errorf := fmt.Errorf
+	fmt := game.fmt
 	fileName := GameFileName(game)
 	tmpFileName := fileName + "~"
 	var f *os.File
@@ -63,13 +65,14 @@ func WriteGameFile(game *Game) (string, error) {
 	}
 	defer func() {
 		if f != nil {
+			f.Close()
 			os.Remove(f.Name()) // clean up
 		}
 	}()
 
 	switch game.options.fileFormat {
 	case FILE_FORMAT_NONE:
-		return "", fmt.Errorf("no file format specified for game file")
+		return "", Errorf("no file format specified for game file")
 	case FILE_FORMAT_JSON:
 		err = WriteGameFileJson(f, game)
 	case FILE_FORMAT_TEXT:
@@ -77,6 +80,12 @@ func WriteGameFile(game *Game) (string, error) {
 	}
 	if err != nil {
 		return tmpFileName, err
+	}
+
+	for _, m := range messages {
+		if _, err = fmt.Println(m); err != nil {
+			return tmpFileName, err
+		}
 	}
 
 	if err = f.Close(); err != nil {

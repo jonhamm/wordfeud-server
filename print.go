@@ -348,6 +348,10 @@ func fprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 	pm.gameState.game.dawg.fprintState(f, pm.state, indent+"            ")
 }
 
+func debugDawgState(dawg *Dawg, state DawgState) {
+	dawg.printState(state)
+}
+
 func debugPartialMoves(pms PartialMoves) {
 	if pms != nil {
 		printPartialMoves(pms)

@@ -6,6 +6,7 @@ import (
 	"hash/crc32"
 	"io"
 	"os"
+	"slices"
 )
 
 var DAWG_TRACE = false
@@ -317,7 +318,7 @@ func (dawg *Dawg) Transition(state DawgState, letter Letter) DawgState {
 		return NullState
 	}
 
-	transitionState := DawgState{startNode: state.startNode, vertices: append(state.vertices, v)}
+	transitionState := DawgState{startNode: state.startNode, vertices: slices.Concat(state.vertices, Vertices{v})}
 
 	if DAWG_TRACE {
 		fmt.Printf("Transition '%c' in node#%v  => vertex#%v node#%v final:%v word:\"%s\"\n",

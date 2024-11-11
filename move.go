@@ -182,8 +182,9 @@ func (state *GameState) Move(playerState *PlayerState) *Move {
 	fmt := state.game.fmt
 	options := state.game.options
 	if options.verbose {
-		fmt.Fprintf(options.out, "\n\nMove for player %v : %s\n", playerState.player.id, playerState.player.name)
-		fprintState(options.out, state)
+
+		fmt.Fprintf(options.out, "\n\nMove %d for player %v : %s\n", state.game.nextMoveSeqNo, playerState.player.id, playerState.player.name)
+		fprintState(options.out, state.fromState)
 	}
 	state.PrepareMove()
 
@@ -255,6 +256,7 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 		printPlayer(state.game, playerState)
 		fmt.Printf("\n")
 	}
+	partial.Verify()
 
 	pos := partial.startPos
 	dir := partial.direction

@@ -27,7 +27,9 @@ import (
 type GameOptions struct {
 	help       bool
 	verbose    bool
-	debug      int
+	debug      uint
+	move       uint
+	moveDebug  uint
 	randSeed   uint64
 	count      int
 	name       string
@@ -62,6 +64,7 @@ const usage = `
 		-help 				show this usage info
 		-verbose			increase output from execution
 		-debug=dd			show debug output when dd > 0 (the larger dd is the more output)
+		-move=mm			only set debug as specified by -debug after move mm has completed
 		-rand=nn			seed random number generator with nn 
 							0 or default will seed with timestamp
 		-count=nn	        repeat count for autoplay - default is 1
@@ -83,6 +86,7 @@ const usage = `
 		-h		-help
 		-v		-verbose
 		-d		-debug
+		-m		-move
 		-r 		-rand
 		-c		-count
 		-n		-name
@@ -95,6 +99,7 @@ const httpUsage = `
 		?h=1 				show this usage info
 		?v=1				increase output from execution
 		?d=dd				show debug output when dd > 0 (the larger dd is the more output)
+		?m=dd				only set debug as specified by -debug after move mm has completed
 		?r=nn			    seed random number generator with nn (!= 0)
 							0 or default will seed with timestamp
 		?c=nn	        	repeat count for autoplay - default is 1
@@ -109,10 +114,11 @@ func main() {
 	var ranSeedSpec string
 	options.out = os.Stdout
 	options.language = language.Danish
-	flag.Usage = func() { fmt.Fprint(options.out, usage) }
+	flag.Usage = func() { fmt.Print(usage) }
 	BoolVarFlag(flag.CommandLine, &options.verbose, []string{"verbose", "v"}, false, "show more output")
 	BoolVarFlag(flag.CommandLine, &options.help, []string{"help", "h"}, false, "print usage information")
-	IntVarFlag(flag.CommandLine, &options.debug, []string{"debug", "d"}, 0, "increase above 0 to get debug info - more than verbose")
+	UintVarFlag(flag.CommandLine, &options.debug, []string{"debug", "d"}, 0, "increase above 0 to get debug info - more than verbose")
+	UintVarFlag(flag.CommandLine, &options.move, []string{"move", "m"}, 0, "increase above 0 to get debug info - more than verbose")
 	IntVarFlag(flag.CommandLine, &options.count, []string{"count", "c"}, 0, "increase above 0 to get debug info - more than verbose")
 	StringVarFlag(flag.CommandLine, &ranSeedSpec, []string{"rand", "r"}, "", "seed for random number generator - 0 will seed with timestamp")
 	StringVarFlag(flag.CommandLine, &languageSpec, []string{"language", "l"}, "", "the requested corpus language")
@@ -127,14 +133,14 @@ func main() {
 	}
 	if len(args) == 0 {
 		if !options.help {
-			fmt.Fprintln(options.out, "Please specify a subcommand. (-help for more info)")
+			fmt.Fprintln(os.Stderr, "Please specify a subcommand. (-help for more info)")
 		}
 		return
 	}
 	if len(languageSpec) > 0 {
 		tag, err := language.Default.Parse(languageSpec)
 		if err != nil {
-			fmt.Fprintf(options.out, "unknown language \"%s\"\n", languageSpec)
+			fmt.Fprintf(os.Stderr, "unknown language \"%s\"\n", languageSpec)
 			return
 		}
 		options.language = tag
@@ -145,7 +151,7 @@ func main() {
 		ranSeedSpec = strings.ReplaceAll(ranSeedSpec, ".", "")
 		s, err := strconv.ParseUint(ranSeedSpec, 10, 64)
 		if err != nil {
-			fmt.Fprintf(options.out, "invalid random seed \"%s\" : %s\n", ranSeedSpec, err.Error())
+			fmt.Fprintf(os.Stderr, "invalid random seed \"%s\" : %s\n", ranSeedSpec, err.Error())
 			return
 		}
 		options.randSeed = s
@@ -183,7 +189,7 @@ func main() {
 	options.args = args
 	if options.debug > 0 {
 		options.verbose = true
-		fprintOptions(options.out, &options)
+		printOptions(&options)
 	}
 	if options.debug > 2 {
 		DAWG_TRACE = true
@@ -196,16 +202,16 @@ func main() {
 		//serveCmd(&options, args)
 	case "corpus":
 		result := corpusCmd(&options, args)
-		fmt.Fprint(options.out, strings.Join(result.Log, "\n"))
+		fmt.Print(strings.Join(result.Log, "\n"))
 	case "dawg":
 		result := dawgCmd(&options, args)
-		fmt.Fprint(options.out, strings.Join(result.Log, "\n"))
+		fmt.Print(strings.Join(result.Log, "\n"))
 	case "game":
 		result := gameCmd(&options, args)
-		fmt.Fprint(options.out, strings.Join(result.Log, "\n"))
+		fmt.Print(strings.Join(result.Log, "\n"))
 	case "autoplay":
 		result := autoplayCmd(&options, args)
-		fmt.Fprint(options.out, strings.Join(result.Log, "\n"))
+		fmt.Print(strings.Join(result.Log, "\n"))
 	case "keepdebugfunction":
 		debugState(nil)
 		debugPlayers(nil, PlayerStates{})
@@ -213,10 +219,11 @@ func main() {
 		debugPartialMove(nil)
 		debugPartialMoves(nil)
 		debugMove(nil)
+		debugDawgState(nil, DawgState{})
 	case "nil":
 
 	default:
-		fmt.Fprintf(options.out, "unknown subcommand '%q'.  (-help for more info)\n", cmd)
+		fmt.Fprintf(os.Stderr, "unknown subcommand '%q'.  (-help for more info)\n", cmd)
 	}
 }
 
@@ -232,6 +239,14 @@ func registerGlobalFlags(fset *flag.FlagSet) {
 func IntVarFlag(f *flag.FlagSet, p *int, names []string, value int, usage string) {
 	for _, name := range names {
 		f.IntVar(p, name, value, usage)
+	}
+}
+
+// UintVarFlag defines an uint flag with specified names, default value, and usage string.
+// The argument p points to an uint variable in which to store the value of the flag.
+func UintVarFlag(f *flag.FlagSet, p *uint, names []string, value uint, usage string) {
+	for _, name := range names {
+		f.UintVar(p, name, value, usage)
 	}
 }
 
@@ -251,8 +266,8 @@ func StringVarFlag(f *flag.FlagSet, p *string, names []string, value string, usa
 	}
 }
 
-// IntVarFlag defines an int flag with specified names, default value, and usage string.
-// The argument p points to an int variable in which to store the value of the flag.
+// Uint64VarFlag defines an uint64 flag with specified names, default value, and usage string.
+// The argument p points to an uint64 variable in which to store the value of the flag.
 func Uint64VarFlag(f *flag.FlagSet, p *uint64, names []string, value uint64, usage string) {
 	for _, name := range names {
 		f.Uint64Var(p, name, value, usage)
