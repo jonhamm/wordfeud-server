@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -105,6 +106,7 @@ func main() {
 	var options GameOptions
 	var languageSpec string
 	var fileFormatSpec string
+	var ranSeedSpec string
 	options.out = os.Stdout
 	options.language = language.Danish
 	flag.Usage = func() { fmt.Fprint(options.out, usage) }
@@ -112,7 +114,7 @@ func main() {
 	BoolVarFlag(flag.CommandLine, &options.help, []string{"help", "h"}, false, "print usage information")
 	IntVarFlag(flag.CommandLine, &options.debug, []string{"debug", "d"}, 0, "increase above 0 to get debug info - more than verbose")
 	IntVarFlag(flag.CommandLine, &options.count, []string{"count", "c"}, 0, "increase above 0 to get debug info - more than verbose")
-	Uint64VarFlag(flag.CommandLine, &options.randSeed, []string{"rand", "r"}, 0, "seed for random number generator - 0 will seed with timestamp")
+	StringVarFlag(flag.CommandLine, &ranSeedSpec, []string{"rand", "r"}, "", "seed for random number generator - 0 will seed with timestamp")
 	StringVarFlag(flag.CommandLine, &languageSpec, []string{"language", "l"}, "", "the requested corpus language")
 	StringVarFlag(flag.CommandLine, &options.name, []string{"name", "n"}, "", "name of game files ")
 	StringVarFlag(flag.CommandLine, &options.file, []string{"out", "o"}, "", "the name of the file or directory to hold game result")
@@ -136,6 +138,17 @@ func main() {
 			return
 		}
 		options.language = tag
+	}
+
+	if len(ranSeedSpec) > 0 {
+		ranSeedSpec = strings.ReplaceAll(ranSeedSpec, ",", "")
+		ranSeedSpec = strings.ReplaceAll(ranSeedSpec, ".", "")
+		s, err := strconv.ParseUint(ranSeedSpec, 10, 64)
+		if err != nil {
+			fmt.Fprintf(options.out, "invalid random seed \"%s\" : %s\n", ranSeedSpec, err.Error())
+			return
+		}
+		options.randSeed = s
 	}
 	if options.randSeed == 0 {
 		options.randSeed = uint64(time.Now().UnixNano())
@@ -200,6 +213,7 @@ func main() {
 		debugPartialMove(nil)
 		debugPartialMoves(nil)
 		debugMove(nil)
+	case "nil":
 
 	default:
 		fmt.Fprintf(options.out, "unknown subcommand '%q'.  (-help for more info)\n", cmd)

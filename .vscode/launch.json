@@ -53,6 +53,20 @@
             "program": "."
         },
         {
+            "name": "debug ranSeed",
+            "args": [
+                "-debug=1",
+                "-rand=11.264.476.570.801.999.552",
+                "-out=./tmp",
+                "-format=text",
+                "nil",
+            ],
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "."
+        },
+        {
             "name": "Test One Test",
             "type": "go",
             "request": "launch",
