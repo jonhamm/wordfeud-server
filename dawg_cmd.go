@@ -19,11 +19,6 @@ func dawgCmd(options *GameOptions, args []string) *DawgResult {
 	registerGlobalFlags(flag)
 
 	flag.Parse(args)
-	out := options.out
-	if options.debug > 0 {
-		options.verbose = true
-		fmt.Fprintf(out, "options: %+v\n", options)
-	}
 	var corpus *Corpus
 	var dawg *Dawg
 	var err error

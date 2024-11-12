@@ -140,7 +140,7 @@ func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
 	corpus.maxWordLength = 0
 
 	for s.Scan() {
-		line := s.Text()
+		line := strings.ToUpper(s.Text())
 		if !r.MatchString(line) {
 			continue
 		}

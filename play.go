@@ -73,14 +73,47 @@ func (game *Game) Play() bool {
 		}
 		for _, ps := range game.state.playerStates {
 			if ps.playerNo != NoPlayer && ps.NumberOfRackTiles() == 0 {
-				messages = append(messages, fmt.Sprintf("Player %d %s has no more tiles in rack - game completed", ps.player.id, ps.player.name))
+				messages = append(messages, fmt.Sprintf("Game completed after %d moves as %s has no more tiles in rack", state.move.seqno, ps.player.name))
 				result = false
 				break
 			}
 		}
 		if result && state.consequtivePasses >= MaxConsequtivePasses {
-			messages = append(messages, fmt.Sprintf("There has been %d conequtive passes - game completed\n", state.consequtivePasses))
+			messages = append(messages, fmt.Sprintf("Game completed after %d moves as there has been %d conequtive passes\n", state.move.seqno, state.consequtivePasses))
 			result = false
+		}
+
+		if !result {
+			bestScore := Score(0)
+			allPlayers := make(PlayerStates, 0, len(game.state.playerStates))
+
+			for _, ps := range game.state.playerStates {
+				if ps.playerNo != NoPlayer {
+					allPlayers = append(allPlayers, ps)
+					if ps.score > bestScore {
+						bestScore = ps.score
+					}
+				}
+			}
+			slices.SortFunc(allPlayers,
+				func(psl *PlayerState, psr *PlayerState) int {
+					return int(psr.score) - int(psl.score)
+				})
+			bestScorePlayerNames := make([]string, 0, len(allPlayers))
+			for _, ps := range allPlayers {
+				if ps.score < bestScore {
+					break
+				}
+				bestScorePlayerNames = append(bestScorePlayerNames, ps.player.name)
+			}
+			if len(bestScorePlayerNames) > 1 {
+				messages = append(messages, fmt.Sprintf("Game is a draw between %d players: %s", len(bestScorePlayerNames), strings.Join(bestScorePlayerNames, ", ")))
+			} else {
+				messages = append(messages, fmt.Sprintf("Game is won by %s", bestScorePlayerNames[0]))
+			}
+			for _, ps := range allPlayers {
+				messages = append(messages, fmt.Sprintf("%s scored %d with remaining rack %s", ps.player.name, ps.score, ps.rack.Pretty(game.corpus)))
+			}
 		}
 
 		if options.writeFile {
@@ -91,6 +124,10 @@ func (game *Game) Play() bool {
 			}
 			if options.verbose {
 				fmt.Printf("wrote game file after move %d \"%s\"\n", game.nextMoveSeqNo-1, gameFileName)
+			} else {
+				if !result {
+					messages = append(messages, fmt.Sprintf("Game file is %s\"\n", gameFileName))
+				}
 			}
 		}
 

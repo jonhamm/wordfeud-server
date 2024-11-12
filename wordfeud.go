@@ -189,13 +189,16 @@ func main() {
 	options.args = args
 	if options.debug > 0 {
 		options.verbose = true
-		PrintOptions(&options)
 	}
 	if options.debug > 2 {
 		DAWG_TRACE = true
 	}
 
 	options.rand = rand.New(rand.NewSource(int64(options.randSeed)))
+
+	if options.verbose {
+		PrintOptions(&options)
+	}
 
 	switch cmd {
 	case "serve":

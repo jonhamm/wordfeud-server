@@ -14,11 +14,6 @@ func corpusCmd(options *GameOptions, args []string) *CorpusResult {
 	registerGlobalFlags(flag)
 
 	flag.Parse(args)
-	out := options.out
-	if options.debug > 0 {
-		options.verbose = true
-		fmt.Fprintf(out, "options: %+v\n", options)
-	}
 
 	corpus, err := GetLanguageCorpus(options.language)
 	if err != nil {

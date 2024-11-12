@@ -42,9 +42,9 @@
             "name": "debug autoplay with debug",
             "args": [
                 "-debug=1",
-                "-rand=11.264.476.570.801.999.552",
+                "-rand=123456789",
                 "-out=./tmp",
-                "-format=text",
+                "-format=debug",
                 "autoplay",
             ],
             "type": "go",
@@ -56,9 +56,9 @@
             "name": "debug autoplay without debug",
             "args": [
                 "-debug=0",
-                "-rand=11.264.476.570.801.999.552",
+                "-rand=123456789",
                 "-out=./tmp",
-                "-format=text",
+                "-format=debug",
                 "autoplay",
             ],
             "type": "go",

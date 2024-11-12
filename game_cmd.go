@@ -12,11 +12,6 @@ func gameCmd(options *GameOptions, args []string) *GameResult {
 	registerGlobalFlags(flag)
 
 	flag.Parse(args)
-	out := options.out
-	if options.debug > 0 {
-		options.verbose = true
-		fmt.Fprintf(out, "options: %+v\n", options)
-	}
 
 	game, err := NewGame(options, 1, Players{BotPlayer(1), BotPlayer(2)})
 	if err != nil {

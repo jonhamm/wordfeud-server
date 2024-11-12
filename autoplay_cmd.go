@@ -12,11 +12,6 @@ func autoplayCmd(options *GameOptions, args []string) *GameResult {
 	registerGlobalFlags(flag)
 
 	flag.Parse(args)
-	out := options.out
-	if options.debug > 0 {
-		options.verbose = true
-		fmt.Fprintf(out, "options: %+v\n", options)
-	}
 	for seqno := 1; seqno <= options.count; seqno++ {
 		game, err := NewGame(options, seqno, Players{BotPlayer(1), BotPlayer(2)})
 		if err != nil {
