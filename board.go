@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"golang.org/x/text/language"
 )
 
 type Square byte
@@ -146,7 +148,7 @@ func (rack Rack) String(corpus *Corpus) string {
 	return sb.String()
 }
 
-func (rack Rack) Pretty(corpus *Corpus) string {
+func (rack Rack) Pretty(lang language.Tag, corpus *Corpus) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("(%d) [", len(rack)))
 	for i, t := range rack {

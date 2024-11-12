@@ -30,6 +30,8 @@ type PartialMoves []*PartialMove
 
 func (game *Game) Play() bool {
 	options := game.options
+	lang := game.options.language
+
 	curState := game.state
 	playerNo := curState.NextPlayer()
 	curPlayerStates := curState.playerStates
@@ -73,47 +75,18 @@ func (game *Game) Play() bool {
 		}
 		for _, ps := range game.state.playerStates {
 			if ps.playerNo != NoPlayer && ps.NumberOfRackTiles() == 0 {
-				messages = append(messages, fmt.Sprintf("Game completed after %d moves as %s has no more tiles in rack", state.move.seqno, ps.player.name))
+				messages = append(messages, fmt.Sprintf(Localized(lang, "Game completed after %d moves as %s has no more tiles in rack"), state.move.seqno, ps.player.name))
 				result = false
 				break
 			}
 		}
 		if result && state.consequtivePasses >= MaxConsequtivePasses {
-			messages = append(messages, fmt.Sprintf("Game completed after %d moves as there has been %d conequtive passes\n", state.move.seqno, state.consequtivePasses))
+			messages = append(messages, fmt.Sprintf(Localized(lang, "Game completed after %d moves as there has been %d conequtive passes"), state.move.seqno, state.consequtivePasses))
 			result = false
 		}
 
 		if !result {
-			bestScore := Score(0)
-			allPlayers := make(PlayerStates, 0, len(game.state.playerStates))
-
-			for _, ps := range game.state.playerStates {
-				if ps.playerNo != NoPlayer {
-					allPlayers = append(allPlayers, ps)
-					if ps.score > bestScore {
-						bestScore = ps.score
-					}
-				}
-			}
-			slices.SortFunc(allPlayers,
-				func(psl *PlayerState, psr *PlayerState) int {
-					return int(psr.score) - int(psl.score)
-				})
-			bestScorePlayerNames := make([]string, 0, len(allPlayers))
-			for _, ps := range allPlayers {
-				if ps.score < bestScore {
-					break
-				}
-				bestScorePlayerNames = append(bestScorePlayerNames, ps.player.name)
-			}
-			if len(bestScorePlayerNames) > 1 {
-				messages = append(messages, fmt.Sprintf("Game is a draw between %d players: %s", len(bestScorePlayerNames), strings.Join(bestScorePlayerNames, ", ")))
-			} else {
-				messages = append(messages, fmt.Sprintf("Game is won by %s", bestScorePlayerNames[0]))
-			}
-			for _, ps := range allPlayers {
-				messages = append(messages, fmt.Sprintf("%s scored %d with remaining rack %s", ps.player.name, ps.score, ps.rack.Pretty(game.corpus)))
-			}
+			messages = slices.Concat(messages, game.ResultMessages())
 		}
 
 		if options.writeFile {
@@ -123,10 +96,12 @@ func (game *Game) Play() bool {
 				return false
 			}
 			if options.verbose {
-				fmt.Printf("wrote game file after move %d \"%s\"\n", game.nextMoveSeqNo-1, gameFileName)
+				messages = append(messages,
+					fmt.Sprintf(Localized(lang, "Wrote game file after move %d \"%s\""),
+						game.nextMoveSeqNo-1, gameFileName))
 			} else {
 				if !result {
-					messages = append(messages, fmt.Sprintf("Game file is %s\"\n", gameFileName))
+					messages = append(messages, fmt.Sprintf(Localized(lang, "Game file is %s"), gameFileName))
 				}
 			}
 		}
@@ -141,6 +116,45 @@ func (game *Game) Play() bool {
 		}
 	}
 	return result
+}
+
+func (game *Game) ResultMessages() []string {
+	lang := game.options.language
+	messages := make([]string, 0)
+	bestScore := Score(0)
+	allPlayers := make(PlayerStates, 0, len(game.state.playerStates))
+
+	for _, ps := range game.state.playerStates {
+		if ps.playerNo != NoPlayer {
+			allPlayers = append(allPlayers, ps)
+			if ps.score > bestScore {
+				bestScore = ps.score
+			}
+		}
+	}
+	slices.SortFunc(allPlayers,
+		func(psl *PlayerState, psr *PlayerState) int {
+			return int(psr.score) - int(psl.score)
+		})
+	bestScorePlayerNames := make([]string, 0, len(allPlayers))
+	for _, ps := range allPlayers {
+		if ps.score < bestScore {
+			break
+		}
+		bestScorePlayerNames = append(bestScorePlayerNames, ps.player.name)
+	}
+	if len(bestScorePlayerNames) > 1 {
+		messages = append(messages, fmt.Sprintf(Localized(lang, "Game is a draw between %d players: %s"),
+			len(bestScorePlayerNames), strings.Join(bestScorePlayerNames, ", ")))
+	} else {
+		messages = append(messages, fmt.Sprintf(Localized(lang, "Game is won by %s"),
+			bestScorePlayerNames[0]))
+	}
+	for _, ps := range allPlayers {
+		messages = append(messages, fmt.Sprintf(Localized(lang, "%s scored %d with remaining rack %s"),
+			ps.player.name, ps.score, ps.rack.Pretty(lang, game.corpus)))
+	}
+	return messages
 }
 
 func (state *GameState) NextPlayer() PlayerNo {
