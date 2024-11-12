@@ -189,7 +189,7 @@ func main() {
 	options.args = args
 	if options.debug > 0 {
 		options.verbose = true
-		printOptions(&options)
+		PrintOptions(&options)
 	}
 	if options.debug > 2 {
 		DAWG_TRACE = true

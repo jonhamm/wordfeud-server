@@ -11,16 +11,17 @@ import (
 type FileFormat byte
 
 const (
-	FILE_FORMAT_NONE = FileFormat(0)
-	FILE_FORMAT_TEXT = FileFormat(1)
-	FILE_FORMAT_JSON = FileFormat(2)
+	FILE_FORMAT_NONE  = FileFormat(0)
+	FILE_FORMAT_TEXT  = FileFormat(1)
+	FILE_FORMAT_JSON  = FileFormat(2)
+	FILE_FORMAT_DEBUG = FileFormat(3)
 )
 
 func (format FileFormat) Extension() string {
 	switch format {
 	case FILE_FORMAT_NONE:
 		return ""
-	case FILE_FORMAT_TEXT:
+	case FILE_FORMAT_TEXT, FILE_FORMAT_DEBUG:
 		return ".txt"
 	case FILE_FORMAT_JSON:
 		return ".json"
@@ -34,6 +35,8 @@ func ParseFileFormat(formatSpec string) FileFormat {
 		return FILE_FORMAT_TEXT
 	case "json", "jsn":
 		return FILE_FORMAT_JSON
+	case "dbg", "debug":
+		return FILE_FORMAT_DEBUG
 	}
 	return FILE_FORMAT_NONE
 }
@@ -47,6 +50,8 @@ func (format FileFormat) String() string {
 		return "text"
 	case FILE_FORMAT_JSON:
 		return "json"
+	case FILE_FORMAT_DEBUG:
+		return "debug"
 	}
 	panic(fmt.Sprintf("illegal FileFormat %d (FileFormat.String)", format))
 
@@ -77,13 +82,15 @@ func WriteGameFile(game *Game, messages []string) (string, error) {
 		err = WriteGameFileJson(f, game)
 	case FILE_FORMAT_TEXT:
 		err = WriteGameFileText(f, game)
+	case FILE_FORMAT_DEBUG:
+		err = WriteGameFileDebug(f, game)
 	}
 	if err != nil {
 		return tmpFileName, err
 	}
 
 	for _, m := range messages {
-		if _, err = fmt.Println(m); err != nil {
+		if _, err = fmt.Fprintln(f, m); err != nil {
 			return tmpFileName, err
 		}
 	}
@@ -114,7 +121,6 @@ func GameFileName(game *Game) string {
 func WriteGameFileJson(f io.Writer, game *Game) error {
 	panic("unimplemented")
 }
-
 func WriteGameFileText(f io.Writer, game *Game) error {
 	fmt := game.fmt
 	var err error
@@ -124,18 +130,45 @@ func WriteGameFileText(f io.Writer, game *Game) error {
 	if _, err = fmt.Fprintf(f, "Random seed: %d\nMoves: %d\n", game.randSeed, game.nextMoveSeqNo-1); err != nil {
 		return err
 	}
-	fprintPlayers(f, game, game.state.playerStates)
+	FprintPlayers(f, game, game.state.playerStates)
 	fmt.Fprintf(f, "free tiles: (%d) %s\n", len(game.state.freeTiles), game.state.freeTiles.String(game.corpus))
 
-	fprintBoard(f, game.board)
+	FprintBoard(f, game.board)
 
 	states := game.CollectStates()
 	for _, state := range states {
 		fmt.Fprint(f, "\f\n")
 		if state.move != nil {
-			fprintMove(f, state.move)
+			FprintMove(f, state.move)
 		} else {
-			fprintState(f, state)
+			FprintState(f, state)
+		}
+	}
+
+	return nil
+}
+
+func WriteGameFileDebug(f io.Writer, game *Game) error {
+	fmt := game.fmt
+	var err error
+	if _, err = fmt.Fprintf(f, "Scrabble game %s-%d\n\n", game.options.name, game.seqno); err != nil {
+		return err
+	}
+	if _, err = fmt.Fprintf(f, "Random seed: %d\nMoves: %d\n", game.randSeed, game.nextMoveSeqNo-1); err != nil {
+		return err
+	}
+	FprintPlayers(f, game, game.state.playerStates)
+	fmt.Fprintf(f, "free tiles: (%d) %s\n", len(game.state.freeTiles), game.state.freeTiles.String(game.corpus))
+
+	FprintBoard(f, game.board)
+
+	states := game.CollectStates()
+	for _, state := range states {
+		fmt.Fprint(f, "\f\n")
+		if state.move != nil {
+			FprintMove(f, state.move)
+		} else {
+			FprintState(f, state)
 		}
 	}
 

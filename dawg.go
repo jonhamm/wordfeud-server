@@ -292,7 +292,7 @@ func (dawg *Dawg) Register(node *Node) {
 func (dawg *Dawg) Transition(state DawgState, letter Letter) DawgState {
 	if DAWG_TRACE {
 		fmt.Printf("Transition '%c' on state: \n", dawg.corpus.letterRune[letter])
-		dawg.printState(state)
+		dawg.PrintState(state)
 	}
 
 	if state.startNode == nil {
@@ -323,7 +323,7 @@ func (dawg *Dawg) Transition(state DawgState, letter Letter) DawgState {
 	if DAWG_TRACE {
 		fmt.Printf("Transition '%c' in node#%v  => vertex#%v node#%v final:%v word:\"%s\"\n",
 			dawg.corpus.letterRune[letter], node.id, v.id, v.destination.id, v.final, transitionState.Word().String(dawg.corpus))
-		dawg.printState(transitionState)
+		dawg.PrintState(transitionState)
 	}
 
 	return transitionState
@@ -353,7 +353,7 @@ func (dawg *Dawg) FindPrefix(word Word) DawgState {
 	state := dawg.initialState
 	if DAWG_TRACE {
 		fmt.Printf("FindPrefix \"%s\" : \n", word.String(dawg.corpus))
-		dawg.printState(state)
+		dawg.PrintState(state)
 	}
 
 	for _, l := range word {
@@ -365,7 +365,7 @@ func (dawg *Dawg) FindPrefix(word Word) DawgState {
 	}
 	if DAWG_TRACE {
 		fmt.Printf("FindPrefix \"%s\" => \n", word.String(dawg.corpus))
-		dawg.printState(state)
+		dawg.PrintState(state)
 	}
 	return state
 }
@@ -487,11 +487,11 @@ func (dawg *Dawg) fprintfNode(f io.Writer, node *Node) {
 	}
 }
 
-func (dawg *Dawg) printState(state DawgState, args ...string) {
-	dawg.fprintState(os.Stdout, state, args...)
+func (dawg *Dawg) PrintState(state DawgState, args ...string) {
+	dawg.FprintState(os.Stdout, state, args...)
 }
 
-func (dawg *Dawg) fprintState(f io.Writer, state DawgState, args ...string) {
+func (dawg *Dawg) FprintState(f io.Writer, state DawgState, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]

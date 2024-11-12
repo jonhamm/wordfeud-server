@@ -1,9 +1,5 @@
 package main
 
-import (
-	"fmt"
-)
-
 type PlayerNo uint8
 type PlayerId uint
 
@@ -18,6 +14,19 @@ const MaxBotPlayers PlayerNo = PlayerNo(10)
 const NoPlayer = PlayerNo(0)
 const SystemPlayerId = PlayerId(0)
 
+var BotPlayerNames = [MaxBotPlayers]string{
+	":Alice:",
+	":Bob:",
+	":John:",
+	":Emma:",
+	":Fred:",
+	":Lisa:",
+	":Paul:",
+	":Vera:",
+	":Bill:",
+	":Karen:",
+}
+
 var nextPlayerId = 1000
 
 var SystemPlayer = &Player{id: SystemPlayerId, name: "__SYSTEM__"}
@@ -29,7 +38,7 @@ func BotPlayer(no PlayerNo) *Player {
 		return nil
 	}
 	if botPlayers[no] == nil {
-		name := fmt.Sprintf("__BOT:%v__", no)
+		name := BotPlayerNames[no-1]
 		botPlayers[no] = &Player{id: PlayerId(no + 100), name: name}
 	}
 	return botPlayers[no]

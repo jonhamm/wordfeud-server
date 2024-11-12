@@ -7,11 +7,11 @@ import (
 	"unicode"
 )
 
-func printOptions(options *GameOptions, args ...string) {
-	fprintOptions(os.Stdout, options, args...)
+func PrintOptions(options *GameOptions, args ...string) {
+	FprintOptions(os.Stdout, options, args...)
 }
 
-func fprintOptions(f io.Writer, options *GameOptions, args ...string) {
+func FprintOptions(f io.Writer, options *GameOptions, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
@@ -31,11 +31,11 @@ func fprintOptions(f io.Writer, options *GameOptions, args ...string) {
 	fmt.Fprintf(f, "%s   fileFormat:  %s\n", indent, options.fileFormat.String())
 }
 
-func printBoard(board *Board, args ...string) {
-	fprintBoard(os.Stdout, board, args...)
+func PrintBoard(board *Board, args ...string) {
+	FprintBoard(os.Stdout, board, args...)
 }
 
-func fprintBoard(f io.Writer, board *Board, args ...string) {
+func FprintBoard(f io.Writer, board *Board, args ...string) {
 	/*
 		     0  1  2  3  4  5  6  7  8  9 10 11 12 13 14
 		   +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
@@ -121,15 +121,15 @@ func fprintBoard(f io.Writer, board *Board, args ...string) {
 
 func debugState(state *GameState) {
 	if state != nil {
-		printState(state)
+		PrintState(state)
 	}
 }
 
-func printState(state *GameState, args ...string) {
-	fprintState(os.Stdout, state, args...)
+func PrintState(state *GameState, args ...string) {
+	FprintState(os.Stdout, state, args...)
 }
 
-func fprintState(f io.Writer, state *GameState, args ...string) {
+func FprintState(f io.Writer, state *GameState, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
@@ -251,7 +251,7 @@ func fprintState(f io.Writer, state *GameState, args ...string) {
 		p.Fprintf(f, "+-----")
 	}
 	p.Fprintf(f, "+\n")
-	fprintPlayers(f, state.game, state.playerStates, indent)
+	FprintPlayers(f, state.game, state.playerStates, indent)
 	p.Fprintf(f, "current player : [%d]\n", state.playerNo)
 	numberOfFreeTiles := len(state.freeTiles)
 	numberOfRackTiles := state.NumberOfRackTiles()
@@ -264,15 +264,15 @@ func fprintState(f io.Writer, state *GameState, args ...string) {
 
 func debugPlayers(game *Game, players PlayerStates) {
 	if game != nil {
-		printPlayers(game, players)
+		PrintPlayers(game, players)
 	}
 }
 
-func printPlayers(game *Game, players PlayerStates, args ...string) {
-	fprintPlayers(os.Stdout, game, players, args...)
+func PrintPlayers(game *Game, players PlayerStates, args ...string) {
+	FprintPlayers(os.Stdout, game, players, args...)
 }
 
-func fprintPlayers(f io.Writer, game *Game, players PlayerStates, args ...string) {
+func FprintPlayers(f io.Writer, game *Game, players PlayerStates, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
@@ -286,17 +286,17 @@ func fprintPlayers(f io.Writer, game *Game, players PlayerStates, args ...string
 
 }
 
-func printPlayer(game *Game, player *PlayerState, args ...string) {
-	fprintPlayer(os.Stdout, game, player, args...)
+func PrintPlayer(game *Game, player *PlayerState, args ...string) {
+	FprintPlayer(os.Stdout, game, player, args...)
 }
 
 func debugPlayer(game *Game, player *PlayerState) {
 	if game != nil && player != nil {
-		printPlayer(game, player)
+		PrintPlayer(game, player)
 	}
 }
 
-func fprintPlayer(f io.Writer, game *Game, player *PlayerState, args ...string) {
+func FprintPlayer(f io.Writer, game *Game, player *PlayerState, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
@@ -307,14 +307,14 @@ func fprintPlayer(f io.Writer, game *Game, player *PlayerState, args ...string) 
 
 func debugPartialMove(pm *PartialMove) {
 	if pm != nil {
-		printPartialMove(pm)
+		PrintPartialMove(pm)
 	}
 }
-func printPartialMove(pm *PartialMove, args ...string) {
-	fprintPartialMove(os.Stdout, pm, args...)
+func PrintPartialMove(pm *PartialMove, args ...string) {
+	FprintPartialMove(os.Stdout, pm, args...)
 }
 
-func fprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
+func FprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
@@ -342,29 +342,29 @@ func fprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 	p.Fprintf(f, "%s   word:      \"%s\"\n", indent, word)
 	if pm.score != nil {
 		p.Fprintf(f, "%s   score:     \n", indent)
-		fprintMoveScore(f, pm.score, corpus, indent+"            ")
+		FprintMoveScore(f, pm.score, corpus, indent+"            ")
 	}
 	p.Fprintf(f, "%s   state:     \n", indent)
-	pm.gameState.game.dawg.fprintState(f, pm.state, indent+"            ")
+	pm.gameState.game.dawg.FprintState(f, pm.state, indent+"            ")
 }
 
 func debugDawgState(dawg *Dawg, state DawgState) {
-	dawg.printState(state)
+	dawg.PrintState(state)
 }
 
 func debugPartialMoves(pms PartialMoves) {
 	if pms != nil {
-		printPartialMoves(pms)
+		PrintPartialMoves(pms)
 	}
 
 }
 
-func printPartialMoves(pms PartialMoves, args ...string) {
-	fprintPartialMoves(os.Stdout, pms, args...)
+func PrintPartialMoves(pms PartialMoves, args ...string) {
+	FprintPartialMoves(os.Stdout, pms, args...)
 
 }
 
-func fprintPartialMoves(f io.Writer, pms PartialMoves, args ...string) {
+func FprintPartialMoves(f io.Writer, pms PartialMoves, args ...string) {
 	if len(pms) == 0 {
 		return
 	}
@@ -376,21 +376,21 @@ func fprintPartialMoves(f io.Writer, pms PartialMoves, args ...string) {
 	p.Fprintf(f, "%sPartialMoves: \n", indent)
 	indent += "    "
 	for _, pm := range pms {
-		fprintPartialMove(f, pm, indent)
+		FprintPartialMove(f, pm, indent)
 	}
 }
 
 func debugMove(pm *Move) {
 	if pm != nil {
-		printMove(pm)
+		PrintMove(pm)
 	}
 }
 
-func printMove(pm *Move, args ...string) {
-	fprintMove(os.Stdout, pm, args...)
+func PrintMove(pm *Move, args ...string) {
+	FprintMove(os.Stdout, pm, args...)
 }
 
-func fprintMove(f io.Writer, move *Move, args ...string) {
+func FprintMove(f io.Writer, move *Move, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
@@ -419,47 +419,47 @@ func fprintMove(f io.Writer, move *Move, args ...string) {
 	p.Fprintf(f, "%s   player:    %s\n", indent, move.playerState.String(corpus))
 	if move.score != nil {
 		p.Fprintf(f, "%s   score:    %s\n", indent, move.playerState.String(corpus))
-		fprintMoveScore(f, move.score, corpus, indent+"              ")
+		FprintMoveScore(f, move.score, corpus, indent+"              ")
 	}
 	p.Fprintf(f, "%s   state:     \n", indent)
-	fprintState(f, move.state, indent+"             ")
+	FprintState(f, move.state, indent+"             ")
 
 }
 
-func printMoveScore(ms *MoveScore, corpus *Corpus, args ...string) {
-	fprintMoveScore(os.Stdout, ms, corpus, args...)
+func PrintMoveScore(ms *MoveScore, corpus *Corpus, args ...string) {
+	FprintMoveScore(os.Stdout, ms, corpus, args...)
 }
 
-func fprintMoveScore(f io.Writer, ms *MoveScore, corpus *Corpus, args ...string) {
+func FprintMoveScore(f io.Writer, ms *MoveScore, corpus *Corpus, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
 	}
 	fmt.Fprintf(f, "%sMoveScore: score: %d\n", indent, ms.score)
-	fprintWordScores(f, ms.wordScores, corpus, indent+"   ")
+	FprintWordScores(f, ms.wordScores, corpus, indent+"   ")
 
 }
 
-func printWordScores(ws WordScores, corpus *Corpus, args ...string) {
-	fprintWordScores(os.Stdout, ws, corpus, args...)
+func PrintWordScores(ws WordScores, corpus *Corpus, args ...string) {
+	FprintWordScores(os.Stdout, ws, corpus, args...)
 }
 
-func fprintWordScores(f io.Writer, ws WordScores, corpus *Corpus, args ...string) {
+func FprintWordScores(f io.Writer, ws WordScores, corpus *Corpus, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
 	}
 
 	for _, s := range ws {
-		fprintWordScore(f, s, corpus, indent)
+		FprintWordScore(f, s, corpus, indent)
 	}
 }
 
-func printWordScore(ws *WordScore, corpus *Corpus, args ...string) {
-	fprintWordScore(os.Stdout, ws, corpus, args...)
+func PrintWordScore(ws *WordScore, corpus *Corpus, args ...string) {
+	FprintWordScore(os.Stdout, ws, corpus, args...)
 }
 
-func fprintWordScore(f io.Writer, ws *WordScore, corpus *Corpus, args ...string) {
+func FprintWordScore(f io.Writer, ws *WordScore, corpus *Corpus, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
@@ -473,15 +473,15 @@ func fprintWordScore(f io.Writer, ws *WordScore, corpus *Corpus, args ...string)
 	fmt.Fprintf(f, "%sTilesScore: %s %s %s score: %v word multiplier: %v\n", indent,
 		corpus.WordToString(ws.Word()), ws.orientation.String(), pos, ws.score, ws.multiplier)
 	for _, s := range ws.tileScores {
-		fprintTileScore(f, &s, corpus, indent+"  ")
+		FprintTileScore(f, &s, corpus, indent+"  ")
 	}
 }
 
-func printTileScore(ts *TileScore, corpus *Corpus, args ...string) {
-	fprintTileScore(os.Stdout, ts, corpus, args...)
+func PrintTileScore(ts *TileScore, corpus *Corpus, args ...string) {
+	FprintTileScore(os.Stdout, ts, corpus, args...)
 }
 
-func fprintTileScore(f io.Writer, ts *TileScore, corpus *Corpus, args ...string) {
+func FprintTileScore(f io.Writer, ts *TileScore, corpus *Corpus, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]

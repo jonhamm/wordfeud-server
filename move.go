@@ -184,7 +184,7 @@ func (state *GameState) Move(playerState *PlayerState) *Move {
 	if options.verbose {
 
 		fmt.Fprintf(options.out, "\n\nMove %d for player %v : %s\n", state.game.nextMoveSeqNo, playerState.player.id, playerState.player.name)
-		fprintState(options.out, state.fromState)
+		FprintState(options.out, state.fromState)
 	}
 	state.PrepareMove()
 
@@ -226,9 +226,9 @@ func (state *GameState) AddPass(playerState *PlayerState) *Move {
 	state.move = move
 
 	if options.debug > 0 {
-		printState(state)
+		PrintState(state)
 		fmt.Printf("AddPass :\n")
-		printPlayer(state.game, playerState)
+		PrintPlayer(state.game, playerState)
 		fmt.Printf("\n")
 	}
 	return move
@@ -250,10 +250,10 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 	state.move = move
 
 	if options.debug > 0 {
-		printState(state)
+		PrintState(state)
 		fmt.Printf("AddMove %d : %s..%s \"%s\"\n", move.seqno, partial.startPos, partial.endPos, state.TilesToString(partial.tiles.Tiles()))
-		printPartialMove(partial)
-		printPlayer(state.game, playerState)
+		PrintPartialMove(partial)
+		PrintPlayer(state.game, playerState)
 		fmt.Printf("\n")
 	}
 	partial.Verify()
@@ -297,7 +297,7 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 
 	if options.debug > 0 {
 		fmt.Printf("AddMove complete :\n")
-		printMove(move)
+		PrintMove(move)
 		fmt.Printf("\n")
 	}
 	return move
