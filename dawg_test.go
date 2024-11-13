@@ -131,13 +131,24 @@ func verifyMatchesInCorpus(t *testing.T, dawg *Dawg, content *CorpusContent) {
 		t.Errorf("verifyMatchesInCorpus content.corpus != dawg.corpus")
 		return
 	}
-	count := verifyMatchesInCorpusRecurse(t, dawg, content, dawg.initialState)
+	corpus := dawg.corpus
+	allWords := make(map[string]bool)
+	for i, w := range content.words {
+		s := w.String(corpus)
+		if allWords[s] {
+			t.Errorf("corpus content word #%d \"%s\" is present multiple times in content.words", i, s)
+			return
+		}
+		allWords[s] = true
+	}
+	count := verifyMatchesInCorpusRecurse(t, dawg, content, allWords, dawg.initialState)
+
 	if count != content.WordCount() {
 		t.Errorf("dawg generated %v words which is not equal to corpus wordcount of %v", count, content.WordCount())
 	}
 }
 
-func verifyMatchesInCorpusRecurse(t *testing.T, dawg *Dawg, content *CorpusContent, state DawgState) int {
+func verifyMatchesInCorpusRecurse(t *testing.T, dawg *Dawg, content *CorpusContent, allWords map[string]bool, state DawgState) int {
 	count := 0
 	corpus := dawg.corpus
 	node := state.LastNode()
@@ -147,17 +158,24 @@ func verifyMatchesInCorpusRecurse(t *testing.T, dawg *Dawg, content *CorpusConte
 	vertex := state.LastVertex()
 	if vertex != nil {
 		if vertex.final {
-			_, found := content.FindWord(state.Word())
+			w := state.Word()
+			s := w.String(corpus)
+			_, found := content.FindWord(w)
 			if !found {
-				t.Errorf("dawg genrated word \"%s\" not found in corpus", state.Word().String(corpus))
+				t.Errorf("dawg genrated word \"%s\" not found in corpus", s)
 				return count
 			}
+			if !allWords[s] {
+				t.Errorf("word \"%s\"  found in corpus but not in allWords", s)
+				return count
+			}
+			delete(allWords, s)
 			count++
 		}
 	}
 	for _, v := range node.vertices {
 		vs := dawg.Transition(state, v.letter)
-		count += verifyMatchesInCorpusRecurse(t, dawg, content, vs)
+		count += verifyMatchesInCorpusRecurse(t, dawg, content, allWords, vs)
 	}
 	return count
 }

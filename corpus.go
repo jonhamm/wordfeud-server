@@ -137,12 +137,18 @@ func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
 	}
 
 	s := bufio.NewScanner(f)
+	allWords := make(map[string]bool)
 
 	for s.Scan() {
 		line := strings.ToUpper(s.Text())
 		if !r.MatchString(line) {
 			continue
 		}
+		if allWords[line] {
+			continue
+		}
+		allWords[line] = true
+
 		word := corpus.StringToWord(line)
 		if len(word) >= corpus.minWordLength {
 			words = append(words, word)
