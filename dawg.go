@@ -460,7 +460,7 @@ func (dawg *Dawg) AddSuffix(node *Node, suffix Word) {
 		return
 	}
 	if DAWG_TRACE {
-		fmt.Printf("AddSuffix node#%d \"%s\"", node.id, suffix)
+		fmt.Printf("AddSuffix node#%d \"%s\"\n", node.id, suffix)
 	}
 	letter := suffix[0]
 	suffix = suffix[1:]
@@ -542,7 +542,7 @@ func (dawg *Dawg) fprintfRecurse(f io.Writer, printedNodes map[*Node]bool, node 
 }
 
 func (dawg *Dawg) printDot(seqno int, label string) {
-	dotFileName := fmt.Sprintf("%s/%d_%s.gv", dotDir, seqno, label)
+	dotFileName := fmt.Sprintf("%s/%06d_%s.gv", dotDir, seqno, label)
 	dotFile, err := os.OpenFile(dotFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Printf("error writing dot file : %s\n%v", dotFileName, err.Error())
