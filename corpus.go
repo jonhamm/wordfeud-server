@@ -11,11 +11,14 @@ import (
 	"strings"
 
 	lru "github.com/hashicorp/golang-lru"
+	"golang.org/x/text/language"
 )
 
 type Letter byte
 type Word []Letter
 type Words []Word
+
+const NoLetter = Letter(0)
 
 type Alphabet []rune
 
@@ -28,30 +31,34 @@ type CorpusKey struct {
 	fileName string
 }
 
-type CorpusIndex struct {
-	corpus *Corpus
-	index  []int
+type CorpusStat struct {
+	wordCount      int
+	totalWordsSize int
 }
 
 type Corpus struct {
-	key            CorpusKey
-	alphabet       Alphabet
-	allLetters     LetterSet
-	letterRune     []rune
-	letterMax      Letter
-	firstLetter    Letter
-	lastLetter     Letter
-	runeLetter     map[rune]Letter
-	words          Words
-	wordCount      int
-	minWordLength  int
-	maxWordLength  int
-	totalWordsSize int
+	key           CorpusKey
+	language      language.Tag
+	alphabet      Alphabet
+	allLetters    LetterSet
+	letterRune    []rune
+	letterMax     Letter
+	firstLetter   Letter
+	lastLetter    Letter
+	runeLetter    map[rune]Letter
+	minWordLength int
+}
+
+type CorpusContent struct {
+	corpus        *Corpus
+	words         Words
+	maxWordLength int
+	stat          CorpusStat
 }
 
 var corpusCache *lru.Cache
 
-func GetCorpus(fileName string) *Corpus {
+func getCachedCorpus(fileName string) *Corpus {
 	var corpus *Corpus
 	if corpusCache == nil {
 		corpusCache, _ = lru.New(10)
@@ -63,43 +70,26 @@ func GetCorpus(fileName string) *Corpus {
 	return corpus
 }
 
-func SetCorpus(corpus *Corpus) {
+func setCachedCorpus(corpus *Corpus) {
 	if corpusCache == nil {
 		corpusCache, _ = lru.New(10)
 	}
 	corpusCache.Add(corpus.key, corpus)
 }
 
-func GetFileCorpus(fileName string, alphabet Alphabet) (*Corpus, error) {
-	fsys := os.DirFS(".")
-	corpus := GetCorpus(fileName)
-	if corpus != nil {
-		return corpus, nil
-	}
-	f, err := fsys.Open(fileName)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	corpus, err = NewCorpus(f, alphabet)
-	if err != nil {
-		return nil, err
-	}
-	corpus.key.fileName = fileName
-	SetCorpus(corpus)
-	return corpus, nil
-}
-
-func NewCorpus(content io.Reader, alphabet Alphabet) (*Corpus, error) {
-
+func NewCorpus(lang language.Tag) (*Corpus, error) {
 	var err error
 	corpus := new(Corpus)
-	corpus.alphabet = alphabet
-	corpus.letterRune = make([]rune, len(alphabet)+1)
+	corpus.language = lang
+	corpus.alphabet, err = GetLanguageAlphabet(lang)
+	if err != nil {
+		return nil, err
+	}
+	corpus.letterRune = make([]rune, len(corpus.alphabet)+1)
 	corpus.runeLetter = make(map[rune]Letter)
 	corpus.minWordLength = 2 // scrabble rules : words may not be one letter words
 	var n Letter = 0
-	for _, r := range alphabet {
+	for _, r := range corpus.alphabet {
 		n++
 		if n >= Letter(AlphabetMax) {
 			return nil, fmt.Errorf("the alphabet specified has more than %v characters", AlphabetMax)
@@ -113,13 +103,23 @@ func NewCorpus(content io.Reader, alphabet Alphabet) (*Corpus, error) {
 		corpus.lastLetter = n
 		corpus.letterMax = n + 1
 	}
-	corpus.words, err = corpus.scanWords(content)
-	corpus.wordCount = len(corpus.words)
 	return corpus, err
 }
 
-func NewCorpusIndex(corpus *Corpus, index []int) *CorpusIndex {
-	return &CorpusIndex{corpus, index}
+func (corpus *Corpus) NewContent(content io.Reader) (*CorpusContent, error) {
+	var err error
+	corpusContent := new(CorpusContent)
+	corpusContent.corpus = corpus
+	corpusContent.words, err = corpus.scanWords(content)
+	for _, w := range corpusContent.words {
+		wordLength := len(w)
+		if wordLength > corpusContent.maxWordLength {
+			corpusContent.maxWordLength = wordLength
+		}
+		corpusContent.stat.totalWordsSize += wordLength
+	}
+	corpusContent.stat.wordCount = len(corpusContent.words)
+	return corpusContent, err
 }
 
 func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
@@ -133,11 +133,10 @@ func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
 	ptn := sb.String()
 	r, err := regexp.Compile(ptn)
 	if err != nil {
-		return words, err
+		return Words{}, err
 	}
 
 	s := bufio.NewScanner(f)
-	corpus.maxWordLength = 0
 
 	for s.Scan() {
 		line := strings.ToUpper(s.Text())
@@ -147,13 +146,9 @@ func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
 		word := corpus.StringToWord(line)
 		if len(word) >= corpus.minWordLength {
 			words = append(words, word)
-			wordLength := len(word)
-			if wordLength > corpus.maxWordLength {
-				corpus.maxWordLength = wordLength
-			}
-			corpus.totalWordsSize += wordLength
 		}
 	}
+
 	sort.Slice(words, func(i int, j int) bool {
 		return slices.Compare(words[i], words[j]) < 0
 	})
@@ -161,37 +156,59 @@ func (corpus *Corpus) scanWords(f io.Reader) (Words, error) {
 	return words, nil
 }
 
-func (corpus *Corpus) WordList() Words {
-	return corpus.words
+func (corpus *Corpus) GetFileContent(fileName string) (*CorpusContent, error) {
+	fsys := os.DirFS(".")
+	var content *CorpusContent
+	f, err := fsys.Open(fileName)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	content, err = corpus.NewContent(f)
+	if err != nil {
+		return nil, err
+	}
+	return content, nil
 }
 
-func (corpus *Corpus) WordCount() int {
-	return corpus.wordCount
+func (corpus *Corpus) GetLanguageContent() (*CorpusContent, error) {
+	fileName, err := GetLanguageFileName(corpus.language)
+	if err != nil {
+		return nil, fmt.Errorf("unsupported language %s", corpus.language.String())
+	}
+	return corpus.GetFileContent(fileName)
 }
 
-func (corpus *Corpus) MaxWordLength() int {
-	return corpus.maxWordLength
+func (content *CorpusContent) WordList() Words {
+	return content.words
 }
 
-func (corpus *Corpus) GetWord(i int) Word {
-	if i < 0 || i > corpus.wordCount {
+func (content *CorpusContent) Stat() CorpusStat {
+	return content.stat
+}
+
+func (content *CorpusContent) WordCount() int {
+	return content.stat.wordCount
+}
+
+func (content *CorpusContent) MaxWordLength() int {
+	return content.maxWordLength
+}
+
+func (corpus *Corpus) MinWordLength() int {
+	return corpus.minWordLength
+}
+
+func (content *CorpusContent) GetWord(i int) Word {
+	if i < 0 || i >= len(content.words) {
 		return make(Word, 0)
 	}
-	return corpus.words[i]
+	return content.words[i]
 }
 
-func (corpus *Corpus) FindWord(word Word) (wordIndex int, found bool) {
-	i := sort.Search(len(corpus.words), func(i int) bool { return slices.Compare(corpus.words[i], word) >= 0 })
-	return i, i < len(corpus.words) && slices.Compare(corpus.words[i], word) == 0
-}
-
-func (corpusIndex *CorpusIndex) FindIndex(x int) (int, bool) {
-	for i, v := range corpusIndex.index {
-		if v == x {
-			return i, true
-		}
-	}
-	return -1, false
+func (content *CorpusContent) FindWord(word Word) (wordIndex int, found bool) {
+	i := sort.Search(len(content.words), func(i int) bool { return slices.Compare(content.words[i], word) >= 0 })
+	return i, i < len(content.words) && slices.Compare(content.words[i], word) == 0
 }
 
 func (lhs Word) equal(rhs Word) bool {
@@ -223,10 +240,6 @@ func (word Word) String(corpus *Corpus) string {
 		str.WriteRune(corpus.letterRune[c])
 	}
 	return str.String()
-}
-
-func (index *CorpusIndex) Contains(x int) bool {
-	return slices.Contains(index.index, x)
 }
 
 func (letterSet LetterSet) test(letter Letter) bool {

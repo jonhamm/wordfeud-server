@@ -101,13 +101,17 @@ type PlayerState struct {
 
 type PlayerStates []*PlayerState
 
-func InitialGameState(game *Game) *GameState {
+func InitialGameState(game *Game) (*GameState, error) {
 	options := game.options
 	corpus := game.corpus
 	state := &GameState{game: game, fromState: nil, move: nil, tileBoard: make(TileBoard, game.height)}
 	allLetters := game.corpus.allLetters
 
-	for _, tile := range GetLanguageTiles(options.language) {
+	languageTiles, err := GetLanguageTiles(options.language)
+	if err != nil {
+		return nil, err
+	}
+	for _, tile := range languageTiles {
 		game.letterScores[game.corpus.runeLetter[tile.character]] = tile.value
 		state.freeTiles = slices.Grow(state.freeTiles, len(state.freeTiles)+int(tile.count))
 		for i := byte(0); i < tile.count; i++ {
@@ -143,7 +147,7 @@ func InitialGameState(game *Game) *GameState {
 		}
 		state.FillRack(state.playerStates[i])
 	}
-	return state
+	return state, nil
 }
 
 func (state *GameState) TakeTile() Tile {

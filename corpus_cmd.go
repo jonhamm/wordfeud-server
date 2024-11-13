@@ -15,19 +15,25 @@ func corpusCmd(options *GameOptions, args []string) *CorpusResult {
 
 	flag.Parse(args)
 
-	corpus, err := GetLanguageCorpus(options.language)
+	corpus, err := NewCorpus(options.language)
 	if err != nil {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()
 	}
-	result.Words = make([]string, len(corpus.words))
-	for i, w := range corpus.words {
+	content, err := corpus.GetLanguageContent()
+	if err != nil {
+		fmt.Println(result.errors(), err.Error())
+		return result.result()
+	}
+	result.Words = make([]string, len(content.words))
+	for i, w := range content.words {
 		result.Words[i] = string(w)
 	}
-	result.WordCount = corpus.wordCount
+	corpusStat := content.Stat()
+	result.WordCount = corpusStat.wordCount
 	result.MinWordLength = corpus.minWordLength
-	result.MaxWordLength = corpus.maxWordLength
-	result.TotalWordsSize = corpus.totalWordsSize
+	result.MaxWordLength = content.maxWordLength
+	result.TotalWordsSize = corpusStat.totalWordsSize
 
 	p := message.NewPrinter(options.language)
 	p.Fprintf(result.logger(), "Number of words  : %d\n", result.WordCount)

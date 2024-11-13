@@ -91,7 +91,7 @@
             "args": [
                 "--test.v",
                 "--test.run",
-                "Test_DawgBasic"
+                "Test_DawgCompleteDK"
             ],
             "showLog": true
         },

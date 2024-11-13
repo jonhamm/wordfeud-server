@@ -50,11 +50,15 @@ func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coo
 		height = dimensions[1]
 	}
 	var err error
-	corpus, err := GetFileCorpus(GetLanguageFileName(options.language), GetLanguageAlphabet((options.language)))
+	corpus, err := NewCorpus(options.language)
 	if err != nil {
 		return nil, err
 	}
-	dawg, err := NewDawg(corpus)
+	content, err := corpus.GetLanguageContent()
+	if err != nil {
+		return nil, err
+	}
+	dawg, err := NewDawg(content)
 	if err != nil {
 		return nil, err
 	}
@@ -91,9 +95,9 @@ func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coo
 		printer.Printf("****** New Game %s-%d ******  randSeed: %v\n", game.options.name, seqno, game.randSeed)
 	}
 
-	game.state = InitialGameState(&game)
+	game.state, err = InitialGameState(&game)
 
-	return &game, nil
+	return &game, err
 }
 
 func (game *Game) SquareCount() int {

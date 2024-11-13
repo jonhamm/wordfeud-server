@@ -46,34 +46,43 @@ func Test_scanWordsDK(t *testing.T) {
 		"æblets",
 	}
 
-	corpus, err := GetFileCorpus("data_test/corpus_dk_test.txt", GetLanguageAlphabet(language.Danish))
+	corpus, err := NewCorpus(language.Danish)
 	if err != nil {
-		t.Errorf("scanWordsDK() : %v", err)
+		t.Errorf("Test_scanWordsDK - cannot create corpus : %v", err)
 		return
 	}
-	result_letters := make([]Word, 0)
-	for _, s := range result {
-		w := corpus.StringToWord(s)
-		result_letters = append(result_letters, w)
+	content, err := corpus.GetFileContent("data_test/corpus_dk_test.txt")
+	if err != nil {
+		t.Errorf("Test_scanWordsDK - cannot create content : %v", err)
+		return
 	}
 
-	words := corpus.words
+	words := content.words
+	if len(words) != len(result) {
+		t.Errorf("content has %d words but expected result has %d words", len(words), len(result))
+	}
 
-	for i, w := range words {
-		if !w.equal(result_letters[i]) {
-			wants := runesToString(result_letters)
-			got := runesToString(words)
-			t.Errorf("scanWordsDK(,5) :\nwants:\n%v\ngot:\n%v\nwants[%d]: %s  got[%d]: %s", wants, got, i, corpus.WordToString(result_letters[i]), i, corpus.WordToString(words[i]))
+	results := make(map[string]bool)
+	for _, s := range result {
+		if results[s] {
+			t.Errorf("expected result has \"%s\" multiple times", s)
+		}
+		results[strings.ToUpper(s)] = true
+	}
+	for _, w := range words {
+		s := w.String(corpus)
+		if !results[s] {
+			t.Errorf("result has \"%s\" which is not an expected result", s)
 			return
 		}
+		results[s] = false
 	}
-
 }
 
 func (corpus *Corpus) letterToString(l Letter) string {
 	var sb strings.Builder
 	sb.WriteString("'")
-	sb.WriteString(string(corpus.letterRune[l]))
+	sb.WriteString(l.String(corpus))
 	sb.WriteString("'")
 
 	return sb.String()

@@ -53,40 +53,34 @@ var languageDefinition = map[language.Tag]LanguageDefinition{
 	//language.English: {fileName: "corpus_en.txt", validCharacters: "a-z", vowels: "aeiouy"},
 }
 
-func GetLanguageCorpus(language language.Tag) (*Corpus, error) {
+func GetLanguageFileName(language language.Tag) (string, error) {
 	definition, ok := languageDefinition[language]
 	if !ok {
-		return nil, fmt.Errorf("unsupported language %s", language.String())
+		return "", fmt.Errorf("unsupported language %s", language.String())
 	}
-	return GetFileCorpus(fmt.Sprintf("data/%s", definition.fileName), GetLanguageAlphabet(language))
+	return fmt.Sprintf("data/%s", definition.fileName), nil
+
 }
 
-func GetLanguageFileName(language language.Tag) string {
+func GetLanguageTiles(language language.Tag) (LanguageTiles, error) {
 	definition, ok := languageDefinition[language]
-	if ok {
-		return fmt.Sprintf("data/%s", definition.fileName)
+	if !ok {
+		return LanguageTiles{}, fmt.Errorf("unsupported language %s", language.String())
 	}
-	return ""
+	return definition.pieces, nil
+
 }
 
-func GetLanguageTiles(language language.Tag) LanguageTiles {
+func GetLanguageAlphabet(language language.Tag) (Alphabet, error) {
 	definition, ok := languageDefinition[language]
-	if ok {
-		return definition.pieces
+	if !ok {
+		return Alphabet{}, fmt.Errorf("unsupported language %s", language.String())
 	}
-	return LanguageTiles{}
-}
-
-func GetLanguageAlphabet(language language.Tag) Alphabet {
-	definition, ok := languageDefinition[language]
-	if ok {
-		letters := make(Alphabet, len(definition.pieces))
-		for i, p := range definition.pieces {
-			letters[i] = p.character
-		}
-		return letters
+	letters := make(Alphabet, len(definition.pieces))
+	for i, p := range definition.pieces {
+		letters[i] = p.character
 	}
-	return Alphabet{}
+	return letters, nil
 }
 
 func Localized(lang language.Tag, text string) string {

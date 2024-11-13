@@ -106,6 +106,9 @@ func (game *Game) Play() bool {
 			}
 		}
 
+		if !result && len(messages) > 0 {
+			fmt.Println("")
+		}
 		for _, m := range messages {
 			fmt.Println(m)
 		}

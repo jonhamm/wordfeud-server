@@ -20,14 +20,26 @@ func dawgCmd(options *GameOptions, args []string) *DawgResult {
 
 	flag.Parse(args)
 	var corpus *Corpus
+	var content *CorpusContent
 	var dawg *Dawg
+	var fileName string
 	var err error
-	corpus, err = GetFileCorpus(GetLanguageFileName(options.language), GetLanguageAlphabet((options.language)))
+	corpus, err = NewCorpus(options.language)
 	if err != nil {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()
 	}
-	dawg, err = NewDawg(corpus)
+	fileName, err = GetLanguageFileName(corpus.language)
+	if err != nil {
+		fmt.Println(result.errors(), err.Error())
+		return result.result()
+	}
+	content, err = corpus.GetFileContent(fileName)
+	if err != nil {
+		fmt.Println(result.errors(), err.Error())
+		return result.result()
+	}
+	dawg, err = NewDawg(content)
 	if err != nil {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()
@@ -37,12 +49,13 @@ func dawgCmd(options *GameOptions, args []string) *DawgResult {
 	result.VertexCount = statistics.vertexCount
 	p := message.NewPrinter(options.language)
 
-	p.Fprintf(result.logger(), "Number of words       : %d\n", dawg.corpus.wordCount)
-	p.Fprintf(result.logger(), "Total words size      : %d\n", dawg.corpus.totalWordsSize)
-	p.Fprintf(result.logger(), "Word lengths          : %d .. %d\n", dawg.corpus.minWordLength, dawg.corpus.maxWordLength)
+	corpusStat := content.Stat()
+	p.Fprintf(result.logger(), "Number of words       : %d\n", corpusStat.wordCount)
+	p.Fprintf(result.logger(), "Total words size      : %d\n", corpusStat.totalWordsSize)
+	p.Fprintf(result.logger(), "Word lengths          : %d .. %d\n", dawg.corpus.minWordLength, content.maxWordLength)
 	p.Fprintf(result.logger(), "Node count            : %d\n", result.NodeCount)
 	p.Fprintf(result.logger(), "Vertex count          : %d\n", result.VertexCount)
-	p.Fprintf(result.logger(), "Node and Vertex count : %d   %d%%\n", result.NodeCount+result.VertexCount, ((result.NodeCount+result.VertexCount)*100)/dawg.corpus.totalWordsSize)
+	p.Fprintf(result.logger(), "Node and Vertex count : %d   %d%%\n", result.NodeCount+result.VertexCount, ((result.NodeCount+result.VertexCount)*100)/content.Stat().totalWordsSize)
 
 	return result.result()
 }

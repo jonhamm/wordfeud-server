@@ -193,7 +193,8 @@ func (state *DawgState) LastNode() *Node {
 	return lastVertex.destination
 }
 
-func NewDawg(corpus *Corpus) (*Dawg, error) {
+func NewDawg(content *CorpusContent) (*Dawg, error) {
+	corpus := content.corpus
 
 	dawg := &Dawg{
 		corpus:       corpus,
@@ -201,12 +202,11 @@ func NewDawg(corpus *Corpus) (*Dawg, error) {
 		nextNodeId:   1,
 		nextVertexId: 1,
 	}
-
 	dawg.rootNode = dawg.NewNode()
 	dawg.finalNode = dawg.NewNode()
 	dawg.Register(dawg.finalNode)
 	dawg.initialState = DawgState{startNode: dawg.rootNode, vertices: Vertices{}}
-	err := dawg.AddCorpus(corpus)
+	err := dawg.AddCorpus(content)
 	if err != nil {
 		return nil, err
 	}
@@ -407,8 +407,8 @@ func (dawg *Dawg) ReplaceOrRegister(node *Node) {
 	}
 }
 
-func (dawg *Dawg) AddCorpus(corpus *Corpus) error {
-	for i, w := range corpus.words {
+func (dawg *Dawg) AddCorpus(content *CorpusContent) error {
+	for i, w := range content.words {
 		err := dawg.AddWord((w))
 		if err != nil {
 			return err
@@ -429,7 +429,7 @@ func (dawg *Dawg) AddCorpus(corpus *Corpus) error {
 	}
 	dawg.ReplaceOrRegister(dawg.rootNode)
 	if DAWG_TRACE {
-		dawg.printDot(corpus.WordCount(), "FINAL")
+		dawg.printDot(content.WordCount(), "FINAL")
 		dawg.print()
 	}
 	return nil
