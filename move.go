@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	. "wordfeud/corpus"
 )
 
 type TileScore struct {
@@ -332,7 +333,7 @@ func (state *GameState) InvalidateValidCrossLetters(startPos Position, endPos Po
 	}
 }
 
-func (tile MoveTile) String(corpus *Corpus) string {
+func (tile MoveTile) String(corpus Corpus) string {
 	placedInMove := '-'
 	if tile.placedInMove {
 		placedInMove = '+'
@@ -342,7 +343,7 @@ func (tile MoveTile) String(corpus *Corpus) string {
 
 }
 
-func (tiles MoveTiles) String(corpus *Corpus) string {
+func (tiles MoveTiles) String(corpus Corpus) string {
 	var sb strings.Builder
 	sb.WriteRune('[')
 	for i, tile := range tiles {

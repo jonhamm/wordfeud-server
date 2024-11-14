@@ -5,6 +5,8 @@ import (
 	"os"
 	"slices"
 	"strings"
+	. "wordfeud/corpus"
+	. "wordfeud/localize"
 )
 
 type RackTile struct {
@@ -362,7 +364,7 @@ func (state *GameState) GenerateAllMovesForAnchor(playerState *PlayerState, anch
 			prefix := state.GetNonEmptyBoardTiles(preceedingnPosition, prefixDirection)
 			prefixWord := game.TilesToWord(prefix)
 			dawgState := game.dawg.FindPrefix(prefixWord)
-			if !prefixWord.equal(dawgState.Word()) {
+			if !prefixWord.Equal(dawgState.Word()) {
 				msg := fmt.Sprintf("word on board %s %s not matched by dawg?? \"%s\" (GameState.GenerateAllMovesForAnchor)",
 					preceedingnPosition.String(), prefixDirection.String(), prefixWord.String(game.corpus))
 				panic(msg)
@@ -536,7 +538,7 @@ func (state *GameState) GenerateAllRackTiles(rack Rack) RackTiles {
 			continue
 		}
 		if tile.kind == TILE_JOKER {
-			for letter := corpus.firstLetter; letter <= corpus.lastLetter; letter++ {
+			for letter, last := corpus.FirstLetter(), corpus.LastLetter(); letter <= last; letter++ {
 				newRack := make(Rack, len(rack)-1)
 				copy(newRack, rack[:i])
 				copy(newRack[i:], rack[i+1:])
@@ -713,7 +715,7 @@ type PartialMove struct {
 }
 */
 
-func (rackTile *RackTile) String(corpus *Corpus) string {
+func (rackTile *RackTile) String(corpus Corpus) string {
 	var sb strings.Builder
 	sb.WriteString("Tile: ")
 	sb.WriteString(rackTile.tile.String(corpus))

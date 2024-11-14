@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	. "wordfeud/corpus"
 )
 
 type TileKind byte
@@ -105,17 +106,14 @@ func InitialGameState(game *Game) (*GameState, error) {
 	options := game.options
 	corpus := game.corpus
 	state := &GameState{game: game, fromState: nil, move: nil, tileBoard: make(TileBoard, game.height)}
-	allLetters := game.corpus.allLetters
+	allLetters := game.corpus.AllLetters()
 
-	languageTiles, err := GetLanguageTiles(options.language)
-	if err != nil {
-		return nil, err
-	}
+	languageTiles := GetLanguageTiles(options.language)
 	for _, tile := range languageTiles {
-		game.letterScores[game.corpus.runeLetter[tile.character]] = tile.value
-		state.freeTiles = slices.Grow(state.freeTiles, len(state.freeTiles)+int(tile.count))
-		for i := byte(0); i < tile.count; i++ {
-			state.freeTiles = append(state.freeTiles, Tile{TILE_LETTER, corpus.runeLetter[tile.character]})
+		game.letterScores[game.corpus.RuneToLetter(tile.Character())] = Score(tile.Value())
+		state.freeTiles = slices.Grow(state.freeTiles, len(state.freeTiles)+int(tile.Count()))
+		for i, n := byte(0), byte(tile.Count()); i < n; i++ {
+			state.freeTiles = append(state.freeTiles, Tile{TILE_LETTER, corpus.RuneToLetter(tile.Character())})
 		}
 	}
 	for i := 0; byte(i) < JOKER_COUNT; i++ {
@@ -207,7 +205,7 @@ func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orienta
 	}
 	if !state.IsTileEmpty(pos) {
 		if options.debug > 0 {
-			fmt.Printf("CalcValidCrossLetters... non-empty tile => %s\n", state.game.corpus.allLetters.String(state.game.corpus))
+			fmt.Printf("CalcValidCrossLetters... non-empty tile => %s\n", state.game.corpus.AllLetters().String(state.game.corpus))
 		}
 		return NullLetterSet
 	}
@@ -234,14 +232,14 @@ func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orienta
 				suffix := dawg.Transitions(DawgState{startNode: v.destination, vertices: Vertices{}}, suffixWord)
 				if suffix.startNode != nil {
 					if suffix.LastVertex().final {
-						validLetters.set(v.letter)
+						validLetters.Set(v.letter)
 					}
 				}
 			}
 		} else {
 			for _, v := range prefixEndNode.vertices {
 				if v.final {
-					validLetters.set(v.letter)
+					validLetters.Set(v.letter)
 				}
 			}
 
@@ -250,13 +248,13 @@ func (state *GameState) CalcValidCrossLetters(pos Position, orienttation Orienta
 		if prefix.WordLength() == 0 {
 			//neither suffix nor prefix
 			if options.debug > 0 {
-				fmt.Printf("CalcValidCrossLetters... isolated tilel => %s\n", state.game.corpus.allLetters.String(state.game.corpus))
+				fmt.Printf("CalcValidCrossLetters... isolated tilel => %s\n", state.game.corpus.AllLetters().String(state.game.corpus))
 			}
-			return state.game.corpus.allLetters
+			return state.game.corpus.AllLetters()
 		}
 		for _, v := range prefixEndNode.vertices {
 			if v.final {
-				validLetters.set(v.letter)
+				validLetters.Set(v.letter)
 			}
 		}
 	}
@@ -272,7 +270,7 @@ func (state *GameState) ValidCrossLetter(pos Position, orientation Orientation, 
 		validCrossLetters.letters = state.CalcValidCrossLetters(pos, orientation)
 		validCrossLetters.ok = true
 	}
-	return validCrossLetters.letters.test(letter)
+	return validCrossLetters.letters.Test(letter)
 }
 
 func (state *GameState) FilledPositions() Positions {
@@ -434,7 +432,7 @@ func (dirs Directions) String() string {
 	return sb.String()
 }
 
-func (directionSet *DirectionSet) String(corpus *Corpus) string {
+func (directionSet *DirectionSet) String(corpus Corpus) string {
 	var s strings.Builder
 	var first = true
 	s.WriteRune('{')
@@ -452,7 +450,7 @@ func (directionSet *DirectionSet) String(corpus *Corpus) string {
 	return s.String()
 }
 
-func (player *PlayerState) String(corpus *Corpus) string {
+func (player *PlayerState) String(corpus Corpus) string {
 	return fmt.Sprintf("[%d] id: %v : %s score: %v rack: %v",
 		player.playerNo, player.player.id, player.player.name, player.score, player.rack.String(corpus))
 }
@@ -461,12 +459,12 @@ func (lhs Tile) equal(rhs Tile) bool {
 	return lhs.kind == rhs.kind && lhs.letter == rhs.letter
 }
 
-func (tile Tile) String(corpus *Corpus) string {
+func (tile Tile) String(corpus Corpus) string {
 	return fmt.Sprintf("'%s':%v:%s", tile.letter.String(corpus), tile.letter, tile.kind.String())
 
 }
 
-func (tiles Tiles) String(corpus *Corpus) string {
+func (tiles Tiles) String(corpus Corpus) string {
 	var sb strings.Builder
 	sb.WriteRune('[')
 	for i, tile := range tiles {
@@ -640,17 +638,17 @@ func (state *GameState) TilesToString(tiles Tiles) string {
 	for _, t := range tiles {
 		switch t.kind {
 		case TILE_LETTER, TILE_JOKER:
-			sb.WriteRune(corpus.letterRune[t.letter])
+			sb.WriteRune(corpus.LetterToRune(t.letter))
 		}
 	}
 	return sb.String()
 }
 
-func (vcl *ValidCrossLetters) String(corpus *Corpus) string {
+func (vcl *ValidCrossLetters) String(corpus Corpus) string {
 	return fmt.Sprintf("{%v %s}", vcl.ok, vcl.letters.String(corpus))
 }
 
-func (bt *BoardTile) String(corpus *Corpus) string {
+func (bt *BoardTile) String(corpus Corpus) string {
 	return fmt.Sprintf("%s validCrossLetters %s: %s %s: %s", bt.Tile.String(corpus),
 		HORIZONTAL.String(), bt.validCrossLetters[HORIZONTAL].String(corpus),
 		VERTICAL.String(), bt.validCrossLetters[VERTICAL].String(corpus))

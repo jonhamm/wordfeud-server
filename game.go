@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	. "wordfeud/corpus"
 
 	"golang.org/x/text/message"
 )
@@ -23,7 +24,7 @@ type Game struct {
 	fmt           *message.Printer
 	width         Coordinate
 	height        Coordinate
-	corpus        *Corpus
+	corpus        Corpus
 	dawg          *Dawg
 	board         *Board
 	letterScores  LetterScores
@@ -71,7 +72,7 @@ func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coo
 		fmt:           printer,
 		dawg:          dawg,
 		board:         nil,
-		letterScores:  make(LetterScores, corpus.letterMax),
+		letterScores:  make(LetterScores, corpus.LetterMax()),
 		players:       make(Players, len(players)+1),
 		state:         nil,
 		nextMoveSeqNo: 1,

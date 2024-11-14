@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	. "wordfeud/corpus"
 
 	"golang.org/x/text/language"
 )
@@ -35,7 +36,7 @@ func Test_DawgCompleteDK(t *testing.T) {
 	testDawgLanguage(t, language.Danish)
 }
 
-func NewTestCorpusFromContent(corpus *Corpus, corpusContent []string) (*CorpusContent, error) {
+func NewTestCorpusFromContent(corpus Corpus, corpusContent []string) (CorpusContent, error) {
 	content := make([]string, len(corpusContent))
 	for i, w := range corpusContent {
 		content[i] = strings.ToUpper(w)
@@ -62,11 +63,7 @@ func testDawgContent(t *testing.T, language language.Tag, corpusContent []string
 }
 
 func testDawgLanguage(t *testing.T, language language.Tag) {
-	fileName, err := GetLanguageFileName(language)
-	if err != nil {
-		t.Errorf("testDawgContent() failed to create corpus : %v", err)
-		return
-	}
+	fileName := GetLanguageFileName(language)
 	testDawgLanguageFile(t, language, fileName)
 }
 
@@ -84,7 +81,7 @@ func testDawgLanguageFile(t *testing.T, language language.Tag, fileName string) 
 	testDawgCorpusContent(t, content)
 }
 
-func testDawgCorpusContent(t *testing.T, content *CorpusContent) {
+func testDawgCorpusContent(t *testing.T, content CorpusContent) {
 	dawg, err := NewDawg(content)
 	if err != nil {
 		t.Errorf("testDawgContent() failed to create dawg : %v", err)
@@ -93,23 +90,23 @@ func testDawgCorpusContent(t *testing.T, content *CorpusContent) {
 	testDawg(t, dawg, content)
 }
 
-func testDawg(t *testing.T, dawg *Dawg, content *CorpusContent) {
+func testDawg(t *testing.T, dawg *Dawg, content CorpusContent) {
 	fmt.Print("\n\n")
 	verifyDawgCoverage(t, dawg, content)
 }
 
-func verifyDawgCoverage(t *testing.T, dawg *Dawg, content *CorpusContent) {
+func verifyDawgCoverage(t *testing.T, dawg *Dawg, content CorpusContent) {
 	verifyCorpusMatches(t, dawg, content)
 	verifyMatchesInCorpus(t, dawg, content)
 }
 
-func verifyCorpusMatches(t *testing.T, dawg *Dawg, content *CorpusContent) {
-	if dawg.corpus != content.corpus {
+func verifyCorpusMatches(t *testing.T, dawg *Dawg, content CorpusContent) {
+	if dawg.corpus != content.Corpus() {
 		t.Errorf("verifyCorpusMatches content.corpus != dawg.corpus")
 		return
 	}
-	corpus := content.corpus
-	for i, w := range content.words {
+	corpus := content.Corpus()
+	for i, w := range content.Words() {
 		if DAWG_TRACE {
 			fmt.Printf("\nverifyCorpusMatches: %d \"%s\n\n", i, w.String(corpus))
 		}
@@ -126,14 +123,14 @@ func verifyCorpusMatches(t *testing.T, dawg *Dawg, content *CorpusContent) {
 	}
 }
 
-func verifyMatchesInCorpus(t *testing.T, dawg *Dawg, content *CorpusContent) {
-	if dawg.corpus != content.corpus {
+func verifyMatchesInCorpus(t *testing.T, dawg *Dawg, content CorpusContent) {
+	if dawg.corpus != content.Corpus() {
 		t.Errorf("verifyMatchesInCorpus content.corpus != dawg.corpus")
 		return
 	}
 	corpus := dawg.corpus
 	allWords := make(map[string]bool)
-	for i, w := range content.words {
+	for i, w := range content.Words() {
 		s := w.String(corpus)
 		if allWords[s] {
 			t.Errorf("corpus content word #%d \"%s\" is present multiple times in content.words", i, s)
@@ -148,7 +145,7 @@ func verifyMatchesInCorpus(t *testing.T, dawg *Dawg, content *CorpusContent) {
 	}
 }
 
-func verifyMatchesInCorpusRecurse(t *testing.T, dawg *Dawg, content *CorpusContent, allWords map[string]bool, state DawgState) int {
+func verifyMatchesInCorpusRecurse(t *testing.T, dawg *Dawg, content CorpusContent, allWords map[string]bool, state DawgState) int {
 	count := 0
 	corpus := dawg.corpus
 	node := state.LastNode()

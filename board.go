@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	. "wordfeud/corpus"
 
 	"golang.org/x/text/language"
 )
@@ -134,7 +135,7 @@ func (pos Positions) String() string {
 
 }
 
-func (rack Rack) String(corpus *Corpus) string {
+func (rack Rack) String(corpus Corpus) string {
 	var sb strings.Builder
 	rack.Verify(corpus)
 	sb.WriteString(fmt.Sprintf("(%d) [", len(rack)))
@@ -148,7 +149,7 @@ func (rack Rack) String(corpus *Corpus) string {
 	return sb.String()
 }
 
-func (rack Rack) Pretty(lang language.Tag, corpus *Corpus) string {
+func (rack Rack) Pretty(lang language.Tag, corpus Corpus) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("(%d) [", len(rack)))
 	for i, t := range rack {
@@ -161,7 +162,7 @@ func (rack Rack) Pretty(lang language.Tag, corpus *Corpus) string {
 	return sb.String()
 }
 
-func (rack Rack) Verify(corpus *Corpus) {
+func (rack Rack) Verify(corpus Corpus) {
 	for _, t := range rack {
 		switch t.kind {
 		case TILE_EMPTY, TILE_NONE:

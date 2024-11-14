@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"slices"
+	. "wordfeud/corpus"
 )
 
 var DAWG_TRACE = false
@@ -45,7 +46,7 @@ var NullState = DawgState{}
 type Registry map[CRC]Nodes
 
 type Dawg struct {
-	corpus       *Corpus
+	corpus       Corpus
 	rootNode     *Node
 	finalNode    *Node
 	initialState DawgState
@@ -124,7 +125,7 @@ func (node *Node) equal(other *Node) bool {
 }
 
 func (node *Node) FindVertex(l Letter) (byte, *Vertex) {
-	if !node.vertexLetters.test(l) {
+	if !node.vertexLetters.Test(l) {
 		return byte(len(node.vertices)), nil
 	}
 	for i, v := range node.vertices {
@@ -193,8 +194,8 @@ func (state *DawgState) LastNode() *Node {
 	return lastVertex.destination
 }
 
-func NewDawg(content *CorpusContent) (*Dawg, error) {
-	corpus := content.corpus
+func NewDawg(content CorpusContent) (*Dawg, error) {
+	corpus := content.Corpus()
 
 	dawg := &Dawg{
 		corpus:       corpus,
@@ -237,18 +238,18 @@ func (dawg *Dawg) NewVertex(letter Letter, destination *Node, final bool) *Verte
 
 func (dawg *Dawg) AddVertex(node *Node, letter Letter, destination *Node, final bool) *Vertex {
 	if DAWG_TRACE {
-		fmt.Printf("AddVertex node#%v letter:'%c' destination:node%v final:%v\n", node.id, dawg.corpus.letterRune[letter], destination.id, final)
+		fmt.Printf("AddVertex node#%v letter:'%c' destination:node%v final:%v\n", node.id, dawg.corpus.LetterToRune(letter), destination.id, final)
 		dawg.printNode(node)
 	}
-	if node.vertexLetters.test(letter) {
-		panic(fmt.Sprintf("Node:%v trying to add vertex with an allready present letter ('%c') (Node.AddVertex)", node.id, dawg.corpus.letterRune[letter]))
+	if node.vertexLetters.Test(letter) {
+		panic(fmt.Sprintf("Node:%v trying to add vertex with an allready present letter ('%c') (Node.AddVertex)", node.id, dawg.corpus.LetterToRune(letter)))
 	}
 	if node.registered {
-		panic(fmt.Sprintf("Node:%v trying to add vertex with letter ('%c') to registered node (Node.AddVertex)", node.id, dawg.corpus.letterRune[letter]))
+		panic(fmt.Sprintf("Node:%v trying to add vertex with letter ('%c') to registered node (Node.AddVertex)", node.id, dawg.corpus.LetterToRune(letter)))
 	}
 	vertex := dawg.NewVertex(letter, destination, final)
 	node.vertices = append(node.vertices, vertex)
-	node.vertexLetters.set(vertex.letter)
+	node.vertexLetters.Set(vertex.letter)
 	node.crc = 0 // invalidate crc
 	if DAWG_TRACE {
 		dawg.printNode(node)
@@ -291,20 +292,20 @@ func (dawg *Dawg) Register(node *Node) {
 
 func (dawg *Dawg) Transition(state DawgState, letter Letter) DawgState {
 	if DAWG_TRACE {
-		fmt.Printf("Transition '%c' on state: \n", dawg.corpus.letterRune[letter])
+		fmt.Printf("Transition '%c' on state: \n", dawg.corpus.LetterToRune(letter))
 		dawg.PrintState(state)
 	}
 
 	if state.startNode == nil {
 		if DAWG_TRACE {
-			fmt.Printf("Transition '%c' on null state => NullState\n", dawg.corpus.letterRune[letter])
+			fmt.Printf("Transition '%c' on null state => NullState\n", dawg.corpus.LetterToRune(letter))
 		}
 		return NullState
 	}
 	node := state.LastNode()
 	if node == nil {
 		if DAWG_TRACE {
-			fmt.Printf("Transition '%c' on nil destination => NullState\n", dawg.corpus.letterRune[letter])
+			fmt.Printf("Transition '%c' on nil destination => NullState\n", dawg.corpus.LetterToRune(letter))
 		}
 		return NullState
 	}
@@ -312,7 +313,7 @@ func (dawg *Dawg) Transition(state DawgState, letter Letter) DawgState {
 	_, v := node.FindVertex(letter)
 	if v == nil {
 		if DAWG_TRACE {
-			fmt.Printf("vertext for letter '%c' not found in node#%v  => NullState\n", dawg.corpus.letterRune[letter], node.id)
+			fmt.Printf("vertext for letter '%c' not found in node#%v  => NullState\n", dawg.corpus.LetterToRune(letter), node.id)
 			dawg.printNode(node)
 		}
 		return NullState
@@ -322,7 +323,7 @@ func (dawg *Dawg) Transition(state DawgState, letter Letter) DawgState {
 
 	if DAWG_TRACE {
 		fmt.Printf("Transition '%c' in node#%v  => vertex#%v node#%v final:%v word:\"%s\"\n",
-			dawg.corpus.letterRune[letter], node.id, v.id, v.destination.id, v.final, transitionState.Word().String(dawg.corpus))
+			dawg.corpus.LetterToRune(letter), node.id, v.id, v.destination.id, v.final, transitionState.Word().String(dawg.corpus))
 		dawg.PrintState(transitionState)
 	}
 
@@ -383,7 +384,7 @@ func (dawg *Dawg) ReplaceOrRegister(node *Node) {
 		if lastVertex.destination.HasVertices() {
 			hasVertices = "has vertices"
 		}
-		fmt.Printf("lastvertex#%v('%c').destination: node#%v %s\n", lastVertex.id, dawg.corpus.letterRune[lastVertex.letter], node.id, hasVertices)
+		fmt.Printf("lastvertex#%v('%c').destination: node#%v %s\n", lastVertex.id, dawg.corpus.LetterToRune(lastVertex.letter), node.id, hasVertices)
 	}
 
 	if lastVertex.destination.HasVertices() {
@@ -399,7 +400,7 @@ func (dawg *Dawg) ReplaceOrRegister(node *Node) {
 		lastVertex.destination = registryNode
 
 		if DAWG_TRACE {
-			fmt.Printf("lastvertex#%v('%c').destination <= registry node#%v\n", lastVertex.id, dawg.corpus.letterRune[lastVertex.letter], registryNode.id)
+			fmt.Printf("lastvertex#%v('%c').destination <= registry node#%v\n", lastVertex.id, dawg.corpus.LetterToRune(lastVertex.letter), registryNode.id)
 		}
 
 	} else {
@@ -407,8 +408,8 @@ func (dawg *Dawg) ReplaceOrRegister(node *Node) {
 	}
 }
 
-func (dawg *Dawg) AddCorpus(content *CorpusContent) error {
-	for i, w := range content.words {
+func (dawg *Dawg) AddCorpus(content CorpusContent) error {
+	for i, w := range content.Words() {
 		err := dawg.AddWord((w))
 		if err != nil {
 			return err
@@ -483,7 +484,7 @@ func (dawg *Dawg) fprintfNode(f io.Writer, node *Node) {
 		if v.destination != nil {
 			dest = fmt.Sprintf("node#%v %s", v.destination.id, v.destination.vertexLetters.String(dawg.corpus))
 		}
-		fmt.Fprintf(f, "  +-- [%v] vertex#%v  letter:'%c' final:%v destination:%s \n", i, v.id, dawg.corpus.letterRune[v.letter], v.final, dest)
+		fmt.Fprintf(f, "  +-- [%v] vertex#%v  letter:'%c' final:%v destination:%s \n", i, v.id, dawg.corpus.LetterToRune(v.letter), v.final, dest)
 	}
 }
 
@@ -511,7 +512,7 @@ func (dawg *Dawg) FprintState(f io.Writer, state DawgState, args ...string) {
 		if v.destination != nil {
 			dest = fmt.Sprintf("node#%v %s", v.destination.id, v.destination.vertexLetters.String(dawg.corpus))
 		}
-		fmt.Fprintf(f, "%s  +-- [%v] vertex#%v  letter:'%c' final:%v destination:%s \n", indent, i, v.id, dawg.corpus.letterRune[v.letter], v.final, dest)
+		fmt.Fprintf(f, "%s  +-- [%v] vertex#%v  letter:'%c' final:%v destination:%s \n", indent, i, v.id, dawg.corpus.LetterToRune(v.letter), v.final, dest)
 	}
 }
 
@@ -579,9 +580,9 @@ func (dawg *Dawg) printfDotRecurse(f io.Writer, printedNodes map[*Node]bool, pri
 		if v.destination != nil {
 			if printVertices {
 				if v.final {
-					fmt.Fprintf(f, "%d -> %d [label=\" %c\" arrowhead=\"diamond\"]\n", node.id, v.destination.id, dawg.corpus.letterRune[v.letter])
+					fmt.Fprintf(f, "%d -> %d [label=\" %c\" arrowhead=\"diamond\"]\n", node.id, v.destination.id, dawg.corpus.LetterToRune(v.letter))
 				} else {
-					fmt.Fprintf(f, "%d -> %d [label=\" %c\"]\n", node.id, v.destination.id, dawg.corpus.letterRune[v.letter])
+					fmt.Fprintf(f, "%d -> %d [label=\" %c\"]\n", node.id, v.destination.id, dawg.corpus.LetterToRune(v.letter))
 				}
 			}
 			dawg.printfDotRecurse(f, printedNodes, printVertices, v.destination)

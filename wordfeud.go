@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	. "wordfeud/corpus"
 
 	"golang.org/x/text/language"
 )
@@ -141,6 +142,10 @@ func main() {
 		tag, err := language.Default.Parse(languageSpec)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "unknown language \"%s\"\n", languageSpec)
+			return
+		}
+		if !SupportedLanguage(tag) {
+			fmt.Fprintf(os.Stderr, "unsupported language \"%s\"\n", languageSpec)
 			return
 		}
 		options.language = tag

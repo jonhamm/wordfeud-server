@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"unicode"
+	. "wordfeud/corpus"
 )
 
 func PrintOptions(options *GameOptions, args ...string) {
@@ -219,7 +220,7 @@ func FprintState(f io.Writer, state *GameState, args ...string) {
 			switch t.kind {
 			case TILE_LETTER, TILE_JOKER:
 				if t.letter != 0 {
-					l = unicode.ToUpper(corpus.letterRune[t.letter])
+					l = unicode.ToUpper(corpus.LetterToRune(t.letter))
 				}
 
 			}
@@ -429,11 +430,11 @@ func FprintMove(f io.Writer, move *Move, args ...string) {
 
 }
 
-func PrintMoveScore(ms *MoveScore, corpus *Corpus, args ...string) {
+func PrintMoveScore(ms *MoveScore, corpus Corpus, args ...string) {
 	FprintMoveScore(os.Stdout, ms, corpus, args...)
 }
 
-func FprintMoveScore(f io.Writer, ms *MoveScore, corpus *Corpus, args ...string) {
+func FprintMoveScore(f io.Writer, ms *MoveScore, corpus Corpus, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
@@ -443,11 +444,11 @@ func FprintMoveScore(f io.Writer, ms *MoveScore, corpus *Corpus, args ...string)
 
 }
 
-func PrintWordScores(ws WordScores, corpus *Corpus, args ...string) {
+func PrintWordScores(ws WordScores, corpus Corpus, args ...string) {
 	FprintWordScores(os.Stdout, ws, corpus, args...)
 }
 
-func FprintWordScores(f io.Writer, ws WordScores, corpus *Corpus, args ...string) {
+func FprintWordScores(f io.Writer, ws WordScores, corpus Corpus, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
@@ -458,11 +459,11 @@ func FprintWordScores(f io.Writer, ws WordScores, corpus *Corpus, args ...string
 	}
 }
 
-func PrintWordScore(ws *WordScore, corpus *Corpus, args ...string) {
+func PrintWordScore(ws *WordScore, corpus Corpus, args ...string) {
 	FprintWordScore(os.Stdout, ws, corpus, args...)
 }
 
-func FprintWordScore(f io.Writer, ws *WordScore, corpus *Corpus, args ...string) {
+func FprintWordScore(f io.Writer, ws *WordScore, corpus Corpus, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]
@@ -473,18 +474,18 @@ func FprintWordScore(f io.Writer, ws *WordScore, corpus *Corpus, args ...string)
 		pos = ws.tileScores[0].tile.pos.String()
 	}
 
-	fmt.Fprintf(f, "%sTilesScore: %s %s %s score: %v word multiplier: %v\n", indent,
-		corpus.WordToString(ws.Word()), ws.orientation.String(), pos, ws.score, ws.multiplier)
+	fmt.Fprintf(f, "%sTilesScore: \"%s\" %s %s score: %v word multiplier: %v\n", indent,
+		ws.Word().String(corpus), ws.orientation.String(), pos, ws.score, ws.multiplier)
 	for _, s := range ws.tileScores {
 		FprintTileScore(f, &s, corpus, indent+"  ")
 	}
 }
 
-func PrintTileScore(ts *TileScore, corpus *Corpus, args ...string) {
+func PrintTileScore(ts *TileScore, corpus Corpus, args ...string) {
 	FprintTileScore(os.Stdout, ts, corpus, args...)
 }
 
-func FprintTileScore(f io.Writer, ts *TileScore, corpus *Corpus, args ...string) {
+func FprintTileScore(f io.Writer, ts *TileScore, corpus Corpus, args ...string) {
 	indent := ""
 	if len(args) > 0 {
 		indent = args[0]

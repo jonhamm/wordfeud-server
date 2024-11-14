@@ -1,4 +1,4 @@
-package main
+package corpus
 
 import (
 	"strings"
@@ -57,7 +57,7 @@ func Test_scanWordsDK(t *testing.T) {
 		return
 	}
 
-	words := content.words
+	words := content.Words()
 	if len(words) != len(result) {
 		t.Errorf("content has %d words but expected result has %d words", len(words), len(result))
 	}
@@ -77,27 +77,4 @@ func Test_scanWordsDK(t *testing.T) {
 		}
 		results[s] = false
 	}
-}
-
-func (corpus *Corpus) letterToString(l Letter) string {
-	var sb strings.Builder
-	sb.WriteString("'")
-	sb.WriteString(l.String(corpus))
-	sb.WriteString("'")
-
-	return sb.String()
-}
-
-func runesToString(runes []Word) string {
-	var sb strings.Builder
-
-	for i, r := range runes {
-		if i > 0 {
-			sb.WriteRune('\n')
-		}
-		sb.WriteString("    '")
-		sb.WriteString(string(r))
-		sb.WriteString("'")
-	}
-	return sb.String()
 }

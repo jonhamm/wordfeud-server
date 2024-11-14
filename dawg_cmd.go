@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	. "wordfeud/corpus"
 
 	"golang.org/x/text/message"
 )
@@ -19,8 +20,8 @@ func dawgCmd(options *GameOptions, args []string) *DawgResult {
 	registerGlobalFlags(flag)
 
 	flag.Parse(args)
-	var corpus *Corpus
-	var content *CorpusContent
+	var corpus Corpus
+	var content CorpusContent
 	var dawg *Dawg
 	var fileName string
 	var err error
@@ -29,11 +30,7 @@ func dawgCmd(options *GameOptions, args []string) *DawgResult {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()
 	}
-	fileName, err = GetLanguageFileName(corpus.language)
-	if err != nil {
-		fmt.Println(result.errors(), err.Error())
-		return result.result()
-	}
+	fileName = GetLanguageFileName(corpus.Language())
 	content, err = corpus.GetFileContent(fileName)
 	if err != nil {
 		fmt.Println(result.errors(), err.Error())
@@ -50,12 +47,12 @@ func dawgCmd(options *GameOptions, args []string) *DawgResult {
 	p := message.NewPrinter(options.language)
 
 	corpusStat := content.Stat()
-	p.Fprintf(result.logger(), "Number of words       : %d\n", corpusStat.wordCount)
-	p.Fprintf(result.logger(), "Total words size      : %d\n", corpusStat.totalWordsSize)
-	p.Fprintf(result.logger(), "Word lengths          : %d .. %d\n", dawg.corpus.minWordLength, content.maxWordLength)
+	p.Fprintf(result.logger(), "Number of words       : %d\n", corpusStat.WordCount)
+	p.Fprintf(result.logger(), "Total words size      : %d\n", corpusStat.TotalWordsSize)
+	p.Fprintf(result.logger(), "Word lengths          : %d .. %d\n", corpusStat.MinWordLength, corpusStat.MaxWordLength)
 	p.Fprintf(result.logger(), "Node count            : %d\n", result.NodeCount)
 	p.Fprintf(result.logger(), "Vertex count          : %d\n", result.VertexCount)
-	p.Fprintf(result.logger(), "Node and Vertex count : %d   %d%%\n", result.NodeCount+result.VertexCount, ((result.NodeCount+result.VertexCount)*100)/content.Stat().totalWordsSize)
+	p.Fprintf(result.logger(), "Node and Vertex count : %d   %d%%\n", result.NodeCount+result.VertexCount, ((result.NodeCount+result.VertexCount)*100)/corpusStat.TotalWordsSize)
 
 	return result.result()
 }
