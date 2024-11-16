@@ -51,7 +51,7 @@ func Test_scanWordsDK(t *testing.T) {
 		t.Errorf("Test_scanWordsDK - cannot create corpus : %v", err)
 		return
 	}
-	content, err := corpus.GetFileContent("data_test/corpus_dk_test.txt")
+	content, err := corpus.GetFileContent("../data_test/corpus_dk_test.txt")
 	if err != nil {
 		t.Errorf("Test_scanWordsDK - cannot create content : %v", err)
 		return

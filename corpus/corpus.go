@@ -188,9 +188,8 @@ func (corpus *corpusData) scanWords(f io.Reader) (Words, error) {
 }
 
 func (corpus *corpusData) GetFileContent(fileName string) (CorpusContent, error) {
-	fsys := os.DirFS(".")
 	var content CorpusContent
-	f, err := fsys.Open(fileName)
+	f, err := os.Open(fileName)
 	if err != nil {
 		return nil, err
 	}

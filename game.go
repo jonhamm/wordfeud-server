@@ -2,7 +2,9 @@ package main
 
 import (
 	"math/rand"
+	. "wordfeud/context"
 	. "wordfeud/corpus"
+	. "wordfeud/dawg"
 
 	"golang.org/x/text/message"
 )
@@ -19,13 +21,13 @@ type LetterScores [] /*Letter*/ Score
 type Game struct {
 	options       *GameOptions
 	seqno         int
-	randSeed      uint64
+	RandSeed      uint64
 	rand          *rand.Rand
 	fmt           *message.Printer
 	width         Coordinate
 	height        Coordinate
 	corpus        Corpus
-	dawg          *Dawg
+	dawg          Dawg
 	board         *Board
 	letterScores  LetterScores
 	players       []*Player
@@ -37,7 +39,7 @@ type Game struct {
 func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coordinate) (*Game, error) {
 	var width Coordinate
 	var height Coordinate
-	printer := message.NewPrinter(options.language)
+	printer := message.NewPrinter(options.Language)
 
 	switch len(dimensions) {
 	case 0:
@@ -51,7 +53,7 @@ func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coo
 		height = dimensions[1]
 	}
 	var err error
-	corpus, err := NewCorpus(options.language)
+	corpus, err := NewCorpus(options.Language)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +61,7 @@ func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coo
 	if err != nil {
 		return nil, err
 	}
-	dawg, err := NewDawg(content)
+	dawg, err := NewDawg(content, options.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -79,12 +81,12 @@ func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coo
 		nextMoveId:    1,
 	}
 
-	if options.debug > 0 && options.count <= 1 {
-		game.randSeed = options.randSeed
-		game.rand = options.rand
+	if options.Debug > 0 && options.Count <= 1 {
+		game.RandSeed = options.RandSeed
+		game.rand = options.Rand
 	} else {
-		game.randSeed = options.rand.Uint64()
-		game.rand = rand.New(rand.NewSource(int64(game.randSeed)))
+		game.RandSeed = options.Rand.Uint64()
+		game.rand = rand.New(rand.NewSource(int64(game.RandSeed)))
 	}
 
 	game.players[0] = SystemPlayer
@@ -92,8 +94,8 @@ func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coo
 
 	game.board = NewBoard(&game)
 
-	if options.debug > 0 {
-		printer.Printf("****** New Game %s-%d ******  randSeed: %v\n", game.options.name, seqno, game.randSeed)
+	if options.Debug > 0 {
+		printer.Printf("****** New Game %s-%d ******  RandSeed: %v\n", game.options.Name, seqno, game.RandSeed)
 	}
 
 	game.state, err = InitialGameState(&game)

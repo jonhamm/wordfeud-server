@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	. "wordfeud/context"
 )
 
 func gameCmd(options *GameOptions, args []string) *GameResult {

@@ -3,14 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"math/rand"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 	"time"
+	. "wordfeud/context"
 	. "wordfeud/corpus"
+	. "wordfeud/dawg"
 
 	"golang.org/x/text/language"
 )
@@ -24,26 +25,6 @@ import (
 
 *
 */
-
-type GameOptions struct {
-	help       bool
-	verbose    bool
-	debug      uint
-	move       uint
-	moveDebug  uint
-	randSeed   uint64
-	count      int
-	name       string
-	out        io.Writer
-	language   language.Tag
-	rand       *rand.Rand
-	writeFile  bool
-	file       string
-	directory  string
-	fileFormat FileFormat
-	cmd        string
-	args       []string
-}
 
 const usage = `
 	wordfeud {options} serve {-port=pppp}
@@ -62,17 +43,17 @@ const usage = `
     	play game automatically 
 
 	options:	
-		-help 				show this usage info
-		-verbose			increase output from execution
-		-debug=dd			show debug output when dd > 0 (the larger dd is the more output)
-		-move=mm			only set debug as specified by -debug after move mm has completed
+		-Help 				show this usage info
+		-Verbose			increase output from execution
+		-Debug=dd			show Debug output when dd > 0 (the larger dd is the more output)
+		-move=mm			only set Debug as specified by -Debug after move mm has completed
 		-rand=nn			seed random number generator with nn 
 							0 or default will seed with timestamp
 		-count=nn	        repeat count for autoplay - default is 1
-		-name=xxxxx			autoplay game files will be named "xxxxx-nn" where nn is 1..count
+		-name=xxxxx			autoplay game files will be named "xxxxx-nn" where nn is 1..Count
 							xxxxx default is "scrabble"
 		-out=file-or-dir	the name of the file or directory to hold game result
-							if -count is specified > 1 the file will be "file-or-dir-nn" where nn is 1..count
+							if -count is specified > 1 the file will be "file-or-dir-nn" where nn is 1..Count
 							if not specified no file will be produced
 							if file-or-dir is the name of a directory the 
 							html file will be "file-or-dir/xxxxx-nn" where xxxxx and nn 
@@ -84,9 +65,9 @@ const usage = `
 						
 
 	abbreviated options:
-		-h		-help
-		-v		-verbose
-		-d		-debug
+		-h		-Help
+		-v		-Verbose
+		-d		-Debug
 		-m		-move
 		-r 		-rand
 		-c		-count
@@ -99,12 +80,12 @@ const httpUsage = `
 	options:	
 		?h=1 				show this usage info
 		?v=1				increase output from execution
-		?d=dd				show debug output when dd > 0 (the larger dd is the more output)
-		?m=dd				only set debug as specified by -debug after move mm has completed
+		?d=dd				show Debug output when dd > 0 (the larger dd is the more output)
+		?m=dd				only set Debug as specified by -Debug after move mm has completed
 		?r=nn			    seed random number generator with nn (!= 0)
 							0 or default will seed with timestamp
 		?c=nn	        	repeat count for autoplay - default is 1
-		?n=xxxxx			autoplay game files will be named xxxxx-nn where nn is 1..count
+		?n=xxxxx			autoplay game files will be named xxxxx-nn where nn is 1..Count
 							xxxxx default is "scrabble"
 `
 
@@ -113,28 +94,28 @@ func main() {
 	var languageSpec string
 	var fileFormatSpec string
 	var ranSeedSpec string
-	options.out = os.Stdout
-	options.language = language.Danish
+	options.Out = os.Stdout
+	options.Language = language.Danish
 	flag.Usage = func() { fmt.Print(usage) }
-	BoolVarFlag(flag.CommandLine, &options.verbose, []string{"verbose", "v"}, false, "show more output")
-	BoolVarFlag(flag.CommandLine, &options.help, []string{"help", "h"}, false, "print usage information")
-	UintVarFlag(flag.CommandLine, &options.debug, []string{"debug", "d"}, 0, "increase above 0 to get debug info - more than verbose")
-	UintVarFlag(flag.CommandLine, &options.move, []string{"move", "m"}, 0, "increase above 0 to get debug info - more than verbose")
-	IntVarFlag(flag.CommandLine, &options.count, []string{"count", "c"}, 0, "increase above 0 to get debug info - more than verbose")
+	BoolVarFlag(flag.CommandLine, &options.Verbose, []string{"Verbose", "v"}, false, "show more output")
+	BoolVarFlag(flag.CommandLine, &options.Help, []string{"Help", "h"}, false, "print usage information")
+	UintVarFlag(flag.CommandLine, &options.Debug, []string{"debug", "d"}, 0, "increase above 0 to get Debug info - more than Verbose")
+	UintVarFlag(flag.CommandLine, &options.Move, []string{"move", "m"}, 0, "increase above 0 to get Debug info - more than Verbose")
+	IntVarFlag(flag.CommandLine, &options.Count, []string{"count", "c"}, 0, "increase above 0 to get Debug info - more than Verbose")
 	StringVarFlag(flag.CommandLine, &ranSeedSpec, []string{"rand", "r"}, "", "seed for random number generator - 0 will seed with timestamp")
 	StringVarFlag(flag.CommandLine, &languageSpec, []string{"language", "l"}, "", "the requested corpus language")
-	StringVarFlag(flag.CommandLine, &options.name, []string{"name", "n"}, "", "name of game files ")
-	StringVarFlag(flag.CommandLine, &options.file, []string{"out", "o"}, "", "the name of the file or directory to hold game result")
+	StringVarFlag(flag.CommandLine, &options.Name, []string{"name", "n"}, "", "name of game files ")
+	StringVarFlag(flag.CommandLine, &options.File, []string{"out", "o"}, "", "the name of the file or directory to hold game result")
 	StringVarFlag(flag.CommandLine, &fileFormatSpec, []string{"format", "f"}, "", "the format of output file")
 
 	flag.Parse()
 	args := flag.Args()
-	if options.help {
+	if options.Help {
 		flag.Usage()
 	}
 	if len(args) == 0 {
-		if !options.help {
-			fmt.Fprintln(os.Stderr, "Please specify a subcommand. (-help for more info)")
+		if !options.Help {
+			fmt.Fprintln(os.Stderr, "Please specify a subcommand. (-Help for more info)")
 		}
 		return
 	}
@@ -148,7 +129,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "unsupported language \"%s\"\n", languageSpec)
 			return
 		}
-		options.language = tag
+		options.Language = tag
 	}
 
 	if len(ranSeedSpec) > 0 {
@@ -159,50 +140,50 @@ func main() {
 			fmt.Fprintf(os.Stderr, "invalid random seed \"%s\" : %s\n", ranSeedSpec, err.Error())
 			return
 		}
-		options.randSeed = s
+		options.RandSeed = s
 	}
-	if options.randSeed == 0 {
-		options.randSeed = uint64(time.Now().UnixNano())
+	if options.RandSeed == 0 {
+		options.RandSeed = uint64(time.Now().UnixNano())
 	}
-	if options.count < 1 {
-		options.count = 1
-	}
-
-	if len(options.name) == 0 {
-		options.name = "scrabble"
+	if options.Count < 1 {
+		options.Count = 1
 	}
 
-	if len(options.file) > 0 {
-		info, err := os.Stat(options.file)
+	if len(options.Name) == 0 {
+		options.Name = "scrabble"
+	}
+
+	if len(options.File) > 0 {
+		info, err := os.Stat(options.File)
 		if err == nil {
 			if info.IsDir() {
-				options.directory = options.file
-				options.file = options.name
+				options.Directory = options.File
+				options.File = options.Name
 			}
 		} else {
-			options.directory, options.file = path.Split(options.file)
+			options.Directory, options.File = path.Split(options.File)
 		}
-		options.fileFormat = ParseFileFormat(fileFormatSpec)
-		if options.fileFormat == FILE_FORMAT_NONE {
-			options.fileFormat = FILE_FORMAT_TEXT
+		options.FileFormat = ParseFileFormat(fileFormatSpec)
+		if options.FileFormat == FILE_FORMAT_NONE {
+			options.FileFormat = FILE_FORMAT_TEXT
 		}
-		options.writeFile = true
+		options.WriteFile = true
 	}
 
 	cmd, args := args[0], args[1:]
-	options.cmd = cmd
-	options.args = args
-	if options.debug > 0 {
-		options.verbose = true
+	options.Cmd = cmd
+	options.Args = args
+	if options.Debug > 0 {
+		options.Verbose = true
 	}
-	if options.debug > 2 {
+	if options.Debug > 2 {
 		DAWG_TRACE = true
 	}
 
-	options.rand = rand.New(rand.NewSource(int64(options.randSeed)))
+	options.Rand = rand.New(rand.NewSource(int64(options.RandSeed)))
 
-	if options.verbose {
-		PrintOptions(&options)
+	if options.Verbose {
+		options.Print()
 	}
 
 	switch cmd {
@@ -220,18 +201,18 @@ func main() {
 	case "autoplay":
 		result := autoplayCmd(&options, args)
 		fmt.Print(strings.Join(result.Log, "\n"))
-	case "keepdebugfunction":
-		debugState(nil)
-		debugPlayers(nil, PlayerStates{})
-		debugPlayer(nil, nil)
-		debugPartialMove(nil)
-		debugPartialMoves(nil)
-		debugMove(nil)
-		debugDawgState(nil, DawgState{})
+	case "keepDebugfunction":
+		DebugState(nil)
+		DebugPlayers(nil, PlayerStates{})
+		DebugPlayer(nil, nil)
+		DebugPartialMove(nil)
+		DebugPartialMoves(nil)
+		DebugMove(nil)
+		DebugDawgState(nil, nil)
 	case "nil":
 
 	default:
-		fmt.Fprintf(os.Stderr, "unknown subcommand '%q'.  (-help for more info)\n", cmd)
+		fmt.Fprintf(os.Stderr, "unknown subcommand '%q'.  (-Help for more info)\n", cmd)
 	}
 }
 

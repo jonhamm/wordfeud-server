@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	. "wordfeud/context"
 )
 
 func autoplayCmd(options *GameOptions, args []string) *GameResult {
@@ -12,7 +13,7 @@ func autoplayCmd(options *GameOptions, args []string) *GameResult {
 	registerGlobalFlags(flag)
 
 	flag.Parse(args)
-	for seqno := 1; seqno <= options.count; seqno++ {
+	for seqno := 1; seqno <= options.Count; seqno++ {
 		game, err := NewGame(options, seqno, Players{BotPlayer(1), BotPlayer(2)})
 		if err != nil {
 			fmt.Println(result.errors(), err.Error())

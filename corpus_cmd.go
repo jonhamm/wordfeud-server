@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	. "wordfeud/context"
 	. "wordfeud/corpus"
 
 	"golang.org/x/text/message"
@@ -16,7 +17,7 @@ func corpusCmd(options *GameOptions, args []string) *CorpusResult {
 
 	flag.Parse(args)
 
-	corpus, err := NewCorpus(options.language)
+	corpus, err := NewCorpus(options.Language)
 	if err != nil {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()
@@ -36,7 +37,7 @@ func corpusCmd(options *GameOptions, args []string) *CorpusResult {
 	result.MaxWordLength = corpusStat.MaxWordLength
 	result.TotalWordsSize = corpusStat.TotalWordsSize
 
-	p := message.NewPrinter(options.language)
+	p := message.NewPrinter(options.Language)
 	p.Fprintf(result.logger(), "Number of words  : %d\n", result.WordCount)
 	p.Fprintf(result.logger(), "Total words size : %d\n", result.TotalWordsSize)
 	p.Fprintf(result.logger(), "Word lengths     : %d .. %d\n", result.MinWordLength, result.MaxWordLength)

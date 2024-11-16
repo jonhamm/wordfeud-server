@@ -3,15 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	. "wordfeud/context"
 	. "wordfeud/corpus"
+	. "wordfeud/dawg"
 
 	"golang.org/x/text/message"
 )
-
-type DawgStatistics struct {
-	nodeCount   int
-	vertexCount int
-}
 
 func dawgCmd(options *GameOptions, args []string) *DawgResult {
 	result := new(DawgResult)
@@ -22,10 +19,10 @@ func dawgCmd(options *GameOptions, args []string) *DawgResult {
 	flag.Parse(args)
 	var corpus Corpus
 	var content CorpusContent
-	var dawg *Dawg
+	var dawg Dawg
 	var fileName string
 	var err error
-	corpus, err = NewCorpus(options.language)
+	corpus, err = NewCorpus(options.Language)
 	if err != nil {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()
@@ -36,15 +33,15 @@ func dawgCmd(options *GameOptions, args []string) *DawgResult {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()
 	}
-	dawg, err = NewDawg(content)
+	dawg, err = NewDawg(content, options.Options)
 	if err != nil {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()
 	}
-	statistics := dawgStatistics(dawg)
-	result.NodeCount = statistics.nodeCount
-	result.VertexCount = statistics.vertexCount
-	p := message.NewPrinter(options.language)
+	statistics := DawgStatistics(dawg)
+	result.NodeCount = statistics.NodeCount
+	result.VertexCount = statistics.VertexCount
+	p := message.NewPrinter(options.Language)
 
 	corpusStat := content.Stat()
 	p.Fprintf(result.logger(), "Number of words       : %d\n", corpusStat.WordCount)
@@ -55,26 +52,4 @@ func dawgCmd(options *GameOptions, args []string) *DawgResult {
 	p.Fprintf(result.logger(), "Node and Vertex count : %d   %d%%\n", result.NodeCount+result.VertexCount, ((result.NodeCount+result.VertexCount)*100)/corpusStat.TotalWordsSize)
 
 	return result.result()
-}
-
-func dawgStatistics(dawg *Dawg) DawgStatistics {
-	var statistics DawgStatistics
-	var nodesVisited = make(map[*Node]bool)
-	updateDawgStatistics(&statistics, dawg, nodesVisited, dawg.rootNode)
-	return statistics
-}
-
-func updateDawgStatistics(statistics *DawgStatistics, dawg *Dawg, nodesVisited map[*Node]bool, node *Node) {
-	if node == nil {
-		return
-	}
-	if nodesVisited[node] {
-		return
-	}
-	nodesVisited[node] = true
-	statistics.nodeCount++
-	statistics.vertexCount += len(node.vertices)
-	for _, v := range node.vertices {
-		updateDawgStatistics(statistics, dawg, nodesVisited, v.destination)
-	}
 }

@@ -6,34 +6,8 @@ import (
 	"os"
 	"unicode"
 	. "wordfeud/corpus"
+	. "wordfeud/dawg"
 )
-
-func PrintOptions(options *GameOptions, args ...string) {
-	FprintOptions(os.Stdout, options, args...)
-}
-
-func FprintOptions(f io.Writer, options *GameOptions, args ...string) {
-	indent := ""
-	if len(args) > 0 {
-		indent = args[0]
-	}
-	fmt.Fprintf(f, "%sGameOptions:\n", indent)
-	fmt.Fprintf(f, "%s   cmd:         %s\n", indent, options.cmd)
-	fmt.Fprintf(f, "%s   args:        %v\n", indent, options.args)
-	fmt.Fprintf(f, "%s   help:        %v\n", indent, options.help)
-	fmt.Fprintf(f, "%s   verbose:     %v\n", indent, options.verbose)
-	fmt.Fprintf(f, "%s   debug:       %v\n", indent, options.debug)
-	fmt.Fprintf(f, "%s   move:        %v\n", indent, options.move)
-	fmt.Fprintf(f, "%s   moveDebug:   %v\n", indent, options.moveDebug)
-	fmt.Fprintf(f, "%s   ranSeed:     %v\n", indent, options.randSeed)
-	fmt.Fprintf(f, "%s   count:       %v\n", indent, options.count)
-	fmt.Fprintf(f, "%s   name:        %s\n", indent, options.name)
-	fmt.Fprintf(f, "%s   language:    %s\n", indent, options.language.String())
-	fmt.Fprintf(f, "%s   writeFile:   %v\n", indent, options.writeFile)
-	fmt.Fprintf(f, "%s   directory:   %s\n", indent, options.directory)
-	fmt.Fprintf(f, "%s   file:        %s\n", indent, options.file)
-	fmt.Fprintf(f, "%s   fileFormat:  %s\n", indent, options.fileFormat.String())
-}
 
 func PrintBoard(board *Board, args ...string) {
 	FprintBoard(os.Stdout, board, args...)
@@ -123,7 +97,7 @@ func FprintBoard(f io.Writer, board *Board, args ...string) {
 
 }
 
-func debugState(state *GameState) {
+func DebugState(state *GameState) {
 	if state != nil {
 		PrintState(state)
 	}
@@ -266,7 +240,7 @@ func FprintState(f io.Writer, state *GameState, args ...string) {
 	p.Fprintf(f, "total number of tiles: %d\n", filledPositions+numberOfFreeTiles+numberOfRackTiles)
 }
 
-func debugPlayers(game *Game, players PlayerStates) {
+func DebugPlayers(game *Game, players PlayerStates) {
 	if game != nil {
 		PrintPlayers(game, players)
 	}
@@ -294,7 +268,7 @@ func PrintPlayer(game *Game, player *PlayerState, args ...string) {
 	FprintPlayer(os.Stdout, game, player, args...)
 }
 
-func debugPlayer(game *Game, player *PlayerState) {
+func DebugPlayer(game *Game, player *PlayerState) {
 	if game != nil && player != nil {
 		PrintPlayer(game, player)
 	}
@@ -309,7 +283,7 @@ func FprintPlayer(f io.Writer, game *Game, player *PlayerState, args ...string) 
 	p.Fprintf(f, "%sPlayer %s\n", indent, player.String(game.corpus))
 }
 
-func debugPartialMove(pm *PartialMove) {
+func DebugPartialMove(pm *PartialMove) {
 	if pm != nil {
 		PrintPartialMove(pm)
 	}
@@ -349,14 +323,14 @@ func FprintPartialMove(f io.Writer, pm *PartialMove, args ...string) {
 		FprintMoveScore(f, pm.score, corpus, indent+"            ")
 	}
 	p.Fprintf(f, "%s   state:     \n", indent)
-	pm.gameState.game.dawg.FprintState(f, pm.state, indent+"            ")
+	pm.state.FprintState(f, indent+"            ")
 }
 
-func debugDawgState(dawg *Dawg, state DawgState) {
-	dawg.PrintState(state)
+func DebugDawgState(dawg *Dawg, state DawgState) {
+	state.Print()
 }
 
-func debugPartialMoves(pms PartialMoves) {
+func DebugPartialMoves(pms PartialMoves) {
 	if pms != nil {
 		PrintPartialMoves(pms)
 	}
@@ -384,7 +358,7 @@ func FprintPartialMoves(f io.Writer, pms PartialMoves, args ...string) {
 	}
 }
 
-func debugMove(pm *Move) {
+func DebugMove(pm *Move) {
 	if pm != nil {
 		PrintMove(pm)
 	}

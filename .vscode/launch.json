@@ -105,6 +105,17 @@
             "env": {},
             "args": [],
             "showLog": true
+        },
+        {
+            "name": "Test Dawg",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "console": "integratedTerminal",
+            "program": "./dawg",
+            "env": {},
+            "args": [],
+            "showLog": true
         }
     ]
 }

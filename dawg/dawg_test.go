@@ -1,10 +1,12 @@
-package main
+package dawg
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"testing"
+	. "wordfeud/context"
 	. "wordfeud/corpus"
 
 	"golang.org/x/text/language"
@@ -29,6 +31,7 @@ func Test_DawgBasic(t *testing.T) {
 }
 
 func Test_DawgPartialDK(t *testing.T) {
+	fmt.Println(os.Getwd())
 	testDawgLanguageFile(t, language.Danish, "data_test/dk_partial.txt")
 }
 
@@ -73,6 +76,7 @@ func testDawgLanguageFile(t *testing.T, language language.Tag, fileName string) 
 		t.Errorf("testDawgContent() failed to create corpus : %v", err)
 		return
 	}
+	fileName = "../" + fileName
 	content, err := corpus.GetFileContent(fileName)
 	if err != nil {
 		t.Errorf("testDawgLanguageFile(\"%s\") failed to create corpus : %v", fileName, err)
@@ -82,7 +86,7 @@ func testDawgLanguageFile(t *testing.T, language language.Tag, fileName string) 
 }
 
 func testDawgCorpusContent(t *testing.T, content CorpusContent) {
-	dawg, err := NewDawg(content)
+	dawg, err := NewDawg(content, Options{Verbose: false, Debug: 0})
 	if err != nil {
 		t.Errorf("testDawgContent() failed to create dawg : %v", err)
 		return
@@ -90,18 +94,18 @@ func testDawgCorpusContent(t *testing.T, content CorpusContent) {
 	testDawg(t, dawg, content)
 }
 
-func testDawg(t *testing.T, dawg *Dawg, content CorpusContent) {
+func testDawg(t *testing.T, dawg Dawg, content CorpusContent) {
 	fmt.Print("\n\n")
 	verifyDawgCoverage(t, dawg, content)
 }
 
-func verifyDawgCoverage(t *testing.T, dawg *Dawg, content CorpusContent) {
+func verifyDawgCoverage(t *testing.T, dawg Dawg, content CorpusContent) {
 	verifyCorpusMatches(t, dawg, content)
 	verifyMatchesInCorpus(t, dawg, content)
 }
 
-func verifyCorpusMatches(t *testing.T, dawg *Dawg, content CorpusContent) {
-	if dawg.corpus != content.Corpus() {
+func verifyCorpusMatches(t *testing.T, dawg Dawg, content CorpusContent) {
+	if dawg.Corpus() != content.Corpus() {
 		t.Errorf("verifyCorpusMatches content.corpus != dawg.corpus")
 		return
 	}
@@ -111,7 +115,7 @@ func verifyCorpusMatches(t *testing.T, dawg *Dawg, content CorpusContent) {
 			fmt.Printf("\nverifyCorpusMatches: %d \"%s\n\n", i, w.String(corpus))
 		}
 		s := dawg.FindPrefix(w)
-		v := s.LastVertex()
+		v := s.lastVertex()
 		if v == nil {
 			t.Errorf("corpus word #%v \"%s\" not matched by dawg", i, w.String(corpus))
 			return
@@ -123,12 +127,12 @@ func verifyCorpusMatches(t *testing.T, dawg *Dawg, content CorpusContent) {
 	}
 }
 
-func verifyMatchesInCorpus(t *testing.T, dawg *Dawg, content CorpusContent) {
-	if dawg.corpus != content.Corpus() {
+func verifyMatchesInCorpus(t *testing.T, dawg Dawg, content CorpusContent) {
+	if dawg.Corpus() != content.Corpus() {
 		t.Errorf("verifyMatchesInCorpus content.corpus != dawg.corpus")
 		return
 	}
-	corpus := dawg.corpus
+	corpus := dawg.Corpus()
 	allWords := make(map[string]bool)
 	for i, w := range content.Words() {
 		s := w.String(corpus)
@@ -138,21 +142,21 @@ func verifyMatchesInCorpus(t *testing.T, dawg *Dawg, content CorpusContent) {
 		}
 		allWords[s] = true
 	}
-	count := verifyMatchesInCorpusRecurse(t, dawg, content, allWords, dawg.initialState)
+	count := verifyMatchesInCorpusRecurse(t, dawg, content, allWords, dawg.InitialState())
 
 	if count != content.WordCount() {
 		t.Errorf("dawg generated %v words which is not equal to corpus wordcount of %v", count, content.WordCount())
 	}
 }
 
-func verifyMatchesInCorpusRecurse(t *testing.T, dawg *Dawg, content CorpusContent, allWords map[string]bool, state DawgState) int {
+func verifyMatchesInCorpusRecurse(t *testing.T, dawg Dawg, content CorpusContent, allWords map[string]bool, state DawgState) int {
 	count := 0
-	corpus := dawg.corpus
-	node := state.LastNode()
+	corpus := dawg.Corpus()
+	node := state.lastNode()
 	if node == nil {
 		return count
 	}
-	vertex := state.LastVertex()
+	vertex := state.lastVertex()
 	if vertex != nil {
 		if vertex.final {
 			w := state.Word()
@@ -171,7 +175,7 @@ func verifyMatchesInCorpusRecurse(t *testing.T, dawg *Dawg, content CorpusConten
 		}
 	}
 	for _, v := range node.vertices {
-		vs := dawg.Transition(state, v.letter)
+		vs := state.Transition(v.letter)
 		count += verifyMatchesInCorpusRecurse(t, dawg, content, allWords, vs)
 	}
 	return count

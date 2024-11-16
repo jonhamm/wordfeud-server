@@ -182,10 +182,10 @@ func (state *GameState) GetWordMoveTiles(pos Position, tile MoveTile, orientatio
 func (state *GameState) Move(playerState *PlayerState) *Move {
 	fmt := state.game.fmt
 	options := state.game.options
-	if options.verbose {
+	if options.Verbose {
 
-		fmt.Fprintf(options.out, "\n\nMove %d for player %v : %s\n", state.game.nextMoveSeqNo, playerState.player.id, playerState.player.name)
-		FprintState(options.out, state.fromState)
+		fmt.Fprintf(options.Out, "\n\nMove %d for player %v : %s\n", state.game.nextMoveSeqNo, playerState.player.id, playerState.player.name)
+		FprintState(options.Out, state.fromState)
 	}
 	state.PrepareMove()
 
@@ -226,7 +226,7 @@ func (state *GameState) AddPass(playerState *PlayerState) *Move {
 	move.state = state
 	state.move = move
 
-	if options.debug > 0 {
+	if options.Debug > 0 {
 		PrintState(state)
 		fmt.Printf("AddPass :\n")
 		PrintPlayer(state.game, playerState)
@@ -250,7 +250,7 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 	move.state = state
 	state.move = move
 
-	if options.debug > 0 {
+	if options.Debug > 0 {
 		PrintState(state)
 		fmt.Printf("AddMove %d : %s..%s \"%s\"\n", move.seqno, partial.startPos, partial.endPos, state.TilesToString(partial.tiles.Tiles()))
 		PrintPartialMove(partial)
@@ -272,7 +272,7 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 					tile.String(corpus), pos.String(), boardTile.Tile.String(corpus)))
 			}
 			state.tileBoard[pos.row][pos.column] = BoardTile{Tile: tile.Tile, validCrossLetters: NoValidCrossLetters}
-			if options.debug > 0 {
+			if options.Debug > 0 {
 				t := &state.tileBoard[pos.row][pos.column]
 				fmt.Printf("   set tile %s = %s\n", pos.String(), t.String(corpus))
 			}
@@ -296,7 +296,7 @@ func (state *GameState) AddMove(partial *PartialMove, playerState *PlayerState) 
 	}
 	state.InvalidateValidCrossLetters(partial.startPos, partial.endPos, dir.Orientation())
 
-	if options.debug > 0 {
+	if options.Debug > 0 {
 		fmt.Printf("AddMove complete :\n")
 		PrintMove(move)
 		fmt.Printf("\n")
@@ -308,12 +308,12 @@ func (state *GameState) InvalidateValidCrossLetters(startPos Position, endPos Po
 	options := state.game.options
 	corpus := state.game.corpus
 	perpendicularOrientation := orientation.Perpendicular()
-	if options.debug > 0 {
+	if options.Debug > 0 {
 		fmt.Printf("InvalidateValidCrossLetters %s %s %s\n", startPos.String(), endPos.String(), orientation.String())
 	}
 	if ok, firstPrefixAnchor := state.FindFirstAnchorAfter(startPos, orientation.PrefixDirection()); ok {
 		t := &state.tileBoard[firstPrefixAnchor.row][firstPrefixAnchor.column]
-		if options.debug > 0 {
+		if options.Debug > 0 {
 			fmt.Printf("   invalidate %s prefix validCrossLetters %s : %s\n",
 				perpendicularOrientation.String(), firstPrefixAnchor.String(),
 				t.validCrossLetters[perpendicularOrientation].String(corpus))
@@ -323,7 +323,7 @@ func (state *GameState) InvalidateValidCrossLetters(startPos Position, endPos Po
 	if state.game.IsValidPos(endPos) {
 		if ok, firstSuffixAnchor := state.FindFirstAnchorFrom(endPos, orientation.SuffixDirection()); ok {
 			t := &state.tileBoard[firstSuffixAnchor.row][firstSuffixAnchor.column]
-			if options.debug > 0 {
+			if options.Debug > 0 {
 				fmt.Printf("   invalidate %s suffix validCrossLetters %s : %s\n",
 					perpendicularOrientation.String(), firstSuffixAnchor.String(),
 					t.validCrossLetters[perpendicularOrientation].String(corpus))
