@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	. "wordfeud/context"
+	. "wordfeud/game"
 )
 
 func autoplayCmd(options *GameOptions, args []string) *GameResult {
@@ -19,10 +20,10 @@ func autoplayCmd(options *GameOptions, args []string) *GameResult {
 			fmt.Println(result.errors(), err.Error())
 			return result.result()
 		}
-		result.Width = int(game.width)
-		result.Height = int(game.height)
-		result.LetterScores = game.letterScores
-		result.Board = game.board
+		result.Width = int(game.Dimensions().Width)
+		result.Height = int(game.Dimensions().Height)
+		result.LetterScores = game.LetterScores()
+		result.Board = game.Board()
 
 		for n := 0; n < 1000; n++ {
 			if !game.Play() {

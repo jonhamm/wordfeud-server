@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	. "wordfeud/context"
+	. "wordfeud/game"
 )
 
 func gameCmd(options *GameOptions, args []string) *GameResult {
@@ -19,15 +20,14 @@ func gameCmd(options *GameOptions, args []string) *GameResult {
 		fmt.Println(result.errors(), err.Error())
 		return result.result()
 	}
-	result.Width = int(game.width)
-	result.Height = int(game.height)
-	result.LetterScores = game.letterScores
-	result.Board = game.board
+	result.Width = int(game.Dimensions().Width)
+	result.Height = int(game.Dimensions().Height)
+	result.LetterScores = game.LetterScores()
+	result.Board = game.Board()
 
-	game.fmt.Fprintf(result.logger(), "Game size: width=%d height=%d squares=%d\n", game.Width(), game.Height(), game.SquareCount())
-	if game.state != nil {
-		FprintState(result.logger(), game.state)
-	}
+	game.Fmt().Fprintf(result.logger(), "Game size: width=%d height=%d squares=%d\n",
+		game.Dimensions().Width, game.Dimensions().Height, game.SquareCount())
+	FprintStateOfGame(result.logger(), game)
 
 	return result.result()
 }

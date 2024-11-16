@@ -12,6 +12,7 @@ import (
 	. "wordfeud/context"
 	. "wordfeud/corpus"
 	. "wordfeud/dawg"
+	. "wordfeud/game"
 
 	"golang.org/x/text/language"
 )

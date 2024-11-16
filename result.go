@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	. "wordfeud/game"
 )
 
 type ActionResult struct {
