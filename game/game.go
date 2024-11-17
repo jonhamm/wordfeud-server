@@ -36,20 +36,21 @@ type Game interface {
 }
 
 type _Game struct {
-	options       *GameOptions
-	seqno         int
-	RandSeed      uint64
-	_rand         *rand.Rand
-	fmt           *message.Printer
-	dimensions    Dimensions
-	corpus        Corpus
-	dawg          Dawg
-	board         *Board
-	letterScores  LetterScores
-	players       []*Player
-	state         *GameState
-	nextMoveSeqNo uint
-	nextMoveId    uint
+	options        *GameOptions
+	seqno          int
+	RandSeed       uint64
+	_rand          *rand.Rand
+	fmt            *message.Printer
+	dimensions     Dimensions
+	corpus         Corpus
+	dawg           Dawg
+	board          *Board
+	letterScores   LetterScores
+	players        []*Player
+	state          *GameState
+	nextMoveSeqNo  uint
+	nextMoveId     uint
+	nextWriteSeqNo uint
 }
 
 func NewGame(options *GameOptions, seqno int, players Players, dimensions ...Coordinate) (Game, error) {

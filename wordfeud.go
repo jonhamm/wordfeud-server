@@ -53,22 +53,23 @@ const usage = `
 		-count=nn	        repeat count for autoplay - default is 1
 		-name=xxxxx			autoplay game files will be named "xxxxx-nn" where nn is 1..Count
 							xxxxx default is "scrabble"
-		-out=file-or-dir	the name of the file or directory to hold game result
-							if -count is specified > 1 the file will be "file-or-dir-nn" where nn is 1..Count
-							if not specified no file will be produced
-							if file-or-dir is the name of a directory the 
-							html file will be "file-or-dir/xxxxx-nn" where xxxxx and nn 
+		-out=dir	        the name of the directory to hold game result
+							if -count is specified > 1 the file will be "dir/xxxxx-nn" where xxxxx and nn 
 							are as explained in the -name option
+							if format is html "dir/xxxxx-nn" will be a directory holding .html files
+							"index.html" and "move-ii.html" where ii is 0..number of moves in game
 		-format=zzzz		the format of output file if one is produced (see -out)
 							valid formats are:
 								"txt": simple text file
+								"debug": text file with debug info
 								"json": json file
+								"html": json file
 						
 
 	abbreviated options:
-		-h		-Help
-		-v		-Verbose
-		-d		-Debug
+		-h		-help
+		-v		-verbose
+		-d		-debug
 		-m		-move
 		-r 		-rand
 		-c		-count
@@ -106,7 +107,7 @@ func main() {
 	StringVarFlag(flag.CommandLine, &ranSeedSpec, []string{"rand", "r"}, "", "seed for random number generator - 0 will seed with timestamp")
 	StringVarFlag(flag.CommandLine, &languageSpec, []string{"language", "l"}, "", "the requested corpus language")
 	StringVarFlag(flag.CommandLine, &options.Name, []string{"name", "n"}, "", "name of game files ")
-	StringVarFlag(flag.CommandLine, &options.File, []string{"out", "o"}, "", "the name of the file or directory to hold game result")
+	StringVarFlag(flag.CommandLine, &options.Directory, []string{"out", "o"}, "", "the name of the file or directory to hold game result")
 	StringVarFlag(flag.CommandLine, &fileFormatSpec, []string{"format", "f"}, "", "the format of output file")
 
 	flag.Parse()
@@ -154,16 +155,8 @@ func main() {
 		options.Name = "scrabble"
 	}
 
-	if len(options.File) > 0 {
-		info, err := os.Stat(options.File)
-		if err == nil {
-			if info.IsDir() {
-				options.Directory = options.File
-				options.File = options.Name
-			}
-		} else {
-			options.Directory, options.File = path.Split(options.File)
-		}
+	if len(options.Directory) > 0 {
+		options.File = path.Join(options.Directory, options.Name)
 		options.FileFormat = ParseFileFormat(fileFormatSpec)
 		if options.FileFormat == FILE_FORMAT_NONE {
 			options.FileFormat = FILE_FORMAT_TEXT

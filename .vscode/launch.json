@@ -116,6 +116,20 @@
             "env": {},
             "args": [],
             "showLog": true
-        }
+        },
+        {
+            "name": "autoplay with html",
+            "args": [
+                "-debug=0",
+                "-rand=123456789",
+                "-out=./tmp/abc",
+                "-format=html",
+                "autoplay",
+            ],
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "."
+        },
     ]
 }

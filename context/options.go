@@ -53,7 +53,7 @@ func (format FileFormat) Extension() string {
 	case FILE_FORMAT_JSON:
 		return ".json"
 	case FILE_FORMAT_HTML:
-		return ".html"
+		return ""
 	}
 	panic(fmt.Sprintf("illegal FileFormat %d (FileFormat.Extension)", format))
 }

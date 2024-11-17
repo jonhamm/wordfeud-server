@@ -153,9 +153,9 @@ func (rack Rack) Pretty(corpus Corpus) string {
 	lang := corpus.Language()
 	switch len(rack) {
 	case 0:
-		sb.WriteString(fmt.Sprintf(Localized(lang, "no tiles")))
+		sb.WriteString(Localized(lang, "no tiles"))
 	case 1:
-		sb.WriteString(fmt.Sprintf(Localized(lang, "1 tile")))
+		sb.WriteString(Localized(lang, "1 tile"))
 	default:
 		sb.WriteString(fmt.Sprintf(Localized(lang, "%d tiles"), len(rack)))
 	}
