@@ -125,7 +125,7 @@ func (game *_Game) Play() bool {
 }
 
 func (game *_Game) ResultMessages() []string {
-	lang := game.options.Language
+	lang := game.corpus.Language()
 	messages := make([]string, 0)
 	bestScore := Score(0)
 	allPlayers := make(PlayerStates, 0, len(game.state.playerStates))
@@ -157,8 +157,8 @@ func (game *_Game) ResultMessages() []string {
 			bestScorePlayerNames[0]))
 	}
 	for _, ps := range allPlayers {
-		messages = append(messages, fmt.Sprintf(Localized(lang, "%s scored %d with remaining rack %s"),
-			ps.player.name, ps.score, ps.rack.Pretty(lang, game.corpus)))
+		messages = append(messages, fmt.Sprintf(Localized(lang, "%s scored %d and has %s left"),
+			ps.player.name, ps.score, ps.rack.Pretty(game.corpus)))
 	}
 	return messages
 }

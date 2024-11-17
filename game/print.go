@@ -239,6 +239,138 @@ func FprintState(f io.Writer, state *GameState, args ...string) {
 	p.Fprintf(f, "total number of tiles: %d\n", filledPositions+numberOfFreeTiles+numberOfRackTiles)
 }
 
+func DebugStateBoard(state *GameState) {
+	PrintStateBoard(state)
+}
+
+func PrintStateBoard(state *GameState, args ...string) {
+	FprintStateBoard(os.Stdout, state, args...)
+}
+
+func FprintStateBoard(f io.Writer, state *GameState, args ...string) {
+	indent := ""
+	if len(args) > 0 {
+		indent = args[0]
+	}
+	p := state.game.fmt
+	board := state.game.board
+	corpus := state.game.corpus
+	squares := board.squares
+	w := board.game.dimensions.Width
+	h := board.game.dimensions.Height
+	tiles := state.tileBoard
+	placedMinRow := int(h)
+	placedMaxRow := -1
+	placedMinColumn := int(w)
+	placedMaxColumn := -1
+
+	if state.move != nil {
+
+		for _, t := range state.move.tiles {
+			p := t.pos
+			if t.placedInMove {
+				if int(p.row) > placedMaxRow {
+					placedMaxRow = int(p.row)
+				}
+				if int(p.row) < placedMinRow {
+					placedMinRow = int(p.row)
+				}
+			}
+			if t.placedInMove {
+				if int(p.column) > placedMaxColumn {
+					placedMaxColumn = int(p.column)
+				}
+				if int(p.column) < placedMinColumn {
+					placedMinColumn = int(p.column)
+				}
+			}
+		}
+
+	}
+
+	p.Fprintf(f, "\n\n%s    ", indent)
+	for c := Coordinate(0); c < w; c++ {
+		p.Fprintf(f, " %2d   ", c)
+	}
+	p.Fprintf(f, "\n")
+	for r := Coordinate(0); r < h; r++ {
+		p.Fprintf(f, "%s   ", indent)
+		for c := Coordinate(0); c < w; c++ {
+			p.Fprintf(f, "+-----")
+		}
+		p.Fprintf(f, "+\n")
+
+		p.Fprintf(f, "%s   ", indent)
+
+		for c := Coordinate(0); c < w; c++ {
+			letterScore := board.game.GetTileScore(tiles[r][c].Tile)
+			s := squares[r][c]
+			k := "  "
+			switch s {
+			case DW:
+				k = "DW"
+			case TW:
+				k = "TW"
+			case DL:
+				k = "DL"
+			case TL:
+				k = "TL"
+			case CE:
+				k = "CE"
+			}
+			switch tiles[r][c].kind {
+			case TILE_JOKER, TILE_LETTER:
+				p.Fprintf(f, "|%s%3v", k, letterScore)
+			default:
+				p.Fprintf(f, "|%s   ", k)
+			}
+		}
+		p.Fprintf(f, "|\n")
+
+		p.Fprintf(f, "%s%2d ", indent, r)
+		for c := Coordinate(0); c < w; c++ {
+			t := tiles[r][c]
+			l := ' '
+			switch t.kind {
+			case TILE_LETTER, TILE_JOKER:
+				if t.letter != 0 {
+					l = unicode.ToUpper(corpus.LetterToRune(t.letter))
+				}
+
+			}
+			p.Fprintf(f, "|  %c  ", l)
+
+		}
+		p.Fprintf(f, "|\n")
+
+		p.Fprintf(f, "%s   ", indent)
+
+		for c := Coordinate(0); c < w; c++ {
+			placedInMove := false
+			if int(r) >= placedMinRow && int(r) <= placedMaxRow && int(c) >= placedMinColumn && int(c) <= placedMaxColumn {
+				for _, t := range state.move.tiles {
+					if t.pos.equal(Position{r, c}) {
+						placedInMove = true
+						break
+					}
+				}
+			}
+			if placedInMove {
+				p.Fprintf(f, "|*   *")
+			} else {
+				p.Fprintf(f, "|     ")
+			}
+		}
+		p.Fprintf(f, "|\n")
+	}
+
+	p.Fprintf(f, "%s   ", indent)
+	for c := Coordinate(0); c < w; c++ {
+		p.Fprintf(f, "+-----")
+	}
+	p.Fprintf(f, "+\n")
+}
+
 func PrintStateOfGame(game Game, args ...string) {
 	FprintStateOfGame(os.Stdout, game, args...)
 }

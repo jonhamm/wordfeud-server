@@ -6,6 +6,8 @@ import (
 	"strings"
 	. "wordfeud/corpus"
 	. "wordfeud/dawg"
+
+	"golang.org/x/text/language"
 )
 
 type TileKind byte
@@ -380,6 +382,21 @@ func (orientation Orientation) String() string {
 	panic(fmt.Sprintf("invalid orientation %d", orientation))
 
 }
+func (orientation Orientation) Localized(lang language.Tag) string {
+	switch lang {
+	case language.Danish:
+		switch orientation {
+		case HORIZONTAL:
+			return "horisontalt"
+		case VERTICAL:
+			return "vertikalt"
+		}
+	default:
+		return orientation.String()
+	}
+	panic(fmt.Sprintf("invalid orientation %d", orientation))
+
+}
 
 func (dir Direction) String() string {
 	switch dir {
@@ -393,6 +410,27 @@ func (dir Direction) String() string {
 		return "E"
 	case WEST:
 		return "W"
+	}
+	panic(fmt.Sprintf("invalid Direction %d", dir))
+}
+
+func (dir Direction) Localized(lang language.Tag) string {
+	switch lang {
+	case language.Danish:
+		switch dir {
+		case NONE:
+			return "INGEN"
+		case NORTH:
+			return "N"
+		case SOUTH:
+			return "S"
+		case EAST:
+			return "Ø"
+		case WEST:
+			return "V"
+		}
+	default:
+		return dir.String()
 	}
 	panic(fmt.Sprintf("invalid Direction %d", dir))
 }

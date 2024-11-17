@@ -210,6 +210,7 @@ func main() {
 		DebugPartialMoves(nil)
 		DebugMove(nil)
 		DebugDawgState(nil, nil)
+		DebugStateBoard(nil)
 	case "nil":
 
 	default:

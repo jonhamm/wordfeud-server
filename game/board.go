@@ -5,8 +5,7 @@ import (
 	"slices"
 	"strings"
 	. "wordfeud/corpus"
-
-	"golang.org/x/text/language"
+	. "wordfeud/localize"
 )
 
 type Square byte
@@ -149,14 +148,29 @@ func (rack Rack) String(corpus Corpus) string {
 	return sb.String()
 }
 
-func (rack Rack) Pretty(lang language.Tag, corpus Corpus) string {
+func (rack Rack) Pretty(corpus Corpus) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("(%d) [", len(rack)))
+	lang := corpus.Language()
+	switch len(rack) {
+	case 0:
+		sb.WriteString(fmt.Sprintf(Localized(lang, "no tiles")))
+	case 1:
+		sb.WriteString(fmt.Sprintf(Localized(lang, "1 tile")))
+	default:
+		sb.WriteString(fmt.Sprintf(Localized(lang, "%d tiles"), len(rack)))
+	}
+	sb.WriteString(" [")
 	for i, t := range rack {
 		if i > 0 {
 			sb.WriteString(",")
 		}
-		sb.WriteString(t.letter.String(corpus))
+		switch t.kind {
+		case TILE_EMPTY, TILE_NONE:
+		case TILE_JOKER:
+			sb.WriteString("?")
+		case TILE_LETTER:
+			sb.WriteString(t.letter.String(corpus))
+		}
 	}
 	sb.WriteRune(']')
 	return sb.String()

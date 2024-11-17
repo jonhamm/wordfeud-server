@@ -40,7 +40,8 @@ const (
 	FILE_FORMAT_NONE  = FileFormat(0)
 	FILE_FORMAT_TEXT  = FileFormat(1)
 	FILE_FORMAT_JSON  = FileFormat(2)
-	FILE_FORMAT_DEBUG = FileFormat(3)
+	FILE_FORMAT_HTML  = FileFormat(3)
+	FILE_FORMAT_DEBUG = FileFormat(4)
 )
 
 func (format FileFormat) Extension() string {
@@ -51,6 +52,8 @@ func (format FileFormat) Extension() string {
 		return ".txt"
 	case FILE_FORMAT_JSON:
 		return ".json"
+	case FILE_FORMAT_HTML:
+		return ".html"
 	}
 	panic(fmt.Sprintf("illegal FileFormat %d (FileFormat.Extension)", format))
 }
@@ -61,7 +64,9 @@ func ParseFileFormat(formatSpec string) FileFormat {
 		return FILE_FORMAT_TEXT
 	case "json", "jsn":
 		return FILE_FORMAT_JSON
-	case "dbg", "Debug":
+	case "html":
+		return FILE_FORMAT_HTML
+	case "dbg", "debug":
 		return FILE_FORMAT_DEBUG
 	}
 	return FILE_FORMAT_NONE
@@ -76,8 +81,10 @@ func (format FileFormat) String() string {
 		return "text"
 	case FILE_FORMAT_JSON:
 		return "json"
+	case FILE_FORMAT_HTML:
+		return "html"
 	case FILE_FORMAT_DEBUG:
-		return "Debug"
+		return "debug"
 	}
 	panic(fmt.Sprintf("illegal FileFormat %d (FileFormat.String)", format))
 
