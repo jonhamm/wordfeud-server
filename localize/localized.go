@@ -48,9 +48,18 @@ func danish(text string) string {
 		return "%s har samlet %d point og %s"
 	case "initial board":
 		return "spillepladen"
+	case "Initial board":
+		return "Spillepladen"
 	case "%s played %s %s..%s \"%s\" giving score %d":
 		return "%s spiller %s %s..%s \"%s\" der giver %d point"
-
+	case "Move number %d<br/>%s played %s %s..%s \"%s\" giving score %d":
+		return "Træk nummer %d<br/>%s spiller %s %s..%s \"%s\" der giver %d point"
+	case "game overview":
+		return "spil oversigten"
+	case "previous move":
+		return "foregående træk"
+	case "next move":
+		return "næste træk"
 	}
 	return text
 }

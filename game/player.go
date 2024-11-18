@@ -15,16 +15,16 @@ const NoPlayer = PlayerNo(0)
 const SystemPlayerId = PlayerId(0)
 
 var BotPlayerNames = [MaxBotPlayers]string{
-	":Alice:",
-	":Bob:",
-	":John:",
-	":Emma:",
-	":Fred:",
-	":Lisa:",
-	":Paul:",
-	":Vera:",
-	":Bill:",
-	":Karen:",
+	"*Alice*",
+	"*Bob*",
+	"*John*",
+	"*Emma*",
+	"*Fred*",
+	"*Lisa*",
+	"*Paul*",
+	"*Vera*",
+	"*Bill*",
+	"*Karen*",
 }
 
 var nextPlayerId = 1000

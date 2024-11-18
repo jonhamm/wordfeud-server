@@ -6,7 +6,7 @@ import (
 	. "wordfeud/context"
 )
 
-func WriteGameFile(game Game, messages []string) (string, error) {
+func WriteGameFile(game Game, gameEnded bool, messages []string) (string, error) {
 	Errorf := fmt.Errorf
 	options := game.Options()
 	var err error
@@ -20,7 +20,7 @@ func WriteGameFile(game Game, messages []string) (string, error) {
 	case FILE_FORMAT_JSON, FILE_FORMAT_TEXT, FILE_FORMAT_DEBUG:
 		fileName, err = WriteFile(game, messages)
 	case FILE_FORMAT_HTML:
-		fileName, err = WriteGameFileHtml(game, messages)
+		fileName, err = WriteGameFileHtml(game, gameEnded, messages)
 	default:
 		panic(fmt.Sprintf("unknown file format: %d", game.Options().FileFormat))
 	}

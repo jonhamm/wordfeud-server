@@ -93,7 +93,7 @@ func (game *_Game) Play() bool {
 		}
 
 		if options.WriteFile {
-			gameFileName, err := WriteGameFile(game, messages)
+			gameFileName, err := WriteGameFile(game, !result, messages)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "error writing game file \"%s\"\n%v\n", gameFileName, err.Error())
 				return false
