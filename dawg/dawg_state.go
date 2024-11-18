@@ -69,7 +69,7 @@ func (state *_DawgState) Transition(letter Letter) DawgState {
 		return dawg.nullState
 	}
 
-	_, v := node.FindVertex(letter)
+	_, v := node.findVertex(letter)
 	if v == nil {
 		if DAWG_TRACE {
 			fmt.Printf("vertext for letter '%c' not found in node#%v  => dawg.nullState\n", dawg.corpus.LetterToRune(letter), node.id)
