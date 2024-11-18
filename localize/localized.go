@@ -43,9 +43,14 @@ func danish(text string) string {
 	case "no tiles":
 		return "ingen brikker"
 	case "%s move number %d %s %s..%s \"%s\" gives score %d":
-		return "%s træk nummer %d %s %s..%s \"%s\" giver %d point"
+		return "%s træk nummer %d %s %s..%s \"%s\" der giver %d point"
 	case "%s has total score %d and %s":
 		return "%s har samlet %d point og %s"
+	case "initial board":
+		return "spillepladen"
+	case "%s played %s %s..%s \"%s\" giving score %d":
+		return "%s spiller %s %s..%s \"%s\" der giver %d point"
+
 	}
 	return text
 }

@@ -58,7 +58,7 @@ func FprintMoveText(f io.Writer, move *Move) {
 	startPos := move.position
 	endPos := startPos
 	if game.IsValidPos(startPos) {
-		_, endPos = state.AdjacentPosition(startPos, move.direction)
+		_, endPos = state.RelativePosition(startPos, move.direction, Coordinate(len(word)))
 	}
 	p.Fprintf(f, Localized(lang, "%s move number %d %s %s..%s \"%s\" gives score %d")+"\n\n",
 		player.name, move.seqno, move.direction.Orientation().Localized(lang), startPos.String(), endPos.String(), word, move.score.score)

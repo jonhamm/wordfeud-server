@@ -3,15 +3,20 @@ package game
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path"
 	"regexp"
+	. "wordfeud/localize"
+
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 func WriteGameFileHtml(game Game, messages []string) (string, error) {
-	Errorf := fmt.Errorf
 	_game := game._Game()
+	Errorf := fmt.Errorf
 	state := _game.state
 	dirName := GameFileName(game)
 	var err error
@@ -83,21 +88,23 @@ func rmHtmlDir(dirName string) error {
 func updateGameHtml(game Game, dirName string) error {
 	var err error
 	_game := game._Game()
+	p := _game.fmt
+	lang := game.Corpus().Language()
 	states := _game.CollectStates()
 	if len(states) == 0 {
 		return nil
 	}
-	if err = updateMovesHtml(states, dirName); err != nil {
+	if err = updateMovesHtml(states, dirName, p, lang); err != nil {
 		return err
 	}
-	if err = updateIndexHtml(states, dirName); err != nil {
+	if err = updateIndexHtml(states, dirName, p, lang); err != nil {
 		return err
 	}
 	_game.nextWriteSeqNo = states[len(states)-1].move.seqno + 1
 	return nil
 }
 
-func updateIndexHtml(states GameStates, dirName string) error {
+func updateIndexHtml(states GameStates, dirName string, p *message.Printer, lang language.Tag) error {
 	var err error
 	var f *os.File
 
@@ -115,13 +122,49 @@ func updateIndexHtml(states GameStates, dirName string) error {
 		}
 	}()
 
-	for _, state := range states {
-		n := uint(0)
-		if state.move != nil {
-			n = state.move.seqno
+	writeHtmlHeader(f, p, lang)
+	p.Fprintln(f, "<body>")
+	if len(states) > 0 {
+		game := states[0].game
+		p := game.fmt
+		corpus := game.corpus
+		lang := game.corpus.Language()
+
+		p.Fprintln(f, "<dl>")
+
+		for _, state := range states {
+			move := state.move
+			p.Fprintln(f, "<dt>")
+			if move == nil {
+				p.Fprintf(f, "<dt><a href=\"file:move-%d.html\">%d: %s</a>", 0, 0, Localized(lang, "initial board"))
+			} else {
+				n := move.seqno
+				p.Fprintf(f, "<dt><a href=\"file:move-%d.html\">%d: ", n, n)
+				player := move.playerState.player
+				word := move.state.TilesToString(move.tiles.Tiles())
+				startPos := move.position
+				endPos := startPos
+				if game.IsValidPos(startPos) {
+					_, endPos = state.RelativePosition(startPos, move.direction, Coordinate(len(word)))
+				}
+				p.Fprintf(f, Localized(lang, "%s played %s %s..%s \"%s\" giving score %d"),
+					player.name, move.direction.Orientation().Localized(lang), startPos.String(), endPos.String(), word, move.score.score)
+				p.Fprintln(f, "</a>")
+			}
+			p.Fprintln(f, "</dt>")
+			p.Fprintln(f, "<dd>")
+			for _, ps := range state.playerStates {
+				if ps.player.id != SystemPlayerId {
+					p.Fprintf(f, Localized(lang, "%s has total score %d and %s")+"<br/>\n", ps.player.name, ps.score, ps.rack.Pretty(corpus))
+
+				}
+			}
+			p.Fprintln(f, "</dd>")
+
 		}
-		fmt.Fprintf(f, "<a href=\"file:move-%d.html\">Move number %d</a>\n", n, n)
+		p.Fprintln(f, "</dl>")
 	}
+	p.Fprintln(f, "</body>")
 
 	if err = f.Close(); err != nil {
 		return err
@@ -135,16 +178,16 @@ func updateIndexHtml(states GameStates, dirName string) error {
 	return nil
 }
 
-func updateMovesHtml(states GameStates, dirName string) error {
+func updateMovesHtml(states GameStates, dirName string, p *message.Printer, lang language.Tag) error {
 	for _, state := range states {
-		if err := updateMoveHtml(state, dirName); err != nil {
+		if err := updateMoveHtml(state, dirName, p, lang); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func updateMoveHtml(state *GameState, dirName string) error {
+func updateMoveHtml(state *GameState, dirName string, p *message.Printer, lang language.Tag) error {
 	var err error
 	var f *os.File
 	move := state.move
@@ -155,7 +198,7 @@ func updateMoveHtml(state *GameState, dirName string) error {
 	if seqno < state.game.nextWriteSeqNo {
 		return nil
 	}
-	fileName := fmt.Sprintf("move-%d.html", seqno)
+	fileName := p.Sprintf("move-%d.html", seqno)
 	tmpFileName := fileName + "~"
 	filePath := path.Join(dirName, fileName)
 	tmpFilePath := path.Join(dirName, tmpFileName)
@@ -179,4 +222,14 @@ func updateMoveHtml(state *GameState, dirName string) error {
 
 	f = nil
 	return nil
+}
+
+func writeHtmlHeader(f io.Writer, p *message.Printer, lang language.Tag) {
+	p.Fprintf(f, `<!DOCTYPE html>
+<html lang="%s">
+<head>
+    <title>HTML Other Lists</title>
+    <meta charset="utf-8">
+</head>
+	`, lang.String())
 }
