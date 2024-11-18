@@ -294,6 +294,8 @@ func updateMoveHtml(state *GameState, lastMove uint, dirName string, gameEnded b
 	}
 	p.Fprintln(f, "</h3>")
 
+	FprintHtmlStateBoard(f, state)
+
 	p.Fprintln(f, "</body>")
 
 	if err = f.Close(); err != nil {
@@ -319,47 +321,164 @@ func writeHtmlHeader(f io.Writer, p *message.Printer, lang language.Tag) {
 	`, lang.String())
 }
 
-func writeHtmlStyles(dirName string) error {
+func FprintHtmlStateBoard(f io.Writer, state *GameState) error {
+	p := state.game.fmt
+	board := state.game.board
 	var err error
-	var f *os.File
+	//corpus := state.game.corpus
+	//squares := board.squares
+	w := board.game.dimensions.Width
+	h := board.game.dimensions.Height
+	//tiles := state.tileBoard
+	placedMinRow := int(h)
+	placedMaxRow := -1
+	placedMinColumn := int(w)
+	placedMaxColumn := -1
 
-	fileName := "styles.css"
-	tmpFileName := fileName + "~"
-	filePath := path.Join(dirName, fileName)
-	tmpFilePath := path.Join(dirName, tmpFileName)
-	if f, err = os.Create(tmpFilePath); err != nil {
-		return err
-	}
-	defer func() {
-		if f != nil {
-			f.Close()
-			os.Remove(f.Name()) // clean up
+	if state.move != nil {
+
+		for _, t := range state.move.tiles {
+			p := t.pos
+			if t.placedInMove {
+				if int(p.row) > placedMaxRow {
+					placedMaxRow = int(p.row)
+				}
+				if int(p.row) < placedMinRow {
+					placedMinRow = int(p.row)
+				}
+			}
+			if t.placedInMove {
+				if int(p.column) > placedMaxColumn {
+					placedMaxColumn = int(p.column)
+				}
+				if int(p.column) < placedMinColumn {
+					placedMinColumn = int(p.column)
+				}
+			}
 		}
-	}()
 
-	if _, err = f.WriteString(cssStyles); err != nil {
+	}
+
+	if _, err = p.Fprintln(f, `<table id="board">`); err != nil {
 		return err
 	}
-	if err = f.Close(); err != nil {
+	if _, err = p.Fprintln(f, `  <tr>`); err != nil {
 		return err
 	}
-	if err = os.Rename(tmpFilePath, filePath); err != nil {
+	if _, err = p.Fprintln(f, `    <th class="board-h-hdr"/>`); err != nil {
 		return err
 	}
-	f = nil
+	for c := Coordinate(0); c < w; c++ {
+		if _, err = p.Fprintf(f, `    <th  class="board-h-hdr">%d`+"</th>\n", c); err != nil {
+			return err
+		}
+	}
+	if _, err = p.Fprintln(f, `  </tr>`); err != nil {
+		return err
+	}
+	for r := Coordinate(0); r < h; r++ {
+		if _, err = p.Fprintln(f, `  <tr>`); err != nil {
+			return err
+		}
+		if _, err = p.Fprintf(f, `    <th  class="board-v-hdr">%d`+"</th>\n", r); err != nil {
+			return err
+		}
+		for c := Coordinate(0); c < w; c++ {
+			if _, err = p.Fprintf(f, `    <td  class="square-empty">%s`+"</td>\n", "X"); err != nil {
+				return err
+			}
+		}
+		if _, err = p.Fprintln(f, `  </tr>`); err != nil {
+			return err
+		}
+	}
+
+	if _, err = p.Fprintln(f, `</table>`); err != nil {
+		return err
+	}
+
+	/*
+		p.Fprintf(f, "\n\n%s    ", indent)
+		for c := Coordinate(0); c < w; c++ {
+			p.Fprintf(f, " %2d   ", c)
+		}
+		p.Fprintf(f, "\n")
+		for r := Coordinate(0); r < h; r++ {
+			p.Fprintf(f, "%s   ", indent)
+			for c := Coordinate(0); c < w; c++ {
+				p.Fprintf(f, "+-----")
+			}
+			p.Fprintf(f, "+\n")
+
+			p.Fprintf(f, "%s   ", indent)
+
+			for c := Coordinate(0); c < w; c++ {
+				letterScore := board.game.GetTileScore(tiles[r][c].Tile)
+				s := squares[r][c]
+				k := "  "
+				switch s {
+				case DW:
+					k = "DW"
+				case TW:
+					k = "TW"
+				case DL:
+					k = "DL"
+				case TL:
+					k = "TL"
+				case CE:
+					k = "CE"
+				}
+				switch tiles[r][c].kind {
+				case TILE_JOKER, TILE_LETTER:
+					p.Fprintf(f, "|%s%3v", k, letterScore)
+				default:
+					p.Fprintf(f, "|%s   ", k)
+				}
+			}
+			p.Fprintf(f, "|\n")
+
+			p.Fprintf(f, "%s%2d ", indent, r)
+			for c := Coordinate(0); c < w; c++ {
+				t := tiles[r][c]
+				l := ' '
+				switch t.kind {
+				case TILE_LETTER, TILE_JOKER:
+					if t.letter != 0 {
+						l = unicode.ToUpper(corpus.LetterToRune(t.letter))
+					}
+
+				}
+				p.Fprintf(f, "|  %c  ", l)
+
+			}
+			p.Fprintf(f, "|\n")
+
+			p.Fprintf(f, "%s   ", indent)
+
+			for c := Coordinate(0); c < w; c++ {
+				placedInMove := false
+				if int(r) >= placedMinRow && int(r) <= placedMaxRow && int(c) >= placedMinColumn && int(c) <= placedMaxColumn {
+					for _, t := range state.move.tiles {
+						if t.pos.equal(Position{r, c}) {
+							placedInMove = true
+							break
+						}
+					}
+				}
+				if placedInMove {
+					p.Fprintf(f, "|*   *")
+				} else {
+					p.Fprintf(f, "|     ")
+				}
+			}
+			p.Fprintf(f, "|\n")
+		}
+
+		p.Fprintf(f, "%s   ", indent)
+		for c := Coordinate(0); c < w; c++ {
+			p.Fprintf(f, "+-----")
+		}
+		p.Fprintf(f, "+\n")
+	*/
 	return nil
 }
-
-const cssStyles = `
-.navigate  {
-	font-size: 16px;
-	padding: 10px 24px;
-	border-radius: 8px;
-	background-color: #a0a0a0;
-	color: white;
-}
-.disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
-}
-`
