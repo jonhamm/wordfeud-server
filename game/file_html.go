@@ -1,6 +1,7 @@
 package game
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -325,11 +326,11 @@ func FprintHtmlStateBoard(f io.Writer, state *GameState) error {
 	p := state.game.fmt
 	board := state.game.board
 	var err error
-	//corpus := state.game.corpus
-	//squares := board.squares
+	corpus := state.game.corpus
+	squares := board.squares
 	w := board.game.dimensions.Width
 	h := board.game.dimensions.Height
-	//tiles := state.tileBoard
+	tiles := state.tileBoard
 	placedMinRow := int(h)
 	placedMaxRow := -1
 	placedMinColumn := int(w)
@@ -359,17 +360,17 @@ func FprintHtmlStateBoard(f io.Writer, state *GameState) error {
 
 	}
 
-	if _, err = p.Fprintln(f, `<table id="board">`); err != nil {
+	if _, err = p.Fprintln(f, `<table class="board">`); err != nil {
 		return err
 	}
 	if _, err = p.Fprintln(f, `  <tr>`); err != nil {
 		return err
 	}
-	if _, err = p.Fprintln(f, `    <th class="board-h-hdr"/>`); err != nil {
+	if _, err = p.Fprintln(f, `    <th class="thh"/>`); err != nil {
 		return err
 	}
 	for c := Coordinate(0); c < w; c++ {
-		if _, err = p.Fprintf(f, `    <th  class="board-h-hdr">%d`+"</th>\n", c); err != nil {
+		if _, err = p.Fprintf(f, `    <th  class="thh">%d`+"</th>\n", c); err != nil {
 			return err
 		}
 	}
@@ -380,11 +381,39 @@ func FprintHtmlStateBoard(f io.Writer, state *GameState) error {
 		if _, err = p.Fprintln(f, `  <tr>`); err != nil {
 			return err
 		}
-		if _, err = p.Fprintf(f, `    <th  class="board-v-hdr">%d`+"</th>\n", r); err != nil {
+		if _, err = p.Fprintf(f, `    <th  class="thv">%d`+"</th>\n", r); err != nil {
 			return err
 		}
 		for c := Coordinate(0); c < w; c++ {
-			if _, err = p.Fprintf(f, `    <td  class="square-empty">%s`+"</td>\n", "X"); err != nil {
+			tile := tiles[r][c]
+			s := squares[r][c]
+			class := ""
+			k := ""
+			tc := ""
+			switch s {
+			case DW:
+				k = "dw"
+			case TW:
+				k = "tw"
+			case DL:
+				k = "dl"
+			case TL:
+				k = "tl"
+			case CE:
+				k = "ct"
+			}
+			switch tile.kind {
+			case TILE_JOKER, TILE_LETTER:
+				letterScore := board.game.GetTileScore(tile.Tile)
+				tc = p.Sprintf(`<div class="tile">%s<span class="score">%d</span></div>`, tile.letter.String(corpus), letterScore)
+			}
+
+			if k != "" {
+				class = p.Sprintf(` class="square %s"`, k)
+			} else {
+				class = p.Sprintf(` class="square"`, k)
+			}
+			if _, err = p.Fprintf(f, `    <td><div%s>%s</div>`+"</td>\n", class, tc); err != nil {
 				return err
 			}
 		}
@@ -397,88 +426,39 @@ func FprintHtmlStateBoard(f io.Writer, state *GameState) error {
 		return err
 	}
 
-	/*
-		p.Fprintf(f, "\n\n%s    ", indent)
-		for c := Coordinate(0); c < w; c++ {
-			p.Fprintf(f, " %2d   ", c)
+	return nil
+}
+
+//go:embed styles.css
+var cssStyles string
+
+func writeHtmlStyles(dirName string) error {
+	var err error
+	var f *os.File
+
+	fileName := "styles.css"
+	tmpFileName := fileName + "~"
+	filePath := path.Join(dirName, fileName)
+	tmpFilePath := path.Join(dirName, tmpFileName)
+	if f, err = os.Create(tmpFilePath); err != nil {
+		return err
+	}
+	defer func() {
+		if f != nil {
+			f.Close()
+			os.Remove(f.Name()) // clean up
 		}
-		p.Fprintf(f, "\n")
-		for r := Coordinate(0); r < h; r++ {
-			p.Fprintf(f, "%s   ", indent)
-			for c := Coordinate(0); c < w; c++ {
-				p.Fprintf(f, "+-----")
-			}
-			p.Fprintf(f, "+\n")
+	}()
 
-			p.Fprintf(f, "%s   ", indent)
-
-			for c := Coordinate(0); c < w; c++ {
-				letterScore := board.game.GetTileScore(tiles[r][c].Tile)
-				s := squares[r][c]
-				k := "  "
-				switch s {
-				case DW:
-					k = "DW"
-				case TW:
-					k = "TW"
-				case DL:
-					k = "DL"
-				case TL:
-					k = "TL"
-				case CE:
-					k = "CE"
-				}
-				switch tiles[r][c].kind {
-				case TILE_JOKER, TILE_LETTER:
-					p.Fprintf(f, "|%s%3v", k, letterScore)
-				default:
-					p.Fprintf(f, "|%s   ", k)
-				}
-			}
-			p.Fprintf(f, "|\n")
-
-			p.Fprintf(f, "%s%2d ", indent, r)
-			for c := Coordinate(0); c < w; c++ {
-				t := tiles[r][c]
-				l := ' '
-				switch t.kind {
-				case TILE_LETTER, TILE_JOKER:
-					if t.letter != 0 {
-						l = unicode.ToUpper(corpus.LetterToRune(t.letter))
-					}
-
-				}
-				p.Fprintf(f, "|  %c  ", l)
-
-			}
-			p.Fprintf(f, "|\n")
-
-			p.Fprintf(f, "%s   ", indent)
-
-			for c := Coordinate(0); c < w; c++ {
-				placedInMove := false
-				if int(r) >= placedMinRow && int(r) <= placedMaxRow && int(c) >= placedMinColumn && int(c) <= placedMaxColumn {
-					for _, t := range state.move.tiles {
-						if t.pos.equal(Position{r, c}) {
-							placedInMove = true
-							break
-						}
-					}
-				}
-				if placedInMove {
-					p.Fprintf(f, "|*   *")
-				} else {
-					p.Fprintf(f, "|     ")
-				}
-			}
-			p.Fprintf(f, "|\n")
-		}
-
-		p.Fprintf(f, "%s   ", indent)
-		for c := Coordinate(0); c < w; c++ {
-			p.Fprintf(f, "+-----")
-		}
-		p.Fprintf(f, "+\n")
-	*/
+	if _, err = f.WriteString(cssStyles); err != nil {
+		return err
+	}
+	if err = f.Close(); err != nil {
+		return err
+	}
+	if err = os.Rename(tmpFilePath, filePath); err != nil {
+		return err
+	}
+	f = nil
 	return nil
 }

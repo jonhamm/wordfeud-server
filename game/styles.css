@@ -1,0 +1,170 @@
+:root {
+
+  /* color vars */
+  --tlb: #4863A6;
+  /* triple letter value background */
+  --twb: #7F3A3E;
+  /* triple word value background */
+  --dlb: #729B67;
+  /* double letter value background */
+  --dwb: #B77320;
+  /* double word value background */
+  --ctb: #64415F;
+  /* center color background */
+  --tlc: white;
+  /* triple letter value textcolor */
+  --twc: white;
+  /* triple word value textcolor */
+  --dlc: white;
+  /* double letter value textcolor */
+  --dwc: white;
+  /* double word value textcolor */
+  --ctc: white;
+  /* center color textcolor */
+  --tileb: #F2EEE9C8;
+  /* player letters background */
+  --tilec: #0d1116;
+  /* invert(var(--letter)); */
+  --lightmono: #2C2F36;
+  --darkmono: #1D1D1D;
+  --bhb: #a0a0a0;
+  /* board header color background */
+  --bhc: black;
+  /* board header textcolor */
+
+  /* size vars */
+  --tablesize: 640px;
+  --cellsize: 40px;
+  /*var(--tablesize) / 16;*/
+}
+
+.thh, .thv {
+  background: var(--bhb);
+  height: var(--cellsize);
+  width: var(--cellsize);
+}
+
+
+.tile {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+
+  background: var(--tileb);
+  color: var(--tilec);
+  text-align: center;
+  font-size: 24px;
+}
+
+.tile>.score {
+  position: absolute;
+  font-size: 12px;
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  display: block;
+  line-height: 1;
+
+}
+
+.square {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+
+  background: none;
+
+}
+
+.square.tl {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+
+  background: var(--tlb);
+  color: var(--tlc);
+
+  &:before {
+    content: "TL";
+  }
+}
+
+.square.tw {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+
+  background: var(--twb);
+  color: var(--twc);
+
+  &:before {
+    content: "TW";
+  }
+}
+
+.square.dl {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+
+  background: var(--dlb);
+  color: var(--dlc);
+
+  &:before {
+    content: "DL";
+  }
+}
+
+.square.dw {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+
+  background: var(--dwb);
+  color: var(--dwc);
+
+  &:before {
+    content: "DW";
+  }
+}
+
+.square.ct {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+
+  background: var(--ctb);
+  color: var(--ctc);
+
+  &:before {
+    content: "☘";
+  }
+}
+
+.board {
+  margin: 0;
+  background: var(--darkmono);
+
+  td {
+    position: relative;
+    height_: var(--cellsize);
+    width_: var(--cellsize);
+    line-height: var(--cellsize);
+    text-align: center;
+
+  }
+}
