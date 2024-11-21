@@ -1,15 +1,14 @@
 :root {
-
   /* color vars */
-  --tlb: #4863A6;
+  --tlb: #3c62a5;
   /* triple letter value background */
-  --twb: #7F3A3E;
+  --twb: #7d3941;
   /* triple word value background */
-  --dlb: #729B67;
+  --dlb: #76986f;
   /* double letter value background */
-  --dwb: #B77320;
+  --dwb: #b77525;
   /* double word value background */
-  --ctb: #64415F;
+  --ctb: #60435f;
   /* center color background */
   --tlc: white;
   /* triple letter value textcolor */
@@ -21,15 +20,19 @@
   /* double word value textcolor */
   --ctc: white;
   /* center color textcolor */
-  --tileb: #F2EEE9C8;
-  /* player letters background */
-  --tilec: #0d1116;
-  /* invert(var(--letter)); */
-  --lightmono: #2C2F36;
-  --darkmono: #1D1D1D;
-  --bhb: #a0a0a0;
+  --tileb: #e8e6e1c8;
+  /* tile background */
+  --playedb: #eae496c8;
+  /* played tile background */
+  --tilec: #33302f;
+  /* tile background */
+  --sqb: #24292f;
+  /* square background */
+  --bb: #1b1b1b;
+  /* board background */
+  --bhb: #dbdbdb;
   /* board header color background */
-  --bhc: black;
+  --bhc: #de2f32;
   /* board header textcolor */
 
   /* size vars */
@@ -76,7 +79,7 @@
   margin: 0;
   top: 0;
 
-  background: none;
+  background: var(--sqb);
 
 }
 
@@ -157,7 +160,7 @@
 
 .board {
   margin: 0;
-  background: var(--darkmono);
+  background: var(--bb);
 
   td {
     position: relative;
@@ -165,6 +168,7 @@
     width_: var(--cellsize);
     line-height: var(--cellsize);
     text-align: center;
-
+    background: var(--bb);
   }
+
 }
