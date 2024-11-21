@@ -121,7 +121,7 @@
             "name": "autoplay with html",
             "args": [
                 "-debug=0",
-                "-rand=123456789",
+                "-rand=1234",
                 "-out=./tmp/abc",
                 "-format=html",
                 "autoplay",

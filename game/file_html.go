@@ -405,7 +405,17 @@ func FprintHtmlStateBoard(f io.Writer, state *GameState) error {
 			switch tile.kind {
 			case TILE_JOKER, TILE_LETTER:
 				letterScore := board.game.GetTileScore(tile.Tile)
-				tc = p.Sprintf(`<div class="tile">%s<span class="score">%d</span></div>`, tile.letter.String(corpus), letterScore)
+				tileClass := "tile"
+				if int(r) >= placedMinRow && int(r) <= placedMaxRow && int(c) >= placedMinColumn && int(c) <= placedMaxColumn {
+					for _, t := range state.move.tiles {
+						if t.pos.equal(Position{r, c}) {
+							tileClass = "played"
+							break
+						}
+					}
+				}
+				tc = p.Sprintf(`<div class="%s">%s<span class="score">%d</span></div>`,
+					tileClass, tile.letter.String(corpus), letterScore)
 			}
 
 			if k != "" {
