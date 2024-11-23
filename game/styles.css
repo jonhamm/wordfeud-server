@@ -45,48 +45,53 @@
   box-sizing: border-box;
 }
 
+.header {
+  font-size: xx-large;
+  text-align: center;
+  font-weight: bolder;
+
+}
+
+.move {
+  font-size: x-large;
+  text-align: center;
+  font-weight: bolder;
+
+}
+
+.navigate {
+  font-size: 24px;
+  background-color: #3c62a5;
+  border-color: darkblue;
+  border-width: 3px;
+  border-radius: 10px;
+  color: yellowgreen;
+  padding: 4px 10px
+}
+
+[disabled] {
+  opacity: 50%;
+}
+
+.board {
+  margin-top: 20px;
+  background: var(--bb);
+
+  td {
+    position: relative;
+    height: var(--cellsize);
+    width: var(--cellsize);
+    line-height: var(--cellsize);
+    text-align: center;
+    background: var(--bb);
+  }
+
+}
+
 .thh, .thv {
   background: var(--bhb);
   height: var(--cellsize);
   width: var(--cellsize);
-}
-
-
-.tile {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  top: 0;
-
-  background: var(--tileb);
-  color: var(--tilec);
-  text-align: center;
-  font-size: 24px;
-}
-
-.played {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  top: 0;
-
-  background: var(--playedb);
-  color: var(--tilec);
-  text-align: center;
-  font-size: 24px;
-}
-
-.score {
-  position: absolute;
-  font-size: 12px;
-  position: absolute;
-  top: 2px;
-  right: 4px;
-  display: block;
-  line-height: 1;
-
 }
 
 .square {
@@ -175,17 +180,100 @@
   }
 }
 
-.board {
+.tile {
+  position: absolute;
+  width: 100%;
+  height: 100%;
   margin: 0;
+  top: 0;
+
+  background: var(--tileb);
+  color: var(--tilec);
+  text-align: center;
+  font-size: 24px;
+}
+
+.played {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  top: 0;
+
+  background: var(--playedb);
+  color: var(--tilec);
+  text-align: center;
+  font-size: 24px;
+}
+
+.tile .score, .played .score {
+  position: absolute;
+  font-size: 12px;
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  display: block;
+  line-height: 1;
+
+}
+
+.canvas {
+  background-color: var(--bhb);
+  width: 740px;
+  padding: 10px;
+}
+
+.buttons {
+  margin: 0 auto;
+  background-color: var(--bhb);
+
+  td {
+
+    position: relative;
+    text-align: center;
+  }
+
+}
+
+.players {
+  margin: 0 auto;
+  background-color: var(--bhb);
+
+  td {
+
+    position: relative;
+    text-align: center;
+  }
+
+}
+
+.player .name {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.player .total-score {
+  font-size: 24px;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.player .rack {
+  margin-left: 10px;
+}
+
+
+
+.rack {
+
   background: var(--bb);
 
   td {
     position: relative;
-    height_: var(--cellsize);
-    width_: var(--cellsize);
+    height: var(--cellsize);
+    width: var(--cellsize);
     line-height: var(--cellsize);
     text-align: center;
-    background: var(--bb);
   }
 
 }

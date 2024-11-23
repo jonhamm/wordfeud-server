@@ -228,8 +228,6 @@ func updateMoveHtml(state *GameState, lastMove uint, dirName string, gameEnded b
 	var err error
 	var f *os.File
 	move := state.move
-	game := state.game
-	corpus := game.corpus
 	seqno := uint(0)
 	if move != nil {
 		seqno = move.seqno
@@ -253,47 +251,49 @@ func updateMoveHtml(state *GameState, lastMove uint, dirName string, gameEnded b
 
 	writeHtmlHeader(f, p, lang)
 	p.Fprintln(f, "<body>")
-	p.Fprintln(f, "<h2>")
+	// HEADER
+	p.Fprintln(f, `<div class="canvas">`)
 	if seqno == 0 {
-		p.Fprintln(f, Localized(lang, "Initial board"))
+		p.Fprintln(f, `<div class="header">`+Localized(lang, "Initial board")+`</div>`)
 	} else {
 		player := move.playerState.player
 		word := move.state.TilesToString(move.tiles.Tiles())
 		startPos := move.position
-		endPos := startPos
-		if game.IsValidPos(startPos) {
-			_, endPos = state.RelativePosition(startPos, move.direction, Coordinate(len(word)))
-		}
-		p.Fprintf(f, Localized(lang, "Move number %d<br/>%s played %s %s..%s \"%s\" giving score %d")+"\n",
-			move.seqno, player.name, move.direction.Orientation().Localized(lang), startPos.String(), endPos.String(), word, move.score.score)
-
+		p.Fprintf(f, `<div class="header">`+Localized(lang, "Move number %d")+`</div>`, move.seqno)
+		p.Fprintf(f, `<div class="move">`+Localized(lang, `%s played %s %s "%s" for %d points`)+`</div>`,
+			player.name, move.direction.Orientation().String(), startPos.String(), word, move.score.score)
 	}
-	p.Fprintln(f, "</h2>")
+	p.Fprintln(f, `</div>`)
 
-	p.Fprintln(f, "<p>")
-	if seqno > 0 {
-		p.Fprintf(f, `<a href="file:move-%d.html"><button class="navigate">%s</button></a>`, seqno-1, Localized(lang, "previous move"))
-	} else {
-		p.Fprintf(f, `<button class="navigate disabled">%s</button>`, Localized(lang, "previous move"))
+	// Navigation buttons
+	p.Fprintln(f, `<div class="canvas">`)
+	p.Fprintln(f, `<table class="buttons">`)
+	p.Fprintln(f, `<tr>`)
+	disabled := ""
+	if seqno == 0 {
+		disabled = " disabled"
 	}
-	p.Fprintln(f, "&nbsp&nbsp&nbsp\n")
-	p.Fprintf(f, `<a href="file:index.html"><button class="navigate">%s</button></a>`, Localized(lang, "game overview"))
-	p.Fprintln(f, "&nbsp&nbsp&nbsp\n")
+	p.Fprintf(f, `<td><a href="file:move-%d.html"><button class="navigate"%s>&lArr;%s&lArr;</button></a></td>`+"\n",
+		seqno-1, disabled, Localized(lang, "previous move"))
+	p.Fprintf(f, `<td><a href="file:index.html"><button class="navigate">&uArr;%s&uArr;</button></a></td>`+"\n",
+		Localized(lang, "game overview"))
 
-	if !gameEnded || seqno < lastMove {
-		p.Fprintf(f, `<a href="file:move-%d.html"><button class="navigate">%s</button></a>`, seqno+1, Localized(lang, "next move"))
-	} else {
-		p.Fprintf(f, `<button class="navigate disabled">%s</button>`, Localized(lang, "next move"))
+	disabled = ""
+	if gameEnded && seqno >= lastMove {
+		disabled = " disabled"
 	}
+	p.Fprintf(f, `<td><a href="file:move-%d.html"><button class="navigate"%s>&rArr;%s&rArr;</button></a></td>`+"\n",
+		seqno+1, disabled, Localized(lang, "next move"))
+
+	p.Fprintln(f, `</tr>`)
+	p.Fprintln(f, `</table>`)
+	p.Fprintln(f, `</div>`)
+
 	p.Fprintln(f, "\n</p>")
 
-	p.Fprintln(f, "<h3>")
-	for _, ps := range state.playerStates {
-		if ps.player.id != SystemPlayerId {
-			p.Fprintf(f, Localized(lang, "%s has total score %d and %s")+"<br/>\n", ps.player.name, ps.score, ps.rack.Pretty(corpus))
-		}
+	if err = writeHtmlPlayerStates(f, state); err != nil {
+		return err
 	}
-	p.Fprintln(f, "</h3>")
 
 	FprintHtmlStateBoard(f, state)
 
@@ -320,6 +320,91 @@ func writeHtmlHeader(f io.Writer, p *message.Printer, lang language.Tag) {
 	<link rel="stylesheet" href="styles.css">
 </head>
 	`, lang.String())
+}
+
+func writeHtmlPlayerStates(f io.Writer, state *GameState) error {
+	game := state.game
+	p := game.fmt
+	corpus := game.corpus
+	states := state.playerStates
+	lang := corpus.Language()
+	// Player states
+	if _, err := p.Fprintln(f, `<div class="canvas">`); err != nil {
+		return err
+	}
+	if _, err := p.Fprintln(f, `  <table class="players">`); err != nil {
+		return err
+	}
+
+	for _, ps := range states {
+		if ps.player.id == SystemPlayerId {
+			continue
+		}
+		if _, err := p.Fprintln(f, `    <tr class="player">`); err != nil {
+			return err
+		}
+		if _, err := p.Fprintf(f, `       <td><div class="name">%s</div></td>`, ps.player.name); err != nil {
+			return err
+		}
+		if _, err := p.Fprintf(f, `       <td><div class="total-score">`+Localized(lang, "%d points")+`</div></td>`, ps.score); err != nil {
+			return err
+		}
+		if _, err := p.Fprintln(f, `      <td>`); err != nil {
+			return err
+		}
+		if _, err := p.Fprintln(f, `          <table class="rack">`); err != nil {
+			return err
+		}
+		if _, err := p.Fprintln(f, `             <tr>`); err != nil {
+			return err
+		}
+		for _, t := range ps.rack {
+			if _, err := p.Fprintln(f, `                <td>`); err != nil {
+				return err
+			}
+			letter := ""
+			letterScore := Score(0)
+			switch t.kind {
+			case TILE_LETTER:
+				letter = t.letter.String(corpus)
+				letterScore = game.letterScores[t.letter]
+			case TILE_JOKER:
+				letter = "?"
+			default:
+			}
+			if letter != "" {
+				if _, err := p.Fprintf(f, `<div class="square"><div class="tile">%s<span class="score">%d</span></div></div>`+"\n", letter, letterScore); err != nil {
+					return err
+				}
+			} else {
+				if _, err := p.Fprintf(f, `<div class="square"></div>`+"\n", letter, letterScore); err != nil {
+					return err
+				}
+			}
+
+			if _, err := p.Fprintln(f, `                </td>`); err != nil {
+				return err
+			}
+
+		}
+
+		if _, err := p.Fprintln(f, `             </tr>`); err != nil {
+			return err
+		}
+		if _, err := p.Fprintln(f, `          </table>`); err != nil {
+			return err
+		}
+		if _, err := p.Fprintln(f, `       </td>`); err != nil {
+			return err
+		}
+		if _, err := p.Fprintln(f, `    </tr>`); err != nil {
+			return err
+		}
+	}
+
+	p.Fprintln(f, `  </table>`)
+	p.Fprintln(f, `</div>`)
+	return nil
 }
 
 func FprintHtmlStateBoard(f io.Writer, state *GameState) error {

@@ -52,14 +52,18 @@ func danish(text string) string {
 		return "Spillepladen"
 	case "%s played %s %s..%s \"%s\" giving score %d":
 		return "%s spiller %s %s..%s \"%s\" der giver %d point"
-	case "Move number %d<br/>%s played %s %s..%s \"%s\" giving score %d":
-		return "Træk nummer %d<br/>%s spiller %s %s..%s \"%s\" der giver %d point"
+	case "Move number %d":
+		return "Træk nummer %d"
+	case "%s played %s %s \"%s\" for %d points":
+		return "%s spiller %s %s \"%s\" til %d point"
 	case "game overview":
 		return "spil oversigten"
 	case "previous move":
 		return "foregående træk"
 	case "next move":
 		return "næste træk"
+	case "%d points":
+		return "%d point"
 	}
 	return text
 }

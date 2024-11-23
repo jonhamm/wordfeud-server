@@ -1,4 +1,5 @@
 wordfeud
 *~
 __debug_bin*
+./tmp/*
 tmp/*
