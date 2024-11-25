@@ -5,7 +5,7 @@ import (
 	. "wordfeud/localize"
 )
 
-func WriteGameFileText(f io.Writer, game Game, messages []string) error {
+func WriteGameFileText(f io.Writer, game Game, messages Messages) error {
 	_game := game._Game()
 	fmt := _game.fmt
 	options := _game.options
@@ -14,20 +14,14 @@ func WriteGameFileText(f io.Writer, game Game, messages []string) error {
 	if _, err = fmt.Fprintf(f, Localized(lang, "Scrabble game")+" %s-%d\n\n", _game.options.Name, _game.seqno); err != nil {
 		return err
 	}
-	if _, err = fmt.Fprintf(f, Localized(lang, "Random number generator seed:")+" %d\n", _game.RandSeed); err != nil {
-		return err
-	}
-	if _, err = fmt.Fprintf(f, Localized(lang, "Number of moves in game:")+" %d\n", _game.nextMoveSeqNo-1); err != nil {
-		return err
-	}
-
-	fmt.Fprintf(f, Localized(lang, "Remaining free tiles:")+" (%d) %s\n", len(_game.state.freeTiles), _game.state.freeTiles.String(_game.corpus))
 
 	fmt.Fprintln(f, "")
 
-	for _, m := range messages {
-		if _, err = fmt.Fprintln(f, m); err != nil {
-			return err
+	for _, category := range AllMessageCategories {
+		for _, m := range messages[category] {
+			if _, err = fmt.Fprintln(f, m); err != nil {
+				return err
+			}
 		}
 	}
 

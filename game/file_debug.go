@@ -2,7 +2,7 @@ package game
 
 import "io"
 
-func WriteGameFileDebug(f io.Writer, game Game, messages []string) error {
+func WriteGameFileDebug(f io.Writer, game Game, messages Messages) error {
 	_game := game._Game()
 	fmt := _game.fmt
 	var err error
@@ -15,9 +15,11 @@ func WriteGameFileDebug(f io.Writer, game Game, messages []string) error {
 
 	fmt.Fprintln(f, "")
 
-	for _, m := range messages {
-		if _, err = fmt.Fprintln(f, m); err != nil {
-			return err
+	for _, category := range AllMessageCategories {
+		for _, m := range messages[category] {
+			if _, err = fmt.Fprintln(f, m); err != nil {
+				return err
+			}
 		}
 	}
 

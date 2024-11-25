@@ -6,7 +6,7 @@ import (
 	. "wordfeud/context"
 )
 
-func WriteGameFile(game Game, gameEnded bool, messages []string) (string, error) {
+func WriteGameFile(game Game, gameEnded bool, messages Messages) (string, error) {
 	Errorf := fmt.Errorf
 	options := game.Options()
 	var err error
@@ -27,7 +27,7 @@ func WriteGameFile(game Game, gameEnded bool, messages []string) (string, error)
 	return fileName, err
 }
 
-func WriteFile(game Game, messages []string) (string, error) {
+func WriteFile(game Game, messages Messages) (string, error) {
 	Errorf := fmt.Errorf
 	fileName := GameFileName(game)
 	tmpFileName := fileName + "~"

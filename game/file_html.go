@@ -15,7 +15,7 @@ import (
 	"golang.org/x/text/message"
 )
 
-func WriteGameFileHtml(game Game, gameEnded bool, messages []string) (string, error) {
+func WriteGameFileHtml(game Game, gameEnded bool, messages Messages) (string, error) {
 	_game := game._Game()
 	Errorf := fmt.Errorf
 	state := _game.state
@@ -86,7 +86,7 @@ func rmHtmlDir(dirName string) error {
 	return nil
 }
 
-func updateGameHtml(game Game, dirName string, gameEnded bool, messages []string) error {
+func updateGameHtml(game Game, dirName string, gameEnded bool, messages Messages) error {
 	var err error
 	_game := game._Game()
 	p := _game.fmt
@@ -110,7 +110,7 @@ func updateGameHtml(game Game, dirName string, gameEnded bool, messages []string
 	return nil
 }
 
-func updateIndexHtml(game *_Game, states GameStates, dirName string, messages []string, p *message.Printer, lang language.Tag) error {
+func updateIndexHtml(game *_Game, states GameStates, dirName string, messages Messages, p *message.Printer, lang language.Tag) error {
 	var err error
 	var f *os.File
 	fileName := "index.html"
@@ -129,30 +129,33 @@ func updateIndexHtml(game *_Game, states GameStates, dirName string, messages []
 
 	writeHtmlHeader(f, p, lang)
 	p.Fprintln(f, "<body>")
+	// HEADER
+	if _, err = p.Fprintln(f, `<div class="canvas">`); err != nil {
+		return err
+	}
 
-	if _, err = p.Fprintf(f, "<h2>%s %s-%d</h2>",
+	if _, err = p.Fprintf(f, `<div class="header">%s %s-%d</div>`+"\n",
 		Localized(lang, "Scrabble game"), game.options.Name, game.seqno); err != nil {
 		return err
 	}
-	if _, err = p.Fprintln(f, "<h3>"); err != nil {
+	p.Fprintln(f, `</div>`)
+
+	if _, err = p.Fprintln(f, `<div class="canvas">`); err != nil {
 		return err
 	}
-	if _, err = p.Fprintf(f, "%s %d<br/>\n", Localized(lang, "Random number generator seed:"), game.RandSeed); err != nil {
-		return err
-	}
-	if _, err = p.Fprintf(f, "%s %d<br/>\n", Localized(lang, "Number of moves in game:"), game.nextMoveSeqNo-1); err != nil {
-		return err
-	}
-	for _, m := range messages {
-		if _, err = p.Fprintf(f, "%s<br/>\n", m); err != nil {
+	for _, category := range AllMessageCategories {
+		if _, err = p.Fprintln(f, `<div class="messages">`); err != nil {
 			return err
 		}
+		for _, m := range messages[category] {
+			if _, err = p.Fprintf(f, "%s<br/>\n", m); err != nil {
+				return err
+			}
+		}
+		p.Fprintln(f, `</div><p/>`)
 	}
-	if _, err = p.Fprintln(f, "</h3>"); err != nil {
-		return err
-	}
-
-	fmt.Fprintf(f, Localized(lang, "Remaining free tiles:")+" (%d) %s\n", len(game.state.freeTiles), game.state.freeTiles.String(game.corpus))
+	p.Fprintln(f, `</div>`)
+	p.Fprintln(f, `<p/>`)
 
 	if len(states) > 0 {
 		game := states[0].game
@@ -352,46 +355,7 @@ func writeHtmlPlayerStates(f io.Writer, state *GameState) error {
 		if _, err := p.Fprintln(f, `      <td>`); err != nil {
 			return err
 		}
-		if _, err := p.Fprintln(f, `          <table class="rack">`); err != nil {
-			return err
-		}
-		if _, err := p.Fprintln(f, `             <tr>`); err != nil {
-			return err
-		}
-		for _, t := range ps.rack {
-			if _, err := p.Fprintln(f, `                <td>`); err != nil {
-				return err
-			}
-			letter := ""
-			letterScore := Score(0)
-			switch t.kind {
-			case TILE_LETTER:
-				letter = t.letter.String(corpus)
-				letterScore = game.letterScores[t.letter]
-			case TILE_JOKER:
-				letter = "?"
-			default:
-			}
-			if letter != "" {
-				if _, err := p.Fprintf(f, `<div class="square"><div class="tile">%s<span class="score">%d</span></div></div>`+"\n", letter, letterScore); err != nil {
-					return err
-				}
-			} else {
-				if _, err := p.Fprintf(f, `<div class="square"></div>`+"\n", letter, letterScore); err != nil {
-					return err
-				}
-			}
-
-			if _, err := p.Fprintln(f, `                </td>`); err != nil {
-				return err
-			}
-
-		}
-
-		if _, err := p.Fprintln(f, `             </tr>`); err != nil {
-			return err
-		}
-		if _, err := p.Fprintln(f, `          </table>`); err != nil {
+		if err := writeHtmlRack(f, "          ", game, ps); err != nil {
 			return err
 		}
 		if _, err := p.Fprintln(f, `       </td>`); err != nil {
@@ -404,6 +368,55 @@ func writeHtmlPlayerStates(f io.Writer, state *GameState) error {
 
 	p.Fprintln(f, `  </table>`)
 	p.Fprintln(f, `</div>`)
+	return nil
+}
+
+func writeHtmlRack(f io.Writer, indent string, game *_Game, ps *PlayerState) error {
+	p := game.fmt
+	corpus := game.corpus
+	if _, err := p.Fprintf(f, `%s<table class="rack">`+"\n", indent); err != nil {
+		return err
+	}
+	if _, err := p.Fprintf(f, `%s   <tr>`+"\n", indent); err != nil {
+		return err
+	}
+	for _, t := range ps.rack {
+		if _, err := p.Fprintf(f, `%s      <td>`, indent); err != nil {
+			return err
+		}
+		letter := ""
+		letterScore := Score(0)
+		switch t.kind {
+		case TILE_LETTER:
+			letter = t.letter.String(corpus)
+			letterScore = game.letterScores[t.letter]
+		case TILE_JOKER:
+			letter = "?"
+		default:
+		}
+		if letter != "" {
+			if _, err := p.Fprintf(f, `%s        <div class="square"><div class="tile">%s<span class="score">%d</span></div></div>`+"\n",
+				indent, letter, letterScore); err != nil {
+				return err
+			}
+		} else {
+			if _, err := p.Fprintf(f, `%s        <div class="square"></div>`+"\n", indent); err != nil {
+				return err
+			}
+		}
+
+		if _, err := p.Fprintf(f, `%s      </td>`+"\n", indent); err != nil {
+			return err
+		}
+
+	}
+
+	if _, err := p.Fprintf(f, `%s   </tr>`+"\n", indent); err != nil {
+		return err
+	}
+	if _, err := p.Fprintf(f, `%s</table>`+"\n", indent); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -31,9 +31,22 @@ type PartialMove struct {
 
 type PartialMoves []*PartialMove
 
+type MessageCategory byte
+type MessageCategories []MessageCategory
+
+const (
+	MESSAGE_RESULT = MessageCategory(0)
+	MESSAGE_DETAIL = MessageCategory(1)
+)
+
+var AllMessageCategories = MessageCategories{MESSAGE_RESULT, MESSAGE_DETAIL}
+
+type Messages map[MessageCategory][]string
+
 func (game *_Game) Play() bool {
 	options := game.options
 	lang := game.options.Language
+	p := game.fmt
 
 	curState := game.state
 	playerNo := curState.NextPlayer()
@@ -66,7 +79,7 @@ func (game *_Game) Play() bool {
 	if move != nil {
 		state.move = move
 		game.state = state // == move.state
-		messages := make([]string, 0)
+		messages := make(Messages)
 		result = true
 
 		for _, ps := range game.state.playerStates {
@@ -74,22 +87,26 @@ func (game *_Game) Play() bool {
 		}
 
 		if options.Debug > 0 {
-			game.fmt.Printf("game play completed move : %s\n", playerState.String(game.corpus))
+			p.Printf("game play completed move : %s\n", playerState.String(game.corpus))
 		}
 		for _, ps := range game.state.playerStates {
 			if ps.playerNo != NoPlayer && ps.NumberOfRackTiles() == 0 {
-				messages = append(messages, fmt.Sprintf(Localized(lang, "Game completed after %d moves as %s has no more tiles in rack"), state.move.seqno, ps.player.name))
+				messages.addMessage(MESSAGE_RESULT, fmt.Sprintf(Localized(lang, "Game completed after %d moves as %s has no more tiles in rack"), state.move.seqno, ps.player.name))
 				result = false
 				break
 			}
 		}
 		if result && state.consequtivePasses >= MaxConsequtivePasses {
-			messages = append(messages, fmt.Sprintf(Localized(lang, "Game completed after %d moves as there has been %d conequtive passes"), state.move.seqno, state.consequtivePasses))
+			messages.addMessage(MESSAGE_RESULT, fmt.Sprintf(Localized(lang, "Game completed after %d moves as there has been %d conequtive passes"), state.move.seqno, state.consequtivePasses))
 			result = false
 		}
 
 		if !result {
-			messages = slices.Concat(messages, game.ResultMessages())
+			messages.addMessages(game.ResultMessages())
+			messages.addMessage(MESSAGE_DETAIL, p.Sprintf("%s %d", Localized(lang, "Random number generator seed:"), game.RandSeed))
+			messages.addMessage(MESSAGE_DETAIL, p.Sprintf("%s %d", Localized(lang, "Number of moves in game:"), game.nextMoveSeqNo-1))
+			messages.addMessage(MESSAGE_DETAIL, p.Sprintf(Localized(lang, "Remaining free tiles:")+" (%d) %s",
+				len(game.state.freeTiles), game.state.freeTiles.String(game.corpus)))
 		}
 
 		if options.WriteFile {
@@ -99,23 +116,27 @@ func (game *_Game) Play() bool {
 				return false
 			}
 			if options.Verbose {
-				messages = append(messages,
+				messages.addMessage(MESSAGE_DETAIL,
 					fmt.Sprintf(Localized(lang, "Wrote game file after move %d \"%s\""),
 						game.nextMoveSeqNo-1, gameFileName))
 			} else {
 				if !result {
-					messages = append(messages, fmt.Sprintf(Localized(lang, "Game file is %s"), gameFileName))
+					messages.addMessage(MESSAGE_DETAIL, fmt.Sprintf(Localized(lang, "Game file is %s"), gameFileName))
 				}
 			}
 		}
 
 		if !result && len(messages) > 0 {
 			fmt.Println("")
-		}
-		for _, m := range messages {
-			fmt.Println(m)
-		}
 
+			for _, category := range AllMessageCategories {
+				for _, m := range messages[category] {
+					fmt.Println(m)
+
+				}
+				fmt.Println("")
+			}
+		}
 		if options.Move > 0 && move.seqno >= options.Move {
 			options.Debug = options.MoveDebug
 			options.Move = 0
@@ -124,9 +145,9 @@ func (game *_Game) Play() bool {
 	return result
 }
 
-func (game *_Game) ResultMessages() []string {
+func (game *_Game) ResultMessages() Messages {
 	lang := game.corpus.Language()
-	messages := make([]string, 0)
+	messages := make(Messages)
 	bestScore := Score(0)
 	allPlayers := make(PlayerStates, 0, len(game.state.playerStates))
 
@@ -150,14 +171,14 @@ func (game *_Game) ResultMessages() []string {
 		bestScorePlayerNames = append(bestScorePlayerNames, ps.player.name)
 	}
 	if len(bestScorePlayerNames) > 1 {
-		messages = append(messages, fmt.Sprintf(Localized(lang, "Game is a draw between %d players: %s"),
+		messages.addMessage(MESSAGE_RESULT, fmt.Sprintf(Localized(lang, "Game is a draw between %d players: %s"),
 			len(bestScorePlayerNames), strings.Join(bestScorePlayerNames, ", ")))
 	} else {
-		messages = append(messages, fmt.Sprintf(Localized(lang, "Game is won by %s"),
+		messages.addMessage(MESSAGE_RESULT, fmt.Sprintf(Localized(lang, "Game is won by %s"),
 			bestScorePlayerNames[0]))
 	}
 	for _, ps := range allPlayers {
-		messages = append(messages, fmt.Sprintf(Localized(lang, "%s scored %d and has %s left"),
+		messages.addMessage(MESSAGE_RESULT, fmt.Sprintf(Localized(lang, "%s scored %d and has %s left"),
 			ps.player.name, ps.score, ps.rack.Pretty(game.corpus)))
 	}
 	return messages
@@ -743,5 +764,24 @@ func (pm *PartialMove) Verify() {
 		game.fmt.Print(message)
 		PrintPartialMove(pm)
 		panic(message)
+	}
+}
+
+func (messages Messages) addMessage(category MessageCategory, message string) {
+	if messages[category] == nil {
+		messages[category] = make([]string, 0, 1)
+	}
+	messages[category] = append(messages[category], message)
+}
+
+func (messages Messages) addMessages(newMessages Messages) {
+	if newMessages == nil {
+		return
+	}
+
+	for m, strings := range newMessages {
+		for _, s := range strings {
+			messages.addMessage(m, s)
+		}
 	}
 }

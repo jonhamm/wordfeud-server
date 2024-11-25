@@ -52,6 +52,10 @@
 
 }
 
+.messages {
+  font-size: 20px;
+}
+
 .move {
   font-size: x-large;
   text-align: center;
