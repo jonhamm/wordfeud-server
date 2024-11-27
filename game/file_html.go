@@ -63,7 +63,7 @@ func rmHtmlDir(dirName string) error {
 			return err
 		}
 
-		validFilePtn := regexp.MustCompile(`^((index|move-[0-9]+)\.html)|styles\.css$`)
+		validFilePtn := regexp.MustCompile(`^((index|move-[0-9]+)\.html)|styles\.css|script\.js$`)
 
 		for _, file := range files {
 			if !validFilePtn.Match([]byte(file.Name())) {
@@ -97,6 +97,9 @@ func updateGameHtml(game Game, dirName string, gameEnded bool, messages Messages
 	}
 	if _game.nextWriteSeqNo == 0 {
 		if err = writeHtmlStyles(dirName); err != nil {
+			return err
+		}
+		if err = writeHtmlScript(dirName); err != nil {
 			return err
 		}
 	}
@@ -144,9 +147,34 @@ func updateIndexHtml(game *_Game, states GameStates, dirName string, messages Me
 		return err
 	}
 	for _, category := range AllMessageCategories {
-		if _, err = p.Fprintln(f, `<div class="messages">`); err != nil {
+		divId := ""
+		divClass := "messages"
+		showHide := false
+		switch category {
+		case MESSAGE_RESULT:
+		case MESSAGE_DETAIL:
+			divId = "DetailsShowHide"
+			divClass += " hidden"
+			showHide = true
+		default:
+			continue
+		}
+		if showHide {
+			if _, err = p.Fprintln(f, `<div>`); err != nil {
+				return err
+			}
+			if _, err = p.Fprintln(f, `   <button class="show-hide shown" id="DetailsShow" onClick="showDetails()">`+Localized(lang, "show details")+`</button>`); err != nil {
+				return err
+			}
+			if _, err = p.Fprintln(f, `   <button class="show-hide hidden" id="DetailsHide" onClick="hideDetails()">`+Localized(lang, "hide details")+`</button>`); err != nil {
+				return err
+			}
+			p.Fprintln(f, `</div>`)
+		}
+		if _, err = p.Fprintf(f, `<div class="%s" id="%s">`+"\n", divClass, divId); err != nil {
 			return err
 		}
+		p.Fprintln(f, `<p/>`)
 		for _, m := range messages[category] {
 			if _, err = p.Fprintf(f, "%s<br/>\n", m); err != nil {
 				return err
@@ -163,7 +191,7 @@ func updateIndexHtml(game *_Game, states GameStates, dirName string, messages Me
 		corpus := game.corpus
 		lang := game.corpus.Language()
 
-		p.Fprintln(f, "<dl>")
+		p.Fprintln(f, `<dl class="move-list">`)
 
 		for _, state := range states {
 			move := state.move
@@ -176,12 +204,9 @@ func updateIndexHtml(game *_Game, states GameStates, dirName string, messages Me
 				player := move.playerState.player
 				word := move.state.TilesToString(move.tiles.Tiles())
 				startPos := move.position
-				endPos := startPos
-				if game.IsValidPos(startPos) {
-					_, endPos = state.RelativePosition(startPos, move.direction, Coordinate(len(word)))
-				}
-				p.Fprintf(f, Localized(lang, "%s played %s %s..%s \"%s\" giving score %d"),
-					player.name, move.direction.Orientation().Localized(lang), startPos.String(), endPos.String(), word, move.score.score)
+
+				p.Fprintf(f, Localized(lang, `%s played "%s" %s at %s scoring %d`),
+					player.name, word, move.direction.Orientation().Localized(lang), startPos.String(), move.score.score)
 				p.Fprintln(f, "</a>")
 			}
 			p.Fprintln(f, "</dt>")
@@ -321,6 +346,7 @@ func writeHtmlHeader(f io.Writer, p *message.Printer, lang language.Tag) {
     <title>HTML Other Lists</title>
     <meta charset="utf-8">
 	<link rel="stylesheet" href="styles.css">
+	<script src="script.js"></script>
 </head>
 	`, lang.String())
 }
@@ -559,6 +585,40 @@ func writeHtmlStyles(dirName string) error {
 	}()
 
 	if _, err = f.WriteString(cssStyles); err != nil {
+		return err
+	}
+	if err = f.Close(); err != nil {
+		return err
+	}
+	if err = os.Rename(tmpFilePath, filePath); err != nil {
+		return err
+	}
+	f = nil
+	return nil
+}
+
+//go:embed script.js
+var script string
+
+func writeHtmlScript(dirName string) error {
+	var err error
+	var f *os.File
+
+	fileName := "script.js"
+	tmpFileName := fileName + "~"
+	filePath := path.Join(dirName, fileName)
+	tmpFilePath := path.Join(dirName, tmpFileName)
+	if f, err = os.Create(tmpFilePath); err != nil {
+		return err
+	}
+	defer func() {
+		if f != nil {
+			f.Close()
+			os.Remove(f.Name()) // clean up
+		}
+	}()
+
+	if _, err = f.WriteString(script); err != nil {
 		return err
 	}
 	if err = f.Close(); err != nil {

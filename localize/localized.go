@@ -45,13 +45,13 @@ func danish(text string) string {
 	case "%s move number %d %s %s..%s \"%s\" gives score %d":
 		return "%s træk nummer %d %s %s..%s \"%s\" der giver %d point"
 	case "%s has total score %d and %s":
-		return "%s har samlet %d point og %s"
+		return "%s har %d point og %s"
 	case "initial board":
 		return "spillepladen"
 	case "Initial board":
 		return "Spillepladen"
-	case "%s played %s %s..%s \"%s\" giving score %d":
-		return "%s spiller %s %s..%s \"%s\" der giver %d point"
+	case `%s played "%s" %s at %s scoring %d`:
+		return `%s spiller "%s" %s fra %s til %d point`
 	case "Move number %d":
 		return "Træk nummer %d"
 	case "%s played %s %s \"%s\" for %d points":

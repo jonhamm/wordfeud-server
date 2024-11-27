@@ -73,8 +73,30 @@
   padding: 4px 10px
 }
 
+.show-hide {
+  font-size: 24px;
+  background-color: #3c62a5;
+  border-color: darkblue;
+  border-width: 3px;
+  border-radius: 10px;
+  color: yellowgreen;
+  padding: 4px 10px
+}
+
+.hidden {
+  display: none
+}
+
+.shown {
+  display: block
+}
+
 [disabled] {
   opacity: 50%;
+}
+
+.move-list {
+  font-size: 18px
 }
 
 .board {
