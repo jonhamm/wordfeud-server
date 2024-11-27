@@ -288,8 +288,8 @@ func updateMoveHtml(state *GameState, lastMove uint, dirName string, gameEnded b
 		word := move.state.TilesToString(move.tiles.Tiles())
 		startPos := move.position
 		p.Fprintf(f, `<div class="header">`+Localized(lang, "Move number %d")+`</div>`, move.seqno)
-		p.Fprintf(f, `<div class="move">`+Localized(lang, `%s played %s %s "%s" for %d points`)+`</div>`,
-			player.name, move.direction.Orientation().String(), startPos.String(), word, move.score.score)
+		p.Fprintf(f, `<div class="move">`+Localized(lang, `%s played "%s" %s at %s giving %d points`)+`</div>`,
+			player.name, word, move.direction.Orientation().Localized(lang), startPos.String(), move.score.score)
 	}
 	p.Fprintln(f, `</div>`)
 
