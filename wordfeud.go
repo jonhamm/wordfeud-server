@@ -83,10 +83,8 @@ const httpUsage = `
 		?h=1 				show this usage info
 		?v=1				increase output from execution
 		?d=dd				show Debug output when dd > 0 (the larger dd is the more output)
-		?m=dd				only set Debug as specified by -Debug after move mm has completed
 		?r=nn			    seed random number generator with nn (!= 0)
 							0 or default will seed with timestamp
-		?c=nn	        	repeat count for autoplay - default is 1
 		?n=xxxxx			autoplay game files will be named xxxxx-nn where nn is 1..Count
 							xxxxx default is "scrabble"
 `
@@ -182,7 +180,7 @@ func main() {
 
 	switch cmd {
 	case "serve":
-		//serveCmd(&options, args)
+		serveCmd(&options, args)
 	case "corpus":
 		result := corpusCmd(&options, args)
 		fmt.Print(strings.Join(result.Log, "\n"))

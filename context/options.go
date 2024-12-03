@@ -5,6 +5,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"slices"
 	"strings"
 
 	"golang.org/x/text/language"
@@ -41,7 +42,8 @@ const (
 	FILE_FORMAT_TEXT  = FileFormat(1)
 	FILE_FORMAT_JSON  = FileFormat(2)
 	FILE_FORMAT_HTML  = FileFormat(3)
-	FILE_FORMAT_DEBUG = FileFormat(4)
+	FILE_FORMAT_WWW   = FileFormat(4)
+	FILE_FORMAT_DEBUG = FileFormat(5)
 )
 
 func (format FileFormat) Extension() string {
@@ -53,6 +55,7 @@ func (format FileFormat) Extension() string {
 	case FILE_FORMAT_JSON:
 		return ".json"
 	case FILE_FORMAT_HTML:
+	case FILE_FORMAT_WWW:
 		return ""
 	}
 	panic(fmt.Sprintf("illegal FileFormat %d (FileFormat.Extension)", format))
@@ -66,6 +69,8 @@ func ParseFileFormat(formatSpec string) FileFormat {
 		return FILE_FORMAT_JSON
 	case "html":
 		return FILE_FORMAT_HTML
+	case "www":
+		return FILE_FORMAT_WWW
 	case "dbg", "debug":
 		return FILE_FORMAT_DEBUG
 	}
@@ -83,6 +88,8 @@ func (format FileFormat) String() string {
 		return "json"
 	case FILE_FORMAT_HTML:
 		return "html"
+	case FILE_FORMAT_WWW:
+		return "www"
 	case FILE_FORMAT_DEBUG:
 		return "debug"
 	}
@@ -92,6 +99,30 @@ func (format FileFormat) String() string {
 
 func (options *GameOptions) Print(args ...string) {
 	options.Fprint(os.Stdout, args...)
+}
+
+func (options *GameOptions) Copy() *GameOptions {
+	args := slices.Clone(options.Args)
+	opt := Options{Verbose: options.Verbose, Debug: options.Debug}
+	copy := &GameOptions{
+		Options:    opt,
+		Help:       options.Help,
+		Move:       options.Move,
+		MoveDebug:  options.MoveDebug,
+		RandSeed:   options.RandSeed,
+		Count:      options.Count,
+		Name:       options.Name,
+		Out:        options.Out,
+		Language:   options.Language,
+		Rand:       options.Rand,
+		WriteFile:  options.WriteFile,
+		File:       options.File,
+		Directory:  options.Directory,
+		FileFormat: options.FileFormat,
+		Cmd:        options.Cmd,
+		Args:       args,
+	}
+	return copy
 }
 
 func (options *GameOptions) Fprint(f io.Writer, args ...string) {

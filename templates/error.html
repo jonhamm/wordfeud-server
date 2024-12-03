@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <title>HTML Other Lists</title>
+    <meta charset="utf-8">
+	<style>
+        :root {
+    --bhb: #dbdbdb;
+    /* board header color background */
+    --bhc: #de2f32;
+    /* board header textcolor */
+}
+
+.canvas {
+    background-color: var(--bhb);
+    width: 740px;
+    padding: 10px;
+}
+
+
+.header {
+    font-size: xx-large;
+    text-align: center;
+    font-weight: bolder;
+
+}
+
+	</style>
+</head>
+<body>
+    <div class="canvas">
+        <div class="header">Server Error</div>
+        </div>
+    </div>
+    <div class="canvas">
+        {{.Error}}
+    </div>
+</body>

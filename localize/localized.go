@@ -68,6 +68,10 @@ func danish(text string) string {
 		return `vertikalt`
 	case `horizontal`:
 		return `horisontalt`
+	case `Scrabble`:
+		return `Scrabble`
+	case `Two robot player game`:
+		return `Spil med to robot spillere`
 	}
 	return text
 }

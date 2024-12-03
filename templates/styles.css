@@ -1,0 +1,30 @@
+:root {
+    --bhb: #dbdbdb;
+    /* board header color background */
+    --bhc: #de2f32;
+    /* board header textcolor */
+}
+
+.canvas {
+    background-color: var(--bhb);
+    width: 740px;
+    padding: 10px;
+}
+
+
+.header {
+    font-size: xx-large;
+    text-align: center;
+    font-weight: bolder;
+
+}
+
+.navigate {
+    font-size: 20px;
+    background-color: #3c62a5;
+    border-color: darkblue;
+    border-width: 3px;
+    border-radius: 10px;
+    color: yellowgreen;
+    padding: 4px 10px
+}

@@ -1,7 +1,6 @@
 wordfeud
 *~
 __debug_bin*
-./tmp/*
 tmp/*
 .DS_Store
-node_modules/*
+www/*
