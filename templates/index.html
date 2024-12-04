@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="da">
-<head>
-    <title>HTML Other Lists</title>
-    <meta charset="utf-8">
-	<link rel="stylesheet" href="/www/styles.css">
-	<script src="/www/script.js"></script>
-</head>
-<body>
-    <div class="canvas">
-        <div class="header">{{.Scrabble}}</div>
+    <head>
+        <title>Scrabble</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="/www/styles.css" />
+        <script src="/www/script.js"></script>
+    </head>
+    <body>
+        <div class="canvas">
+            <div class="header">{{.Scrabble}}</div>
+            <div class="header">{{.Autoplay}}</div>
         </div>
-    </div>
-    <div class="canvas">
-        <a href="file:autoplay.html"><button class="navigate">{{.Autoplay}}</button></a>
-    </div>
-</body>
+        <div class="canvas">
+            <a href="/scrabble/autoplay">
+                <button class="navigate">{{.Autoplay}}</button>
+            </a>
+        </div>
+    </body>
+</html>

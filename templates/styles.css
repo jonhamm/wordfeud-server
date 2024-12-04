@@ -19,6 +19,13 @@
 
 }
 
+.subheader {
+    font-size: x-large;
+    text-align: center;
+    font-weight: bolder;
+
+}
+
 .navigate {
     font-size: 20px;
     background-color: #3c62a5;

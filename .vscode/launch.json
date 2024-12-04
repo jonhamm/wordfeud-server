@@ -6,10 +6,16 @@
     "configurations": [
         {
             "name": "debug serve",
-            "args": [
-                "-debug=1",
-                "serve",
-            ],
+            "args": ["-debug=0", "serve"],
+            "type": "go",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "mode": "debug",
+            "program": "."
+        },
+        {
+            "name": "debug serve with debug",
+            "args": ["-debug=1", "serve"],
             "type": "go",
             "request": "launch",
             "console": "integratedTerminal",
@@ -18,10 +24,7 @@
         },
         {
             "name": "debug corpus",
-            "args": [
-                "-debug=1",
-                "corpus"
-            ],
+            "args": ["-debug=1", "corpus"],
             "type": "go",
             "request": "launch",
             "mode": "debug",
@@ -29,10 +32,7 @@
         },
         {
             "name": "debug game",
-            "args": [
-                "-debug=1",
-                "game"
-            ],
+            "args": ["-debug=1", "game"],
             "type": "go",
             "request": "launch",
             "mode": "debug",
@@ -45,7 +45,7 @@
                 "-rand=123456789",
                 "-out=./tmp",
                 "-format=debug",
-                "autoplay",
+                "autoplay"
             ],
             "type": "go",
             "request": "launch",
@@ -59,7 +59,7 @@
                 "-rand=123456789",
                 "-out=./tmp",
                 "-format=debug",
-                "autoplay",
+                "autoplay"
             ],
             "type": "go",
             "request": "launch",
@@ -73,7 +73,7 @@
                 "-rand=11.264.476.570.801.999.552",
                 "-out=./tmp",
                 "-format=text",
-                "nil",
+                "nil"
             ],
             "type": "go",
             "request": "launch",
@@ -88,11 +88,7 @@
             "console": "integratedTerminal",
             "program": ".",
             "env": {},
-            "args": [
-                "--test.v",
-                "--test.run",
-                "Test_DawgCompleteDK"
-            ],
+            "args": ["--test.v", "--test.run", "Test_DawgCompleteDK"],
             "showLog": true
         },
         {
@@ -124,12 +120,12 @@
                 "-rand=1234",
                 "-out=./tmp/abc",
                 "-format=html",
-                "autoplay",
+                "autoplay"
             ],
             "type": "go",
             "request": "launch",
             "mode": "debug",
             "program": "."
-        },
+        }
     ]
 }

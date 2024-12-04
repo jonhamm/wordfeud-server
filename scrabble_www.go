@@ -27,7 +27,7 @@ type errorData struct {
 	Error string
 }
 
-var scrabble = Scrabble{
+var scrabbleData = Scrabble{
 	options:     nil,
 	callCount:   0,
 	seqno:       1,
@@ -36,17 +36,11 @@ var scrabble = Scrabble{
 	templates:   nil,
 }
 
-func scrabbleWWW(server *Server, w http.ResponseWriter, req *http.Request) {
-	if scrabble.callCount == 0 {
-		scrabble.init(server)
+func getScrabble(server *Server) *Scrabble {
+	if scrabbleData.options == nil {
+		scrabbleData.init(server)
 	}
-	scrabble.callCount++
-	lang := scrabble.options.Language
-	data := indexData{
-		Scrabble: Localized(lang, "Scrabble"),
-		Autoplay: Localized(lang, "Two robot player game"),
-	}
-	scrabble.writeTemplate(w, "index.html", data)
+	return &scrabbleData
 }
 
 func (scrabble *Scrabble) init(server *Server) {
@@ -56,6 +50,17 @@ func (scrabble *Scrabble) init(server *Server) {
 	scrabble.options.Directory = "www"
 	writeTemplateScript(scrabble.options.Directory)
 	writeTemplateStyles(scrabble.options.Directory)
+}
+
+func scrabbleWWW(server *Server, w http.ResponseWriter, req *http.Request) {
+	scrabble := getScrabble(server)
+	scrabble.callCount++
+	lang := scrabble.options.Language
+	data := indexData{
+		Scrabble: Localized(lang, "Scrabble"),
+		Autoplay: Localized(lang, "Two robot player game"),
+	}
+	scrabble.writeTemplate(w, "index.html", data)
 }
 
 func (scrabble *Scrabble) writeTemplate(w http.ResponseWriter, name string, data any) {

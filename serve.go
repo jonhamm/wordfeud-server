@@ -100,6 +100,8 @@ func serveCmd(options *GameOptions, args []string) {
 	http.HandleFunc("/hello/", endpointWrapper(server, _hello))
 	http.HandleFunc("/headers/", endpointWrapper(server, _headers))
 	http.HandleFunc("/scrabble/", endpointWrapper(server, scrabbleWWW))
+	http.HandleFunc("/scrabble/autoplay/", endpointWrapper(server, autoplayWWW))
+	http.HandleFunc("/scrabble/autoplay/game", endpointWrapper(server, autoplayGameWWW))
 
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
