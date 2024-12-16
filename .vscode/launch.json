@@ -5,6 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch test function",
+            "internalConsoleOptions": "openOnFirstSessionStart",
+            "preLaunchTask": "build go test",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}/model",
+            "args": ["-test.run", "Test_ModelUser"]
+        },
+        {
             "name": "debug serve",
             "args": ["-debug=0", "serve"],
             "type": "go",
@@ -114,6 +124,17 @@
             "showLog": true
         },
         {
+            "name": "Test store",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "console": "integratedTerminal",
+            "program": "./store",
+            "env": {},
+            "args": [],
+            "showLog": true
+        },
+        {
             "name": "autoplay with html",
             "args": [
                 "-debug=0",
@@ -126,6 +147,17 @@
             "request": "launch",
             "mode": "debug",
             "program": "."
+        },
+        {
+            "name": "Test model",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "console": "integratedTerminal",
+            "program": "bin/model.test",
+            "env": {},
+            "args": ["--test.v"],
+            "showLog": true
         }
     ]
 }

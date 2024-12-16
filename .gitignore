@@ -1,6 +1,15 @@
 wordfeud
+bin
+lib
+bin/**
+lib/**
+.store
+.store/**
+tmp/**
+tmp
 *~
+*.test
 __debug_bin*
-tmp/*
 .DS_Store
-www/*
+www
+www/**
