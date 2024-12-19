@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"path"
@@ -14,6 +15,7 @@ import (
 	. "wordfeud/dawg"
 	. "wordfeud/game"
 
+	"github.com/joho/godotenv"
 	"golang.org/x/text/language"
 )
 
@@ -176,6 +178,11 @@ func main() {
 
 	if options.Verbose {
 		options.Print()
+	}
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
 	}
 
 	switch cmd {

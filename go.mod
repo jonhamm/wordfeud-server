@@ -8,6 +8,7 @@ require (
 )
 
 require (
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/timshannon/bolthold v0.0.0-20240314194003-30aac6950928 // indirect
 	go.etcd.io/bbolt v1.3.11 // indirect
 	golang.org/x/sys v0.15.0 // indirect
