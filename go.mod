@@ -11,4 +11,6 @@ require (
 	github.com/timshannon/bolthold v0.0.0-20240314194003-30aac6950928 // indirect
 	go.etcd.io/bbolt v1.3.11 // indirect
 	golang.org/x/sys v0.15.0 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+	gopkg.in/mail.v2 v2.3.1 // indirect
 )
