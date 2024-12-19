@@ -7,7 +7,7 @@ import (
 	. "wordfeud/game"
 )
 
-func autoplayCmd(options *GameOptions, args []string) *GameResult {
+func autoplayCmd(options *GameOptions, _ []string) *GameResult {
 	result := new(GameResult)
 
 	flag := flag.NewFlagSet("exit", flag.ExitOnError)
