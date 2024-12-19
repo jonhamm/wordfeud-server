@@ -1,6 +1,7 @@
 package store
 
 import (
+	"crypto/sha256"
 	base64 "encoding/base64"
 	"encoding/binary"
 	"math/rand"
@@ -12,7 +13,7 @@ import (
 
 type Store interface {
 	Defer()
-	CreateUser(string, string) (*User, error)
+	CreateUser(string, string, string) (*User, error)
 	DeleteUser(uint64) error
 	LookupUser(uint64) *User
 	LookupUserByName(string) *User
@@ -76,4 +77,13 @@ func Uint64ToBytes(val uint64) []byte {
 	b := make([]byte, 8)
 	binary.LittleEndian.PutUint64(b, val)
 	return b
+}
+
+func CryptoHash(values ...string) string {
+	h := sha256.New()
+	h.Write([]byte(os.Getenv("HASH_SALT")))
+	for _, v := range values {
+		h.Write([]byte(v))
+	}
+	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }

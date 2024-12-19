@@ -96,9 +96,9 @@
             "request": "launch",
             "mode": "test",
             "console": "integratedTerminal",
-            "program": ".",
+            "program": "./store",
             "env": {},
-            "args": ["--test.v", "--test.run", "Test_DawgCompleteDK"],
+            "args": ["--test.v", "--test.run", "Test_CreateUser"],
             "showLog": true
         },
         {

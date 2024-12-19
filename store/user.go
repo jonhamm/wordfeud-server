@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -9,33 +10,56 @@ import (
 
 type Tentative struct {
 	Value      string
+	ValueHash  string
 	Token      string
 	ExpiryTime time.Time
 }
 
 type User struct {
-	ID             uint64 `boltholdKey:"ID"`
-	Name           string `boltholdUnique:"UniqueName"`
-	CreationTime   time.Time
-	Token          string
-	MailHash       string
-	TentativeMail  Tentative
-	TentativeToken Tentative
+	ID                uint64 `boltholdKey:"ID"`
+	Name              string `boltholdUnique:"UniqueName"`
+	PasswordHash      string
+	CreationTime      time.Time
+	Token             string
+	MailHash          string
+	TentativeMail     Tentative
+	TentativePassword Tentative
 }
 
-func (store *_Store) CreateUser(name string, mail string) (*User, error) {
+const (
+	minNameLen     = 4
+	minPasswordLen = 6
+)
+
+func (store *_Store) CreateUser(name string, password string, mail string) (*User, error) {
+	if len(name) < minNameLen {
+		return nil, NewStoreError(STORE_ERROR_USER_NAME_SHORT, fmt.Sprintf("user name must contain at least %d characters", minNameLen))
+	}
+	if len(password) < minPasswordLen {
+		return nil, NewStoreError(STORE_ERROR_USER_NAME_SHORT, fmt.Sprintf("user password must contain at least %d characters", minPasswordLen))
+	}
+	passwordHash := CryptoHash(password)
+	mailHash := CryptoHash(mail)
 	user := &User{
 		ID:           0,
 		Name:         name,
+		PasswordHash: passwordHash,
+		Token:        CreateToken(),
 		CreationTime: time.Now(),
-		TentativeMail: Tentative{
+	}
+	if len(mail) > 0 {
+		user.TentativeMail = Tentative{
 			Value:      mail,
+			ValueHash:  mailHash,
 			Token:      CreateToken(),
 			ExpiryTime: time.Now().Add(time.Hour * 12),
-		},
+		}
 	}
 	if err := store.db.Insert(bh.NextSequence(), user); err != nil {
-		return nil, err
+		if err == bh.ErrUniqueExists {
+			return nil, NewStoreError(STORE_ERROR_USER_NAME_EXISTS, fmt.Sprintf(`user name "%s" allready exists`, user.Name))
+		}
+		return nil, NewStoreError(STORE_ERROR_UNEXPECTED, err.Error())
 	}
 	return user, nil
 }

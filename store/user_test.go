@@ -6,10 +6,15 @@ import (
 
 func Test_CreateUser(t *testing.T) {
 	type CreateUser struct {
-		name string
-		mail string
+		name     string
+		password string
+		mail     string
 	}
-	createUsers := []CreateUser{{"Emma", "emma@funny.org"}, {"John", "john@funny.org"}, {"Bill", "bill@funny.org"}}
+	createUsers := []CreateUser{
+		{"Emma", "PwEmma", "emma@funny.org"},
+		{"John", "PwJohn", "john@funny.org"},
+		{"Bill", "PwBill", ""},
+	}
 	store, err := OpenTestStore("Test_CreateUser")
 	if err != nil {
 		t.Errorf("Test_CreateUser - cannot open store : %s", err.Error())
@@ -18,7 +23,7 @@ func Test_CreateUser(t *testing.T) {
 	users := make([]*User, len(createUsers))
 	IDs := make([]uint64, len(createUsers))
 	for i, u := range createUsers {
-		users[i], err = store.CreateUser(u.name, u.mail)
+		users[i], err = store.CreateUser(u.name, u.password, u.mail)
 		if err != nil {
 			t.Errorf("Test_CreateUser - cannot create user %v\n%s", u.name, err.Error())
 			return
@@ -48,9 +53,13 @@ func Test_CreateUser(t *testing.T) {
 		}
 	}
 	for _, u := range users {
-		user, err := store.CreateUser(u.Name, u.TentativeMail.Value)
+		user, err := store.CreateUser(u.Name, "funnyPW", u.TentativeMail.Value)
 		if err == nil {
 			t.Errorf("Test_CreateUser - created two users with identical name %v: %v and %v", u.Name, u.ID, user.ID)
+			return
+		}
+		if StoreErrorCode(err) != STORE_ERROR_USER_NAME_EXISTS {
+			t.Errorf("Test_CreateUser - expected StoreErrorCode %d but got %d", STORE_ERROR_USER_NAME_EXISTS, StoreErrorCode(err))
 			return
 		}
 	}
