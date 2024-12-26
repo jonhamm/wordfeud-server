@@ -38,19 +38,17 @@ func (store *_Store) CreateUser(name string, password string, mail string) (*Use
 	if len(password) < minPasswordLen {
 		return nil, NewStoreError(STORE_ERROR_USER_NAME_SHORT, fmt.Sprintf("user password must contain at least %d characters", minPasswordLen))
 	}
-	passwordHash := CryptoHash(password)
-	mailHash := CryptoHash(mail)
 	user := &User{
 		ID:           0,
 		Name:         name,
-		PasswordHash: passwordHash,
+		PasswordHash: CryptoHash(password),
 		Token:        CreateToken(),
 		CreationTime: time.Now(),
 	}
 	if len(mail) > 0 {
 		user.TentativeMail = Tentative{
 			Value:      mail,
-			ValueHash:  mailHash,
+			ValueHash:  CryptoHash(mail),
 			Token:      CreateToken(),
 			ExpiryTime: time.Now().Add(time.Hour * 12),
 		}
