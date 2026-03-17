@@ -3,7 +3,7 @@ export LC_COLLATE=C
 curl -o data/corpus_dk.tsv https://ordregister.dk/files/cor1.02.tsv
 cut -f5 data/corpus_dk.tsv | sort -u >data/corpus_dk.txt
 wc -l data/*.txt
-exit
+#exit
 curl -o tmp/ddo.zip https://korpus.dsl.dk/download/ddo-fullform.zip
 unzip -o -d tmp tmp/ddo.zip
 mv tmp/ddo_fullforms_*.csv data/ddo.csv
